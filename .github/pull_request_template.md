@@ -1,24 +1,15 @@
-<!--
-Please read CONTRIBUTING.md first — it's short. One concern per PR;
-big changes should have an issue agreeing on the approach before code.
--->
+## Linear
 
-## What changed
+<!-- Link the SPD issue. -->
 
-## Why
+## Change
 
-## How it was verified
+<!-- What changed and why? Add screenshots for visible changes. -->
 
-<!-- commands run, platforms tested on, what you clicked through -->
+## Checked
 
-## Screenshots (UI changes)
+<!-- Actual commands/results and any remaining limitation. -->
 
-<!-- before/after images; video for anything animated -->
+## Handoff
 
-## Checklist
-
-- [ ] `pnpm typecheck` and `pnpm test` pass locally
-- [ ] Server behavior changes come with tests (see CONTRIBUTING.md → Tests)
-- [ ] No `dist-server/` edits (it's build output)
-- [ ] macOS-only code is platform-gated; no `shell: true` / cmd.exe string-building
-- [ ] No secrets in logs, responses, events, or argv
+<!-- Ready for Dot review or unfinished Draft? State the next step/blocker. -->
