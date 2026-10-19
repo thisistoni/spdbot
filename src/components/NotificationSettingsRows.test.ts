@@ -63,6 +63,14 @@ it.each(["visibilitychange", "focus"] as const)("follows a permission changed in
   expect(fixture.setFinishedNotifications).not.toHaveBeenCalled();
 });
 
+it("labels the device notification switch in German", async () => {
+  setLocale("de");
+  await mount();
+  expect(container.textContent).toContain("Benachrichtigungen auf diesem Gerät");
+  expect(toggle().getAttribute("aria-label")).toBe("Benachrichtigen, wenn ein Bot fertig ist");
+  expect(container.textContent).toContain("solange die App geöffnet ist");
+});
+
 it("asks the browser only from the switch, and turns finished notices on once allowed", async () => {
   permission = "default";
   fixture.optedIn = false;

@@ -1,6 +1,7 @@
 import { createElement, type ReactNode } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { afterEach, describe, expect, it, vi } from "vitest";
+import { setLocale } from "@/lib/i18n";
 
 import type { Bot } from "@/state/store";
 
@@ -30,9 +31,17 @@ function renderDialog(description: string): string {
   );
 }
 
-afterEach(() => vi.unstubAllGlobals());
+afterEach(() => { vi.unstubAllGlobals(); setLocale("en"); });
 
 describe("BotInstructionsDialog", () => {
+  it("labels the dialog and empty state in German", () => {
+    setLocale("de");
+    const markup = renderDialog("  ");
+    expect(markup).toContain("Anweisungen des Bots");
+    expect(markup).toContain("Noch keine Anweisungen");
+    expect(markup).toContain('aria-label="Bot-Anweisungen schließen"');
+  });
+
   it("renders the complete multiline instructions without truncating them", () => {
     const instructions = [
       "BEGIN-INSTRUCTIONS",

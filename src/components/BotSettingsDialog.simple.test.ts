@@ -1,6 +1,7 @@
 import { Children, createElement, isValidElement, type ReactElement, type ReactNode } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { afterAll, beforeEach, describe, expect, it, vi } from "vitest";
+import { setLocale } from "@/lib/i18n";
 
 import type { Routine } from "@/lib/routines";
 import type { BotOverview } from "@/lib/bot-overview-types";
@@ -210,6 +211,7 @@ const overviewWith = (setup: BotOverview["setup"]): BotOverview => ({
 });
 
 beforeEach(() => {
+  setLocale("en");
   fixture.advanced = false;
   fixture.setAdvanced = vi.fn();
   fixture.ownerOrAdmin = false;
@@ -892,6 +894,16 @@ describe("the Library tab", () => {
 
 describe("the Settings tab", () => {
   const row = (rendered: { nodes: Node[] }, id: string) => find(rendered, "data-panel-row", id);
+
+  it("shows the common bot setting groups and destructive action in German", () => {
+    setLocale("de");
+    const { html } = settings(makeBot());
+    expect(html).toContain("Zusammenarbeit");
+    expect(html).toContain("Werkzeuge");
+    expect(html).toContain("Benachrichtigungen");
+    expect(html).toContain("Scout löschen");
+    expect(html).not.toContain("Delete Scout");
+  });
 
   it("groups Profile, Teamwork, Tools, Sharing, Activity, the bot's own card and Advanced mode", () => {
     const { html } = settings(makeBot());

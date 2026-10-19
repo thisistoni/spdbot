@@ -37,6 +37,14 @@ afterEach(() => {
 });
 
 describe("new thread working folder", () => {
+  it("explains the folder path in German with the SPDBot name", () => {
+    setLocale("de");
+    flushSync(() => root.render(createElement(NewTaskFolderDialog, { bot, onClose })));
+    expect(document.body.textContent).toContain("auf dem SPDBot läuft");
+    expect(document.body.textContent).toContain("Arbeitsordner");
+    expect(field().placeholder).toBe("Absoluter Ordnerpfad");
+  });
+
   it("prefills the default, then submits the explicit path to a new task without editing the old one", () => {
     expect(field().value).toBe("/projects/default");
     expect(document.activeElement).toBe(field());

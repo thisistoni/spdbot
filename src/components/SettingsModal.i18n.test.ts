@@ -34,6 +34,15 @@ afterEach(() => {
 });
 
 describe("Settings → General", () => {
+  it("renders the common German settings without falling back to English", async () => {
+    setLocale("de");
+    const html = await renderSettings();
+    expect(html).toContain("Erweiterter Modus");
+    expect(html).toContain("Denktiefe für neue Bots");
+    expect(html).toContain("Einführung erneut ansehen");
+    expect(html).not.toContain("Effort for new bots");
+  });
+
   it("renders in the language the picker selected, and re-renders in the next one", async () => {
     setLocale("pt-br");
     const pt = await renderSettings();

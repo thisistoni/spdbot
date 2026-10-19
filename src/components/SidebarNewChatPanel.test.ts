@@ -3,6 +3,7 @@ import { createElement } from "react";
 import { flushSync } from "react-dom";
 import { createRoot, type Root } from "react-dom/client";
 import { afterEach, describe, expect, it, vi } from "vitest";
+import { setLocale } from "@/lib/i18n";
 
 const fixture = vi.hoisted(() => ({ dispatch: vi.fn(), showThreads: true }));
 vi.mock("@/state/store", async (importOriginal) => ({
@@ -64,6 +65,7 @@ describe("SidebarNewChatPanel", () => {
     root = undefined;
     fixture.dispatch.mockReset();
     fixture.showThreads = true;
+    setLocale("en");
   });
 
   function open() {
@@ -92,6 +94,15 @@ describe("SidebarNewChatPanel", () => {
     expect(text).not.toContain("Writes the newsletter");
     expect(container!.querySelector("[aria-label^='Quill, Writes the newsletter']")).not.toBeNull();
     expect(text).not.toContain("Ghost");
+  });
+
+  it("shows the new-chat actions and search results in German", () => {
+    setLocale("de");
+    const { input } = open();
+    expect(container!.textContent).toContain("Neuen Bot erstellen");
+    expect(container!.textContent).toContain("Gruppenchat erstellen");
+    type(input, "zzz");
+    expect(container!.textContent).toContain("Kein Bot passt zu „zzz“");
   });
 
   it("starts a new thread with the first bot on Enter", () => {

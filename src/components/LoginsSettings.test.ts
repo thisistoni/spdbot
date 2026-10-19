@@ -2,6 +2,7 @@
 import { act, createElement } from "react";
 import { createRoot, type Root } from "react-dom/client";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { setLocale } from "@/lib/i18n";
 
 const fixture = vi.hoisted(() => ({ api: vi.fn(), admin: true as boolean | null, config: null as { cloudHome?: boolean } | null }));
 vi.mock("@/state/store", async (importOriginal) => ({
@@ -23,6 +24,7 @@ const VAULT_LOGIN = { id: "1password:v1:i1:example.com", site: "example.com", ho
 const OFF = { connected: false };
 
 beforeEach(() => {
+  setLocale("en");
   fixture.api.mockReset();
   fixture.admin = true;
   fixture.config = null;
@@ -33,6 +35,7 @@ beforeEach(() => {
 afterEach(() => {
   act(() => root.unmount());
   host.remove();
+  setLocale("en");
 });
 
 async function render() {
@@ -54,6 +57,17 @@ async function submit() {
 }
 
 describe("Settings → Logins", () => {
+  it("shows the German login limits and exact-address option", async () => {
+    setLocale("de");
+    fixture.api.mockResolvedValueOnce({ logins: [], onePassword: OFF });
+    await render();
+    expect(host.textContent).toContain("Ein Bot sieht das Passwort nie");
+    expect(host.textContent).toContain("Noch keine Anmeldungen gespeichert");
+    await click("Anmeldung hinzufügen");
+    expect(host.textContent).toContain("Nur unter dieser genauen Adresse");
+    expect(host.textContent).not.toContain("Only on this exact address");
+  });
+
   it("lists each login by site, the sign-in hosts it also fills on, username, 2FA, source, who may use it and last use", async () => {
     fixture.api.mockResolvedValueOnce({ logins: [CARD_LOGIN, SHARED_LOGIN, TENANT_LOGIN], onePassword: OFF });
     await render();

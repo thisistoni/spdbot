@@ -2,11 +2,25 @@ import { createElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { readFileSync } from "node:fs";
 import { describe, expect, it, vi } from "vitest";
+import { setLocale } from "@/lib/i18n";
 import { ChatErrorBanner, ChatNotice } from "./ChatErrorBanner";
 
 const source = (name: string) => readFileSync(new URL(`../${name}`, import.meta.url), "utf8");
 
 describe("ChatErrorBanner", () => {
+  it("renders a missing thread notice and dismiss action in German", () => {
+    setLocale("de");
+    try {
+      const banner = renderToStaticMarkup(createElement(ChatErrorBanner, { message: "Fehler", onDismiss: () => undefined }));
+      const notice = renderToStaticMarkup(createElement(ChatNotice, { notice: { kind: "thread-gone", botName: "Ada" } }));
+      expect(banner).toContain('aria-label="Schließen"');
+      expect(notice).toContain("Stattdessen wird Ada angezeigt");
+      expect(notice).not.toContain("Showing Ada instead");
+    } finally {
+      setLocale("en");
+    }
+  });
+
   it("renders nothing when there is no error", () => {
     expect(renderToStaticMarkup(createElement(ChatErrorBanner, { message: null, onDismiss: () => undefined }))).toBe("");
   });
