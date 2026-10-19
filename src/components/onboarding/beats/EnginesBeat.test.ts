@@ -76,6 +76,14 @@ afterEach(() => {
 });
 
 describe("organisation sign-in in the engines beat", () => {
+  it("renders local connection counts and the ready state in German", () => {
+    setLocale("de");
+    expect(render().html).toContain("0 bereit");
+    expect(render().html).toContain("2 einzurichten");
+    store.instances = [personal("claude", true)];
+    expect(render().html).toContain("Deine Bots können sofort loslegen");
+  });
+
   it("is absent without the desktop bridge, and the counts are unchanged", () => {
     const { html, row } = render();
     expect(row).toBeUndefined();

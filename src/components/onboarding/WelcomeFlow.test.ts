@@ -69,6 +69,19 @@ afterEach(() => {
 });
 
 describe("the import step in the welcome flow", () => {
+  it("labels the local welcome, progress, navigation, and last step in German", () => {
+    setLocale("de");
+    const first = render();
+    expect(first).toContain('aria-label="Einführung"');
+    expect(first).toContain("Schritt 1 von 4");
+    expect(first).toContain("Einführung überspringen");
+    fixture.values = [];
+    const last = render({ initialBeat: "bot" });
+    expect(last).toContain("Lerne deinen ersten Bot kennen");
+    expect(last).toContain(">Zurück</button>");
+    expect(last).toContain("Schritt 4 von 4");
+  });
+
   it("joins after the engines when the desktop app's own server finds something new", async () => {
     local.detect.mockResolvedValue(FOUND);
     expect(render()).toContain("Step 1 of 4");
