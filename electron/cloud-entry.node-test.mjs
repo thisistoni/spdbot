@@ -3,7 +3,7 @@ import test from "node:test";
 import { readFileSync } from "node:fs";
 import { runInNewContext } from "node:vm";
 import { patchOrganizationUpdater } from "../scripts/patch-organization-updater.mjs";
-import { CLOUD_DEEP_LINK, createCloudEntry, isCloudDeepLink, takeCloudDeepLink } from "./cloud-entry.mjs";
+import { CLOUD_DEEP_LINK, createCloudEntry, createCloudOfferPolicy, isCloudDeepLink, takeCloudDeepLink } from "./cloud-entry.mjs";
 
 const main = readFileSync(new URL("./main.mjs", import.meta.url), "utf8").replace(/\r\n/g, "\n");
 const between = (start, end) => {
@@ -20,6 +20,105 @@ function fixture({ open = async () => true } = {}) {
   return { calls, entry };
 }
 const settle = async () => { for (let i = 0; i < 5; i++) await Promise.resolve(); };
+
+function offerFixture() {
+  const state = { packaged: true, remote: null, ready: false, port: 8799 };
+  const calls = [];
+  let status = { source: "default" };
+  const policy = createCloudOfferPolicy({
+    isPackaged: () => state.packaged, isRemote: () => state.remote,
+    serverReady: () => state.ready, serverPort: () => state.port,
+    refreshMenu: () => calls.push("menu"),
+    fetch: async (url, options) => {
+      calls.push({ url, signal: options.signal });
+      return { ok: true, json: async () => status };
+    },
+  });
+  return { policy, state, calls, setStatus: value => { status = value; } };
+}
+
+test("Cloud offers stay disabled before and after brand lookup in every desktop mode", async () => {
+  for (const packaged of [false, true]) for (const remote of [null, { origin: "https://remote.example" }]) {
+    for (const source of ["default", "file"]) {
+      const h = offerFixture();
+      Object.assign(h.state, { packaged, remote, ready: true });
+      h.setStatus({ source });
+      assert.equal(h.policy.cloudOffersAllowed(), false);
+      assert.equal(await h.policy.cloudOffersReady(), false);
+      assert.deepEqual(h.calls, [], "readiness never probes or advertises an unowned checkout");
+      await h.policy.readCloudOfferBrand();
+      const callCount = h.calls.length;
+      assert.equal(h.policy.cloudOffersAllowed(), false);
+      assert.equal(await h.policy.cloudOffersReady(), false);
+      assert.equal(h.calls.length, callCount, "readiness does not add a brand request");
+    }
+  }
+});
+
+test("brand lookup uses current desktop state and port, then refreshes the menu only once", async () => {
+  const h = offerFixture();
+  assert.deepEqual(h.calls, [], "constructing the policy does not read runtime state");
+  h.state.packaged = false;
+  await h.policy.readCloudOfferBrand();
+  h.state.packaged = true;
+  h.state.remote = {};
+  await h.policy.readCloudOfferBrand();
+  assert.deepEqual(h.calls, [], "development and companion client mode skip brand lookup");
+  h.state.remote = null;
+  h.state.port = 9876;
+  await h.policy.readCloudOfferBrand();
+  assert.equal(h.calls[0].url, "http://127.0.0.1:9876/api/brand");
+  assert.ok(h.calls[0].signal instanceof AbortSignal);
+  assert.deepEqual(h.calls.slice(1), ["menu"]);
+  await h.policy.readCloudOfferBrand();
+  assert.equal(h.calls.length, 2, "a resolved brand is cached");
+});
+
+test("brand lookup failures remain retryable and concurrent successes refresh only once", async () => {
+  const replies = [];
+  let refreshes = 0;
+  const policy = createCloudOfferPolicy({
+    isPackaged: () => true, isRemote: () => false, serverReady: () => true, serverPort: () => 8799,
+    refreshMenu: () => { refreshes++; },
+    fetch: () => new Promise((resolve, reject) => replies.push({ resolve, reject })),
+  });
+  const failed = policy.readCloudOfferBrand();
+  replies.shift().reject(new Error("server unavailable"));
+  await failed;
+  const unavailable = policy.readCloudOfferBrand();
+  replies.shift().resolve({ ok: false });
+  await unavailable;
+  const invalid = policy.readCloudOfferBrand();
+  replies.shift().resolve({ ok: true, json: async () => { throw new Error("invalid JSON"); } });
+  await invalid;
+  assert.equal(refreshes, 0);
+  const first = policy.readCloudOfferBrand(), second = policy.readCloudOfferBrand();
+  replies[1].resolve({ ok: true, json: async () => ({ source: "file" }) });
+  await second;
+  replies[0].resolve({ ok: true, json: async () => ({ source: "default" }) });
+  await first;
+  assert.equal(refreshes, 1, "the first successful response wins");
+  assert.equal(await policy.cloudOffersReady(), false);
+});
+
+test("main binds the offer policy to live runtime values and reads the brand when its server is ready", () => {
+  let dependencies;
+  const context = {
+    app: { isPackaged: false }, desktopRemoteAccess: null, serverReady: false, SERVER_PORT: 8799,
+    refreshApplicationMenu() {}, createCloudOfferPolicy: value => { dependencies = value; return {}; },
+  };
+  runInNewContext(between("const { readCloudOfferBrand, cloudOffersAllowed, cloudOffersReady }", "const menuDate"), context);
+  context.app.isPackaged = true;
+  context.desktopRemoteAccess = { origin: "https://remote.example" };
+  context.serverReady = true;
+  context.SERVER_PORT = 9876;
+  assert.equal(dependencies.isPackaged(), true);
+  assert.equal(dependencies.isRemote(), context.desktopRemoteAccess);
+  assert.equal(dependencies.serverReady(), true);
+  assert.equal(dependencies.serverPort(), 9876);
+  assert.equal(dependencies.refreshMenu, context.refreshApplicationMenu);
+  assert.match(between("  onReady(proc) {", "    syncManagedComposioCredentials();"), /void readCloudOfferBrand\(\);/);
+});
 
 test("the Cloud protocol is a fixed action without URL routing or credentials", () => {
   assert.equal(CLOUD_DEEP_LINK, "openmausbot://cloud");
@@ -168,8 +267,4 @@ test("Cloud checkout stays disabled in this fork; the guarded legacy sheet path 
   assert.match(add, /const action = source === "app_howto" \? "cloud-add-howto" : "cloud-add";/);
   assert.deepEqual([...add.matchAll(/webContents\.send\(([^)]*)\)/g)].map(match => match[1]), ['"app:open-settings", action']);
   assert.deepEqual([...add.matchAll(/loadURL\((.*)\);/g)].map(match => match[1]), ["`${rendererOrigin()}/?desktop-settings=${action}`"]);
-  assert.match(main, /const OWNED_CLOUD_OFFERS_AVAILABLE = false;/);
-  assert.match(between("function cloudOffersAllowed()", "\n}\n"), /return OWNED_CLOUD_OFFERS_AVAILABLE && app\.isPackaged && !desktopRemoteAccess && brandedBuild === false;/);
-  assert.match(between("async function cloudOffersReady()", "\n}\n"), /if \(!OWNED_CLOUD_OFFERS_AVAILABLE\) return false;/);
-  assert.match(between("async function readCloudOfferBrand()", "\n}\n"), /fetch\(`http:\/\/127\.0\.0\.1:\$\{SERVER_PORT\}\/api\/brand`/);
 });

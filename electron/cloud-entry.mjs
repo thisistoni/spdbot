@@ -13,6 +13,30 @@ export function takeCloudDeepLink(argv) {
   return found;
 }
 
+// This fork has no owned Cloud checkout; retain existing account access without advertising upstream plans.
+const OWNED_CLOUD_OFFERS_AVAILABLE = false;
+
+export function createCloudOfferPolicy({ isPackaged, isRemote, serverReady, serverPort, refreshMenu, fetch: fetchImpl = fetch }) {
+  let brandedBuild = null;
+  async function readCloudOfferBrand() {
+    if (brandedBuild !== null || !isPackaged() || isRemote()) return;
+    const status = await fetchImpl(`http://127.0.0.1:${serverPort()}/api/brand`, { signal: AbortSignal.timeout(3_000) })
+      .then(res => (res.ok ? res.json() : null)).catch(() => null);
+    if (!status || brandedBuild !== null) return;
+    brandedBuild = status.source === "file";
+    refreshMenu();
+  }
+  function cloudOffersAllowed() {
+    return OWNED_CLOUD_OFFERS_AVAILABLE && isPackaged() && !isRemote() && brandedBuild === false;
+  }
+  async function cloudOffersReady() {
+    if (!OWNED_CLOUD_OFFERS_AVAILABLE) return false;
+    if (brandedBuild === null && serverReady()) await readCloudOfferBrand();
+    return cloudOffersAllowed();
+  }
+  return { readCloudOfferBrand, cloudOffersAllowed, cloudOffersReady };
+}
+
 export function createCloudEntry({ reveal, open }) {
   let pending = false, ready = false;
   async function deliver() {

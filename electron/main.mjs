@@ -92,7 +92,7 @@ import { DESKTOP_PORTS, jsonFile, registerDesktopPrefs } from "./desktop-prefs.m
 import { createDesktopIncludedX } from "./included-x.mjs";
 import { cloudHomeConnectUrl, cloudPlanDisk, cloudUnreachableText, isCloudHomeEntry, myCloudOrigin, rememberedCloudHome, savedCloudHomeOrigin, signInCloudSession, withCloudHome } from "./cloud-home.mjs";
 import { installCloudFiles } from "./cloud-sync-main.mjs";
-import { createCloudEntry } from "./cloud-entry.mjs";
+import { createCloudEntry, createCloudOfferPolicy } from "./cloud-entry.mjs";
 import { cloudPageSenderAllowed, createCloudMove, mintOwnerCode, moveBlocked, moveFit, moveRefusal, moveSenderDestination, parseCloudMoveStatus } from "./cloud-move.mjs";
 import { registerCloudLoginsIpc } from "./cloud-logins.mjs";
 import { cloudMoveChoices } from "./cloud-move-choices.mjs";
@@ -887,25 +887,10 @@ function cloudTrialNotices() {
   return trialNotices ??= createTrialNotices(jsonFile(path.join(app.getPath("userData"), "cloud-trial-notices.json")));
 }
 
-let brandedBuild = null;
-// This fork has no owned Cloud checkout; retain existing account access without advertising upstream plans.
-const OWNED_CLOUD_OFFERS_AVAILABLE = false;
-async function readCloudOfferBrand() {
-  if (brandedBuild !== null || !app.isPackaged || desktopRemoteAccess) return;
-  const status = await fetch(`http://127.0.0.1:${SERVER_PORT}/api/brand`, { signal: AbortSignal.timeout(3_000) })
-    .then(res => (res.ok ? res.json() : null)).catch(() => null);
-  if (!status || brandedBuild !== null) return;
-  brandedBuild = status.source === "file";
-  refreshApplicationMenu();
-}
-function cloudOffersAllowed() {
-  return OWNED_CLOUD_OFFERS_AVAILABLE && app.isPackaged && !desktopRemoteAccess && brandedBuild === false;
-}
-async function cloudOffersReady() {
-  if (!OWNED_CLOUD_OFFERS_AVAILABLE) return false;
-  if (brandedBuild === null && serverReady) await readCloudOfferBrand();
-  return cloudOffersAllowed();
-}
+const { readCloudOfferBrand, cloudOffersAllowed, cloudOffersReady } = createCloudOfferPolicy({
+  isPackaged: () => app.isPackaged, isRemote: () => desktopRemoteAccess,
+  serverReady: () => serverReady, serverPort: () => SERVER_PORT, refreshMenu: refreshApplicationMenu,
+});
 const menuDate = value => new Intl.DateTimeFormat(app.getLocale() || "en-US", { day: "numeric", month: "short" }).format(new Date(value));
 function cloudHomeEntry() {
   const homeOrigin = cloudAccount?.homeTarget()?.origin ?? null;
