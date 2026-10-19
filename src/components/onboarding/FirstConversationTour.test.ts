@@ -1,6 +1,7 @@
 import { createElement, type EffectCallback, type ReactNode } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { setLocale } from "@/lib/i18n";
 import { withTourFinished } from "@/lib/guided-tour";
 import { EMPTY_ONBOARDING, WELCOME_VERSION } from "@/lib/onboarding";
 
@@ -42,10 +43,11 @@ function render(quiet: boolean) {
     return tree;
   }
   renderToStaticMarkup(createElement(Capture));
-  return tree as { type?: unknown } | null;
+  return tree as { type?: unknown; props?: { children?: string; primary?: { label: string } } } | null;
 }
 
 beforeEach(() => {
+  setLocale("en");
   fixture.values = [];
   store.api.mockReset();
   vi.stubGlobal("window", {});
@@ -58,7 +60,21 @@ beforeEach(() => {
   };
 });
 
+afterEach(() => { setLocale("en"); vi.unstubAllGlobals(); });
+
 describe("first-conversation spotlights", () => {
+  it.each(["approval", "connector"])("explains the %s card and its dismiss action in German", (kind) => {
+    setLocale("de");
+    if (kind === "connector") {
+      store.state.bots = [{ id: "bot-1", busy: false, messages: [{ kind: "connector", connector: { status: "pending" } }] }];
+    }
+    render(false);
+    for (const effect of fixture.effects) effect();
+    const tip = render(false);
+    expect(tip?.props?.primary?.label).toBe("Verstanden");
+    expect(tip?.props?.children).toContain(kind === "approval" ? "Wenn ein Bot deine Zustimmung braucht" : "Wenn ein Bot eine noch nicht verbundene App braucht");
+  });
+
   it("explain the approval card as before", () => {
     render(false);
     for (const effect of fixture.effects) effect();

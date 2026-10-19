@@ -1,9 +1,9 @@
 import { createElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
-import { describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it } from "vitest";
 
 import { OptionCard, canDismissOptionCard, shouldHideOnboardingCard } from "./OptionCard";
-import { t } from "@/lib/i18n";
+import { setLocale, t } from "@/lib/i18n";
 import { StoreProvider, type Message } from "@/state/store";
 
 const msg = (partial: Partial<Message> & Pick<Message, "id" | "kind">): Message => ({
@@ -70,6 +70,17 @@ describe("shouldHideOnboardingCard", () => {
 });
 
 describe("OptionCard", () => {
+  afterEach(() => setLocale("en"));
+
+  it("labels the custom answer and dismiss control in German while leaving bot content intact", () => {
+    setLocale("de");
+    const markup = render({ title: "Pick a region", subtitle: "", options: ["eu-west-1"] });
+    expect(markup).toContain('aria-label="Frage schließen"');
+    expect(markup).toContain('placeholder="Eigene Antwort eingeben"');
+    expect(markup).toContain("Pick a region");
+    expect(markup).toContain("eu-west-1");
+  });
+
   it("names its icon-only dismiss button", () => {
     const card = msg({ id: "quiz", kind: "options", card: { title: "Pick one", subtitle: "", options: ["A thing"] } });
     const markup = renderToStaticMarkup(createElement(StoreProvider, null, createElement(OptionCard, { botId: "atlas", message: card })));

@@ -74,6 +74,34 @@ afterEach(() => {
 });
 
 describe("the import step", () => {
+  it("renders German choices, progress, failure and result without translating source names", async () => {
+    setLocale("de");
+    const initial = render();
+    expect(initial.html).toContain("2 aus Claude Code und Codex");
+    expect(initial.html).toContain("1 MCP-Server aus Cursor");
+    expect(initial.html).toContain("Werden deaktiviert hinzugefügt.");
+    expect(initial.html).toContain("Übernehmen");
+    expect(initial.html).toContain("Überspringen");
+    expect(initial.row("Werkzeuge")).toBeDefined();
+
+    let reject!: (reason: Error) => void;
+    apply.mockReturnValue(new Promise((_, fail) => { reject = fail; }));
+    initial.primary.props.onClick!();
+    expect(render().html).toContain("Wird übernommen…");
+    reject(new Error("offline"));
+    await flush();
+    expect(render().html).toContain("Die Übernahme ist fehlgeschlagen.");
+    expect(render().primary.props.disabled).toBe(false);
+
+    const result = render({ result: {
+      ...BROUGHT, skills: { ...BROUGHT.skills!, skipped: [{ name: "lint", reason: "conflict" }] },
+    } });
+    expect(result.html).toContain("Hinzugefügt: 2 Skills und 1 Werkzeug.");
+    expect(result.html).toContain("lint übersprungen: Ein anderer Skill mit diesem Namen ist bereits vorhanden.");
+    expect(result.html).toContain("Weiter");
+    expect(result.html).not.toMatch(/Bring them in|Added|Skipped|Continue/);
+  });
+
   it("offers one ticked row per kind found, with its count and sources", () => {
     const { html, row } = render();
     expect(html).toContain("Bring them in");
