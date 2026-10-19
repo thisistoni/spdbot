@@ -5961,5 +5961,6 @@
   "onboarding.reel.demo.continue": "Continue",
   "onboarding.reel.demo.hour": "{hour} AM",
   "voice.agentVoice": "{name}'s voice",
-  "voice.sample": "Morning. Overnight the tests went green, and I left two notes for you in the thread."
+  "voice.sample": "Morning. Overnight the tests went green, and I left two notes for you in the thread.",
+  "organization.logo": "Organization logo"
 }
