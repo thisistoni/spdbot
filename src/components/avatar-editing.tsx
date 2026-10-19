@@ -19,10 +19,10 @@ export type AvatarPatch = Partial<
   Pick<Bot, "avatarCrop" | "avatarUrl" | "avatarZoom" | "avatarFocusX" | "avatarFocusY" | "color" | "mascotExpression" | "mascotBody">
 >;
 
-export const RESET_MASCOT_PATCH: AvatarPatch = { avatarCrop: "mascot", color: "green", mascotExpression: null, mascotBody: "cursor" };
+export const RESET_DEFAULT_AVATAR_PATCH: AvatarPatch = { avatarCrop: "mascot" };
 
 export const CROP_LABEL = {
-  mascot: "Mascot",
+  mascot: "Bottts",
   circle: "Circle",
   rounded: "Rounded",
   square: "Square",

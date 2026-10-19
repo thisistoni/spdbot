@@ -496,6 +496,7 @@ function GroupCall({ group, members }: { group: Group; members: Bot[] }) {
               >
                 <BotAvatar
                   bot={member}
+                  busy={speakingMember?.id === member.id || workingMember?.id === member.id}
                   state={state}
                   size={94}
                   animated

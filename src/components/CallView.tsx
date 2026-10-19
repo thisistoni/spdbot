@@ -766,7 +766,7 @@ function Call({ bot }: { bot: Bot }) {
         <X size={18} />
       </button>
 
-      <BotAvatar bot={bot} state={mascotState} size={220} animated trackPointer />
+      <BotAvatar bot={bot} state={mascotState} busy={phase !== "listening"} size={220} animated trackPointer />
 
       <div className="flex flex-col items-center gap-1.5 text-center">
         <div className="text-[20px] font-medium text-ink">{bot.name}</div>

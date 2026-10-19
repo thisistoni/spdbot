@@ -119,6 +119,7 @@ const { RoutineEditor } = await import("./RoutinesPage");
 const { ConfirmDialog } = await import("./ConfirmDialog");
 const { AvatarImageGenerator } = await import("./AvatarImageGenerator");
 const { AvatarFraming } = await import("./avatar-editing");
+const { BotAvatar } = await import("./Avatar");
 const { Switch } = await import("./SettingsPrimitives");
 
 afterAll(() => vi.unstubAllGlobals());
@@ -419,32 +420,25 @@ describe("the hero", () => {
 describe("the avatar editor", () => {
   const editor = (bot: Bot) => capture(() => AvatarEditorCard({ bot, activeState: "idle", onPatch: patch, onClose }));
 
-  it("picks one of the ten bodies, ten colors and a face for the mascot", () => {
-    const bot = makeBot();
-    const rendered = editor(bot);
-    expect(rendered.html.match(/aria-label="Use the \w+ body"/g)).toHaveLength(10);
-    expect(rendered.html.match(/aria-label="Use \w+ mascot color"/g)).toHaveLength(10);
-    expect(find(rendered, "aria-label", "Use the Cursor body").props["aria-pressed"]).toBe(true);
-    click(find(rendered, "aria-label", "Use the Blob body"));
-    expect(patch).toHaveBeenLastCalledWith({ mascotBody: "blob" });
-    click(find(rendered, "aria-label", "Use blue mascot color"));
-    expect(patch).toHaveBeenLastCalledWith({ color: "blue" });
-    expect(find(rendered, "data-avatar-face", "idle").props["aria-pressed"]).toBe(true);
-    click(find(rendered, "data-avatar-face", "proud"));
-    expect(patch).toHaveBeenLastCalledWith({ mascotExpression: "proud" });
-    expect(rendered.html).toContain(">Proud<");
+  it("shows the generated bot instead of the obsolete body, color and face controls", () => {
+    const rendered = editor(makeBot());
+    expect(ofType(rendered, BotAvatar)?.props.bot).toMatchObject({ id: "scout", avatarCrop: "mascot" });
+    expect(rendered.html).not.toContain('aria-label="Use the Cursor body"');
+    expect(rendered.html).not.toContain('aria-label="Use blue mascot color"');
+    expect(rendered.html).not.toContain('data-avatar-face="proud"');
   });
 
-  it("switches back to the mascot when a body is picked over a picture", () => {
+  it("previews the default while preserving the custom image until reset is clicked", () => {
     const bot = makeBot({ avatarUrl: "/api/attachments/cat.webp", avatarCrop: "circle" });
     click(find(editor(bot), "data-avatar-tab", "bot"));
-    click(find(editor(bot), "aria-label", "Use the Star body"));
-    expect(patch).toHaveBeenLastCalledWith({ mascotBody: "star", avatarCrop: "mascot" });
+    expect(ofType(editor(bot), BotAvatar)?.props.bot).toMatchObject({ avatarUrl: "/api/attachments/cat.webp", avatarCrop: "mascot" });
+    click(find(editor(bot), "data-avatar-reset"));
+    expect(patch).toHaveBeenLastCalledWith({ avatarCrop: "mascot" });
   });
 
   it("resets the mascot as the Advanced card does", () => {
     click(find(editor(makeBot()), "data-avatar-reset"));
-    expect(patch).toHaveBeenLastCalledWith({ avatarCrop: "mascot", color: "green", mascotExpression: null, mascotBody: "cursor" });
+    expect(patch).toHaveBeenLastCalledWith({ avatarCrop: "mascot" });
   });
 
   it("generates with the shared generator, and uploads with shape and framing", () => {

@@ -57,10 +57,9 @@ describe("uploaded bot identity portraits", () => {
     expect(html).toContain('title="Open Juniper"');
     expect(html).toContain("Message from @Juniper");
   });
-  it("keeps a deleted receipt sender readable with a mascot fallback", () => {
+  it("keeps a deleted receipt sender readable with the generated default", () => {
     const html = render(createElement(RoomToolChip, { message: { ...receipt, comm: { ...receipt.comm!, withBotId: "deleted" } } }));
-    expect(html).toContain("<svg");
-    expect(html).not.toContain("<img");
+    expect(html).toContain('src="data:image/svg+xml');
     expect(html).toContain("Message from @Juniper");
   });
   it("renders uploaded group header and sender portraits", () => {
@@ -78,6 +77,14 @@ describe("uploaded bot identity portraits", () => {
   it("renders the instructions portrait without losing dialog semantics", () => {
     const html = render(createElement(BotInstructionsDialog, { bot: avatarBots[0]!, onClose: vi.fn() }));
     expect(html).toContain('<img src="/api/attachments/fixture-0.png"');
+    expect(html).toContain('role="dialog"');
+  });
+  it("keeps a saved working expression from adding a work ring to an identity label", () => {
+    const html = render(createElement(BotInstructionsDialog, {
+      bot: { ...avatarBots[0]!, avatarUrl: undefined, busy: false, mascotExpression: "working" }, onClose: vi.fn(),
+    }));
+    expect(html).toContain('data-avatar-state="working"');
+    expect(html).not.toContain("ring-inset");
     expect(html).toContain('role="dialog"');
   });
 });

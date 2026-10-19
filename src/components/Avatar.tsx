@@ -11,6 +11,7 @@ import { MAUS_COLORS, type MausColor, type MausMotion, type MausState } from "@/
 import { CursorAvatar, type CursorAvatarHandle } from "./CursorAvatar";
 import { avatarCropRadius, botAvatarProfile, clampAvatarFocus, clampAvatarZoom, type BotAvatarCrop } from "../../shared/bot-avatar";
 import { MASCOT_BODIES, botMascotBody, type MascotBodyId } from "../../shared/mascot-bodies";
+import { botttsAvatarUri } from "@/lib/bottts-avatar";
 
 export const EYE_SCALE = 1.12;
 export const MOUTH_WEIGHT = 11;
@@ -56,15 +57,6 @@ const gradientFor = (color: MausColor): [string, string, string] => {
   const fill = MAUS_COLORS[color] ?? MAUS_COLORS.green;
   return [mix(fill, "#ffffff", 0.55), fill, mix(fill, "#000000", 0.42)];
 };
-
-export function roomAvatarGradient(color: MausColor): [string, string, string] {
-  const fill = `var(--identity-${color})`;
-  return [
-    `color-mix(in srgb, ${fill} 82%, #ffffff)`,
-    fill,
-    `color-mix(in srgb, ${fill} 82%, #000000)`,
-  ];
-}
 
 export type MausAvatarHandle = CursorAvatarHandle;
 
@@ -177,8 +169,10 @@ function MausAvatarComponent(
 export const MausAvatar = memo(forwardRef(MausAvatarComponent));
 
 export type BotAvatarProps = Omit<MausAvatarProps, "color" | "gradient"> & {
-  readable?: boolean;
+  /** Only live activity controls the status ring; expressions are appearance settings. */
+  busy?: boolean;
   bot: {
+    id?: string;
     name?: string;
     color: MausColor;
     avatarUrl?: string | null;
@@ -186,26 +180,24 @@ export type BotAvatarProps = Omit<MausAvatarProps, "color" | "gradient"> & {
     avatarZoom?: number;
     avatarFocusX?: number;
     avatarFocusY?: number;
-    mascotBody?: MascotBodyId | null;
   };
 };
 
-export type BotAvatarOutcome = "flatImage" | "gradientMascot";
+export type BotAvatarOutcome = "flatImage" | "bottts";
 
-/** Mirrored name for name by resolveBotAvatarOutcome in ios/Sources/CompanionCore/BotAvatarRendering.swift. */
 export function resolveBotAvatarOutcome(params: {
   avatarCrop: BotAvatarCrop;
   hasUrl: boolean;
   imageFailed: boolean;
 }): BotAvatarOutcome {
   const { avatarCrop, hasUrl, imageFailed } = params;
-  if (!hasUrl) return "gradientMascot";
-  if (avatarCrop === "mascot") return "gradientMascot";
-  if (imageFailed) return "gradientMascot";
+  if (!hasUrl) return "bottts";
+  if (avatarCrop === "mascot") return "bottts";
+  if (imageFailed) return "bottts";
   return "flatImage";
 }
 
-export function BotAvatar({ bot, size = 44, label, readable = false, ...mascotProps }: BotAvatarProps) {
+export function BotAvatar({ bot, size = 44, label, state = "idle", busy = false }: BotAvatarProps) {
   const profile = botAvatarProfile(bot);
   const [imageFailed, setImageFailed] = useState(false);
 
@@ -218,15 +210,23 @@ export function BotAvatar({ bot, size = 44, label, readable = false, ...mascotPr
   });
 
   if (outcome !== "flatImage") {
+    const seed = bot.id || bot.name || "bot";
     return (
-      <MausAvatar
-        bodyId={bot.mascotBody ?? undefined}
-        {...mascotProps}
-        color={bot.color}
-        gradient={readable ? roomAvatarGradient(bot.color) : undefined}
-        size={size}
-        label={label ?? bot.name}
-      />
+      <span
+        className="relative block shrink-0 overflow-hidden rounded-[22%] bg-raised"
+        data-avatar-state={state}
+        style={{ width: size, height: size }}
+      >
+        <img
+          src={botttsAvatarUri(seed)}
+          alt={label ?? (bot.name ? `${bot.name} avatar` : "Bot avatar")}
+          width={size}
+          height={size}
+          draggable={false}
+          className={`block size-full ${state === "sleeping" ? "opacity-55" : ""}`}
+        />
+        {busy && <span className="pointer-events-none absolute inset-0 rounded-[22%] ring-2 ring-inset ring-accent" aria-hidden="true" />}
+      </span>
     );
   }
 

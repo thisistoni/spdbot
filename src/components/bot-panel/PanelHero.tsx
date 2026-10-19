@@ -3,7 +3,7 @@ import { Pencil } from "lucide-react";
 
 import { cn } from "@/lib/cn";
 import { t } from "@/lib/i18n";
-import type { MausState } from "@/lib/mascot";
+import { botAvatarBusy, type MausState } from "@/lib/mascot";
 import type { Bot } from "@/state/store";
 import { BOT_PROFILE_LIMITS } from "../../../shared/bot-profile";
 import { BotAvatar } from "../Avatar";
@@ -80,7 +80,7 @@ export function PanelHero({ bot, activeState, patch, editorOpen, onToggleEditor 
         onClick={onToggleEditor}
         className="group relative mt-0.5 rounded-[22px] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent-border"
       >
-        <BotAvatar bot={bot} size={76} state={activeState} />
+        <BotAvatar bot={bot} size={76} state={activeState} busy={botAvatarBusy(bot)} />
         <span
           aria-hidden="true"
           className="absolute inset-0 flex items-center justify-center rounded-[22px] bg-black/0 text-white opacity-0 transition-[opacity,background-color] group-hover:bg-black/40 group-hover:opacity-100 group-focus-visible:bg-black/40 group-focus-visible:opacity-100 group-focus-within:opacity-100 touch:opacity-100 motion-reduce:transition-none"

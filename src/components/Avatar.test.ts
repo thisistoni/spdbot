@@ -1,6 +1,6 @@
 import { createElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 
 import {
   BotAvatar,
@@ -10,6 +10,7 @@ import {
   type MausAvatarProps,
 } from "./Avatar";
 import { MASCOT_BODIES } from "../../shared/mascot-bodies";
+import { botttsAvatarUri } from "@/lib/bottts-avatar";
 
 const render = (props: Partial<MausAvatarProps>) =>
   renderToStaticMarkup(createElement(MausAvatar, { color: "green", animated: false, ...props }));
@@ -73,26 +74,54 @@ describe("BotAvatar's two avatar outcomes", () => {
     expect(markup).not.toContain("radialGradient");
   });
 
-  it("renders the gradient mascot when the crop is mascot, image or not", () => {
-    const markup = renderBot({ avatarUrl: "/api/attachments/cat.webp", avatarCrop: "mascot" });
-    expect(markup).not.toContain("<img");
-    expect(markup).toContain("<svg");
+  it("renders Bottts Neutral for the default crop, even if an uploaded image is retained", () => {
+    const markup = renderBot({ id: "bot-1", avatarUrl: "/api/attachments/cat.webp", avatarCrop: "mascot" });
+    expect(markup).toContain("data:image/svg+xml");
+    expect(markup).not.toContain("/api/attachments/cat.webp");
   });
 
-  it("falls back to the gradient mascot when a flat crop has no valid image", () => {
+  it("falls back to Bottts when a flat crop has no valid image", () => {
     const markup = renderBot({ avatarUrl: undefined, avatarCrop: "circle" });
-    expect(markup).not.toContain("<img");
-    expect(markup).toContain("<svg");
+    expect(markup).toContain("data:image/svg+xml");
+  });
+
+  it("keeps the same face across names, colors, sizes and renders, but distinguishes bots", () => {
+    const uri = (markup: string) => markup.match(/data:image\/svg\+xml[^" ]+/)?.[0];
+    const first = renderBot({ id: "bot-1", name: "First", color: "green" });
+    const renamed = renderBot({ id: "bot-1", name: "Renamed", color: "blue" });
+    const other = renderBot({ id: "bot-2", name: "First", color: "green" });
+    expect(uri(first)).toBeTruthy();
+    expect(uri(renamed)).toBe(uri(first));
+    expect(uri(other)).not.toBe(uri(first));
+    expect(renderToStaticMarkup(createElement(BotAvatar, { bot: { id: "bot-1", color: "green" }, size: 18 }))).toContain('width="18"');
+    expect(renderToStaticMarkup(createElement(BotAvatar, { bot: { id: "bot-1", color: "green" }, size: 220 }))).toContain('width="220"');
+  });
+
+  it("keeps the same face after the renderer module is reloaded", async () => {
+    const before = botttsAvatarUri("bot-1");
+    vi.resetModules();
+    const { botttsAvatarUri: reloaded } = await import("@/lib/bottts-avatar");
+    expect(reloaded("bot-1")).toBe(before);
+  });
+
+  it("keeps a visible busy cue and a distinct sleeping state", () => {
+    const bot = { id: "bot-1", color: "green" as const };
+    expect(renderToStaticMarkup(createElement(BotAvatar, { bot, state: "working", busy: true }))).toContain("ring-accent");
+    expect(renderToStaticMarkup(createElement(BotAvatar, { bot, state: "sleeping" }))).toContain("opacity-55");
+  });
+
+  it.each(["working", "thinking", "searching", "alerting"] as const)("does not infer live work from a %s expression", (state) => {
+    expect(renderToStaticMarkup(createElement(BotAvatar, { bot: { id: "bot-1", color: "green" }, state }))).not.toContain("ring-inset");
   });
 });
 
 describe("resolveBotAvatarOutcome", () => {
   // imageFailed is set by the <img>'s onError, which renderToStaticMarkup never fires, so the decision is a pure
   // function.
-  it("falls back to the gradient mascot for an image that failed to load", () => {
+  it("falls back to Bottts for an image that failed to load", () => {
     expect(
       resolveBotAvatarOutcome({ avatarCrop: "circle", hasUrl: true, imageFailed: true }),
-    ).toBe("gradientMascot");
+    ).toBe("bottts");
   });
 
   it("renders a good flat image flat", () => {
@@ -101,15 +130,15 @@ describe("resolveBotAvatarOutcome", () => {
     ).toBe("flatImage");
   });
 
-  it("keeps the mascot crop on the gradient mascot even with a loaded image", () => {
+  it("keeps the default crop on Bottts even with a loaded image", () => {
     expect(
       resolveBotAvatarOutcome({ avatarCrop: "mascot", hasUrl: true, imageFailed: false }),
-    ).toBe("gradientMascot");
+    ).toBe("bottts");
   });
 
-  it("falls back to the gradient mascot when there is no image at all", () => {
+  it("falls back to Bottts when there is no image at all", () => {
     expect(
       resolveBotAvatarOutcome({ avatarCrop: "square", hasUrl: false, imageFailed: false }),
-    ).toBe("gradientMascot");
+    ).toBe("bottts");
   });
 });

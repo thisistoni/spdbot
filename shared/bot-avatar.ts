@@ -1,15 +1,14 @@
 import { z } from "zod";
 
 /**
- * `mascot` draws the animated mascot body, filled with the bot's colour
- * gradient. `circle`, `rounded`, and `square` crop the bot's own image
- * instead, shown as it is, with no mascot at all.
+ * `mascot` is the persisted value for the generated Bottts Neutral default.
+ * `circle`, `rounded`, and `square` crop the bot's own image instead.
  */
 export const BOT_AVATAR_CROPS = ["mascot", "circle", "rounded", "square"] as const;
 export const botAvatarCropSchema = z.enum(BOT_AVATAR_CROPS);
 export type BotAvatarCrop = z.infer<typeof botAvatarCropSchema>;
 
-/** CSS radius for a profile crop. Mascot is drawn, not photo-cropped, so it is not clipped. */
+/** CSS radius for an uploaded image crop. */
 export function avatarCropRadius(crop: BotAvatarCrop): string {
   if (crop === "circle") return "50%";
   if (crop === "rounded") return "22%";

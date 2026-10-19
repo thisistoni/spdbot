@@ -157,7 +157,6 @@ function ClusterLabel({ bot, name, color }: { bot?: Bot; name: string; color: st
         motion="none"
         motionKey={0}
         animated={false}
-        readable={known}
       />
       <span
         className={cn("text-[11px] font-medium", known ? "bot-identity" : "text-ink-secondary")}
@@ -1552,7 +1551,7 @@ export function GroupView({ group }: { group: Group }) {
             <TurnPresence
               avatar={
                 <BotAvatar
-                  bot={presenceSpeaker ?? { color: "green" }}
+                  bot={presenceSpeaker ?? { color: "green" }} busy
                   state={toolInFlight && !awaited ? "working" : "thinking"}
                   size={36}
                   forward={false}
