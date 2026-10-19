@@ -135,7 +135,7 @@ function chat(config: AppState["config"]) {
   })));
 }
 function roomHeader(config: AppState["config"]) {
-  flushSync(() => root.render(createElement(Page, { config, children: createElement(GroupCallButton, { group: room, members: [ada] }) })));
+  flushSync(() => root.render(createElement(Page, { config, children: createElement(GroupCallButton, { key: "call", group: room, members: [ada] }) })));
 }
 const callButton = () => container.querySelector<HTMLButtonElement>("[data-call-button]");
 const press = (element: Element | null) => {
