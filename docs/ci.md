@@ -27,6 +27,11 @@ skips fail the gate. Existing advisory jobs remain advisory.
 The separate shared-terminal smoke workflow is manual-only: its tests already
 run in the Windows Vitest/Electron jobs.
 
+Merges run checks without publishing images or deploying the Cloudflare broker.
+Broker deployment requires a manual CI run on `main` with the explicit
+`deploy_composio_broker` option (false by default), after the CI gate and
+control-plane checks pass. Release initiation is manual; see [releasing](releasing.md).
+
 ## Vitest shards
 
 The suite runs one file at a time, so a shard takes as long as its files added

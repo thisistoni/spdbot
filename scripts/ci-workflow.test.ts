@@ -1,5 +1,6 @@
 import { spawnSync } from "node:child_process";
 import { readFileSync } from "node:fs";
+import { runInNewContext } from "node:vm";
 import { describe, expect, it } from "vitest";
 import { parse } from "yaml";
 
@@ -185,11 +186,10 @@ describe("CI concurrency", () => {
     )).toBe(true);
     for (const [name, job] of Object.entries(workflow.jobs) as [string, { needs?: string | string[]; if?: string }][]) {
       if (["static", "gate"].includes(name)) continue;
-      // The one deploy job: after the control-plane checks, on main pushes only. It is
-      // not part of the merge gate.
+      // Deployment is an explicit manual action after both sets of checks.
       if (name === "deploy-composio-broker") {
-        expect(job.needs).toEqual(["control-plane"]);
-        expect(job.if).toBe("github.event_name == 'push' && github.ref == 'refs/heads/main'");
+        expect(job.needs).toEqual(["gate", "control-plane"]);
+        expect(job.if).toBe("github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/main' && inputs.deploy_composio_broker");
         expect(workflow.jobs.gate.needs).not.toContain(name);
         // Without the Cloudflare token the deploy is skipped with a warning, not failed:
         // every step after the token check waits on it.
@@ -211,5 +211,81 @@ describe("CI concurrency", () => {
     const commands = smoke.jobs.windows.steps.map((step: { run?: string }) => step.run);
     expect(commands).toContain("node --test electron/shared-computer-access.node-test.mjs");
     expect(commands).toContain("pnpm exec vitest run server/shared-computers.e2e.test.ts");
+  });
+});
+
+// These guards use the shared JavaScript/GitHub-expression subset. Evaluate the
+// actual YAML expressions against events rather than copying their decisions.
+function conditionAllows(condition: string, event: string, ref: string, inputs: Record<string, unknown> = {}) {
+  return Boolean(runInNewContext(condition, {
+    github: { event_name: event, ref, ref_name: ref.replace(/^refs\/(heads|tags)\//, "") },
+    inputs,
+    startsWith: (value: string, prefix: string) => value.startsWith(prefix),
+    contains: (value: string, fragment: string) => value.includes(fragment),
+  }, { timeout: 100 }));
+}
+
+describe("deliberate release initiation", () => {
+  const docker = parse(readFileSync(new URL("../.github/workflows/docker.yml", import.meta.url), "utf8"));
+  const release = parse(readFileSync(new URL("../.github/workflows/release.yml", import.meta.url), "utf8"));
+
+  it.each([
+    ["push", "refs/heads/main", false],
+    ["push", "refs/heads/v1.2.3", false],
+    ["pull_request", "refs/pull/3/merge", false],
+    ["pull_request", "refs/tags/v1.2.3", false],
+    ["workflow_dispatch", "refs/heads/main", false],
+    ["workflow_dispatch", "refs/heads/v1.2.3", false],
+    ["push", "refs/tags/other", false],
+    ["push", "refs/tags/v1.2.3", true],
+    ["workflow_dispatch", "refs/tags/v1.2.3", true],
+  ])("Docker publish for %s on %s is %s", (event, ref, allowed) => {
+    expect(conditionAllows(docker.jobs.publish.if, event as string, ref as string)).toBe(allowed);
+  });
+
+  it("preserves branch and PR smoke checks and limits registry writes to the guarded job", () => {
+    expect(docker.on.push.branches).toEqual(["main"]);
+    expect(docker.on.push.tags).toEqual(["v*"]);
+    expect(docker.on).toHaveProperty("pull_request");
+    expect(docker.jobs["build-and-smoke"].if).toBeUndefined();
+    expect(docker.jobs.publish.needs).toBe("build-and-smoke");
+    expect(docker.permissions).toEqual({ contents: "read" });
+    expect(docker.jobs.publish.permissions).toEqual({ contents: "read", packages: "write" });
+    expect(docker.jobs["build-and-smoke"].permissions).toBeUndefined();
+  });
+
+  it("moves latest only with stable release tags for both images", () => {
+    for (const id of ["meta", "home-meta"]) {
+      const metadata = docker.jobs.publish.steps.find((step: { id?: string }) => step.id === id);
+      const expression = metadata.with.tags.match(/value=latest,enable=\$\{\{ (.+) \}\}/)?.[1];
+      expect(expression).toBeDefined();
+      expect(conditionAllows(expression, "push", "refs/tags/v1.2.3")).toBe(true);
+      expect(conditionAllows(expression, "push", "refs/tags/v1.2.3-beta.1")).toBe(false);
+    }
+  });
+
+  it.each([
+    ["push", "refs/heads/main", true, false],
+    ["pull_request", "refs/heads/main", true, false],
+    ["merge_group", "refs/heads/main", true, false],
+    ["workflow_dispatch", "refs/heads/main", undefined, false],
+    ["workflow_dispatch", "refs/heads/main", false, false],
+    ["workflow_dispatch", "refs/heads/feature", true, false],
+    ["workflow_dispatch", "refs/heads/release-ci/v1.2.3", true, false],
+    ["workflow_dispatch", "refs/tags/v1.2.3", true, false],
+    ["workflow_dispatch", "refs/heads/main", true, true],
+  ])("broker deploy for %s on %s with opt-in %s is %s", (event, ref, optIn, allowed) => {
+    expect(conditionAllows(workflow.jobs["deploy-composio-broker"].if, event as string, ref as string,
+      { deploy_composio_broker: optIn })).toBe(allowed);
+  });
+
+  it("requires deliberate selection while preserving release CI and signing gates", () => {
+    expect(Object.keys(release.on)).toEqual(["workflow_dispatch"]);
+    expect(release.on.workflow_dispatch.inputs.publish.default).toBe(false);
+    expect(workflow.on.workflow_dispatch.inputs.deploy_composio_broker).toMatchObject({ type: "boolean", default: false });
+    expect(release.jobs.assemble.needs).toEqual(["prepare", "ci", "mac", "windows", "linux"]);
+    expect(workflow.jobs["deploy-composio-broker"].needs).toEqual(["gate", "control-plane"]);
+    const prepare = parse(readFileSync(new URL("../.github/workflows/prepare-release.yml", import.meta.url), "utf8"));
+    expect(JSON.stringify(prepare)).toContain("Merging alone does not start a release or deployment");
   });
 });

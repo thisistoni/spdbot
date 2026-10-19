@@ -2,6 +2,12 @@ name: CI
 
 on:
   workflow_dispatch:
+    inputs:
+      deploy_composio_broker:
+        description: "Deploy the Composio broker after all checks pass (main only)"
+        required: false
+        type: boolean
+        default: false
   push:
     branches: [main]
   pull_request:
@@ -364,19 +370,16 @@ jobs:
       - run: pnpm control-plane:dry-run
 
   deploy-composio-broker:
-    # Only deploys on push to upstream main. PRs run the control-plane tests
-    # but do not deploy: the wiring is exercised end-to-end only by a merged
-    # commit, so an unreviewed branch can never push to production. Closes
-    # the deploy gap that left #1914's broker fix (45cc2cf) sitting in
-    # source without reaching Cloudflare.
-    needs: [control-plane]
-    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    # Merges only verify. Deployment requires an explicit manual opt-in on
+    # main, after both the required CI gate and control-plane checks pass.
+    needs: [gate, control-plane]
+    if: github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/main' && inputs.deploy_composio_broker
     name: deploy composio broker (Cloudflare Worker)
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:
       # A repo without the secret (a fork, or before the token is created)
-      # skips the deploy with a warning instead of failing every main push.
+      # skips the requested deployment with a warning.
       - id: token
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}

@@ -35,6 +35,7 @@ vi.stubGlobal("localStorage", storage);
 const { CallButton } = await import("./CallView");
 const { GroupCallButton } = await import("./GroupCallView");
 const { LiveCallBar } = await import("./LiveCallBar");
+const { ApiKeyRow } = await import("./ApiKeys");
 const { BotEditorStore, initialState, reducer } = await import("@/state/store");
 const { callMode, setCallMode } = await import("@/lib/call-mode");
 const { currentCall, endCall } = await import("@/lib/call");
@@ -53,6 +54,7 @@ type Platform = "darwin" | "win32" | "linux";
 let invoked: Array<{ channel: string; args: unknown[] }>;
 let pageMic: "allowed" | "refused" | undefined;
 let liveKey: string;
+let serverConfig: AppState["config"];
 let microphone: "allowed" | "refused";
 
 function desktopApp(platform: Platform, page: "this-computer" | "my-cloud"): { bridge: Bridge; desktop: Desktop } {
@@ -73,10 +75,6 @@ function desktopApp(platform: Platform, page: "this-computer" | "my-cloud"): { b
 }
 async function answer(channel: string, args: unknown[]): Promise<unknown> {
   invoked.push({ channel, args });
-  if (channel === "credential:set" && args[0] === "openaiLiveKey") {
-    liveKey = String(args[1]);
-    return { ...THIS_COMPUTER, live: { ...noKey, configured: true } };
-  }
   if (channel === "perm:status") return pageMic === undefined ? {} : { pageMic };
   if (channel === "desktop:capabilities") return fixture.desktop?.capabilities;
   return undefined;
@@ -100,13 +98,19 @@ const noKey = { configured: false, voice: "marin", readTypedReplies: true, idleM
 const CLOUD = { cloudHome: true, tts: { configured: true, ready: true, voice: "preset" }, live: noKey } as AppState["config"];
 const SERVER = { tts: { configured: true, ready: true, voice: "preset" }, live: noKey } as AppState["config"];
 const THIS_COMPUTER = { tts: { configured: true, ready: true, voice: "voice-1" }, live: noKey } as AppState["config"];
-const KEY_FORM = "Live calls use OpenAI GPT-Live";
+const KEY_NEEDED = "Live calls use your own OpenAI key. Add it in Settings → API keys.";
 const APP_REFUSED = "The app didn't let this page use the microphone. Open it in your web browser to make the Live call.";
 
 function Page({ config, children }: { config: AppState["config"]; children: ReactNode }) {
   const [state, dispatch] = useReducer(reducer, { ...initialState, config, bots: [ada] });
   const value = { state, dispatch, flushBotPatches: async () => null, refreshInstances: async () => {}, refreshModels: async () => {} };
-  return createElement(BotEditorStore, { value, children });
+  // Mount the production key row at the reducer's settings destination without unrelated settings panels.
+  const apiKeys = state.appSettingsOpen && state.appSettingsSection === "connections"
+    ? createElement("div", { role: "dialog", "aria-label": "API keys", key: "api-keys" },
+      createElement(ApiKeyRow, { section: "openai", testProvider: "openai" }),
+      createElement("button", { onClick: () => dispatch({ type: "toggleAppSettings", open: false }) }, "Close API keys"))
+    : null;
+  return createElement(BotEditorStore, { value, children: [children, apiKeys] });
 }
 
 let root: Root;
@@ -121,6 +125,7 @@ const createPeer = () => ({
 }) as unknown as RTCPeerConnection;
 
 function chat(config: AppState["config"]) {
+  serverConfig = config;
   flushSync(() => root.render(createElement(Page, {
     config,
     children: [
@@ -130,7 +135,7 @@ function chat(config: AppState["config"]) {
   })));
 }
 function roomHeader(config: AppState["config"]) {
-  flushSync(() => root.render(createElement(Page, { config, children: createElement(GroupCallButton, { group: room, members: [ada] }) })));
+  flushSync(() => root.render(createElement(Page, { config, children: createElement(GroupCallButton, { key: "call", group: room, members: [ada] }) })));
 }
 const callButton = () => container.querySelector<HTMLButtonElement>("[data-call-button]");
 const press = (element: Element | null) => {
@@ -140,35 +145,47 @@ const press = (element: Element | null) => {
 const menuItems = () => Array.from(container.querySelectorAll<HTMLButtonElement>('[role="menuitemradio"]'));
 const text = () => container.textContent ?? "";
 
-async function firstLiveCall(savedBy: "the server" | "the app") {
+async function firstLiveCall(keyLocation: "My Cloud" | "your computer") {
   const button = callButton();
   expect(button?.getAttribute("aria-label")).toBe("Live call with Ada");
   expect(button?.querySelector(".bg-warning")).toBeNull();
   press(button);
-  await vi.waitFor(() => expect(text()).toContain(KEY_FORM));
+  await vi.waitFor(() => expect(text()).toContain(KEY_NEEDED));
   expect(getUserMedia).toHaveBeenCalledTimes(1);
   expect(requests.map(({ path, method }) => `${method} ${path}`)).toEqual(["POST /api/live/session"]);
   expect(text()).not.toContain("Call unavailable");
-  const field = container.querySelector<HTMLInputElement>('input[aria-label="OpenAI API key for Live calls"]')!;
+  expect(text()).toContain(`The OpenAI key stays on ${keyLocation}.`);
+  expect(container.querySelector("input")).toBeNull();
+  const openKeys = Array.from(container.querySelectorAll("button")).find((button) => button.textContent === "Open API keys")!;
+  expect(document.activeElement).toBe(openKeys);
+  press(openKeys);
+  expect(liveMedia()).toMatchObject({ phase: "idle", needsKey: false });
+  expect(text()).not.toContain(KEY_NEEDED);
+  const dialog = container.querySelector('[role="dialog"][aria-label="API keys"]');
+  expect(dialog).not.toBeNull();
+  const field = dialog!.querySelector<HTMLInputElement>('input[aria-label="OpenAI API key"]')!;
   flushSync(() => {
     Object.getOwnPropertyDescriptor(Object.getPrototypeOf(field), "value")!.set!.call(field, "sk-live-test");
     field.dispatchEvent(new Event("input", { bubbles: true }));
   });
-  flushSync(() => field.form!.dispatchEvent(new Event("submit", { bubbles: true, cancelable: true })));
+  flushSync(() => field.dispatchEvent(new KeyboardEvent("keydown", { key: "Enter", bubbles: true })));
   await vi.waitFor(() => expect(liveKey).toBe("sk-live-test"));
-  const saves = invoked.filter(({ channel }) => channel === "credential:set");
-  if (savedBy === "the server") {
-    expect(requests).toContainEqual({ path: "/api/config", method: "PUT", body: { live: { key: "sk-live-test" } } });
-    expect(saves).toEqual([]);
-  } else {
-    expect(saves).toEqual([{ channel: "credential:set", args: ["openaiLiveKey", "sk-live-test"] }]);
-    expect(requests.filter(({ path }) => path === "/api/config")).toEqual([]);
-  }
+  await vi.waitFor(() => expect(dialog!.textContent).toContain("Configured"));
+  expect(field.value).toBe("");
+  expect(requests.filter(({ path }) => path === "/api/config"))
+    .toEqual([{ path: "/api/config", method: "PUT", body: { openai: { key: "sk-live-test" } } }]);
+  // The shared OpenAI provider key belongs to this page's server, including a desktop app's local server.
+  expect(invoked.filter(({ channel }) => channel === "credential:set")).toEqual([]);
+  expect(getUserMedia).toHaveBeenCalledTimes(1);
+  expect(requests.filter(({ path }) => path === "/api/live/session")).toHaveLength(1);
+  press(Array.from(dialog!.querySelectorAll("button")).find((button) => button.textContent === "Close API keys")!);
+  expect(container.querySelector('[role="dialog"][aria-label="API keys"]')).toBeNull();
+  press(callButton());
   await vi.waitFor(() => expect(getUserMedia).toHaveBeenCalledTimes(2));
   await vi.waitFor(() => expect(requests.filter(({ path }) => path === "/api/live/session")).toHaveLength(2));
   expect(liveMedia()).toMatchObject({ phase: "starting", botId: "ada", threadId: "thread-ada" });
   await vi.waitFor(() => expect(text()).toContain("Live with Ada"));
-  expect(text()).not.toContain(KEY_FORM);
+  expect(text()).not.toContain(KEY_NEEDED);
   expect(text()).not.toContain("Choose This computer");
 }
 
@@ -218,9 +235,10 @@ beforeEach(() => {
     const body = typeof init.body === "string" ? JSON.parse(init.body) : undefined;
     requests.push({ path, method, body });
     if (path === "/api/config" && method === "PUT") {
-      liveKey = body.live.key;
-      return new Response(JSON.stringify({ ...CLOUD, live: { ...noKey, configured: true } }), { status: 200 });
+      liveKey = body.openai.key;
+      return new Response(JSON.stringify({ ...serverConfig, openai: { configured: true }, live: { ...noKey, configured: true, keySource: "openai" } }), { status: 200 });
     }
+    if (path === "/api/keys/test" && method === "POST") return new Response(JSON.stringify({ ok: true, check: "authentication" }), { status: 200 });
     if (path === "/api/live/session" && method === "POST") {
       if (!liveKey) return new Response(JSON.stringify({ error: "Add an OpenAI API key to use Live calls.", needsKey: true }), { status: 409 });
       return new Promise<Response>(() => {});
@@ -248,33 +266,33 @@ afterEach(() => {
 });
 
 describe("calling a bot off the Mac", () => {
-  it("in a browser on the person's Cloud, the first visit's call button is a Live call that asks for the key once and calls", async () => {
+  it("in a browser on the person's Cloud, the first Live call opens API keys and calls after saving and retrying", async () => {
     expect(callMode()).toBe("turns");
     chat(CLOUD);
-    await firstLiveCall("the server");
+    await firstLiveCall("My Cloud");
     expect(requests.filter((request) => request.method !== "GET").map(({ path, method }) => `${method} ${path}`))
-      .toEqual(["POST /api/live/session", "PUT /api/config", "POST /api/live/session"]);
+      .toEqual(["POST /api/live/session", "PUT /api/config", "POST /api/keys/test", "POST /api/live/session"]);
   });
 
   it("on My Cloud in the Mac app, the call is Live, and Take turns says it works on This computer", async () => {
     open(desktopApp("darwin", "my-cloud"));
     chat(CLOUD);
     expectTurnsDisabled("Calls where you take turns work on This computer. They listen with your Mac's own speech recognition, which only This computer can use.");
-    await firstLiveCall("the server");
+    await firstLiveCall("My Cloud");
   });
 
   it.each(["win32", "linux"] as const)("on My Cloud in the %s app, the call is Live, and Take turns says it needs the Mac app", async (platform) => {
     open(desktopApp(platform, "my-cloud"));
     chat(CLOUD);
     expectTurnsDisabled("Calls where you take turns need the Mac app");
-    await firstLiveCall("the server");
+    await firstLiveCall("My Cloud");
   });
 
-  it.each(["win32", "linux"] as const)("on This computer in the %s app, the call is Live and its key is saved through the app", async (platform) => {
+  it.each(["win32", "linux"] as const)("on This computer in the %s app, the call is Live and its OpenAI provider key is saved on the local server", async (platform) => {
     open(desktopApp(platform, "this-computer"));
     chat(THIS_COMPUTER);
     expectTurnsDisabled("Calls where you take turns need the Mac app");
-    await firstLiveCall("the app");
+    await firstLiveCall("your computer");
   });
 
   it.each([
@@ -290,7 +308,7 @@ describe("calling a bot off the Mac", () => {
     await vi.waitFor(() => expect(text()).toContain(APP_REFUSED));
     expect(getUserMedia).toHaveBeenCalledTimes(1);
     expect(Array.from(container.querySelectorAll("button"), (button) => button.textContent?.trim())).toContain("Open in browser");
-    expect(text()).not.toContain(KEY_FORM);
+    expect(text()).not.toContain(KEY_NEEDED);
     expect(container.querySelector('input[aria-label="OpenAI API key for Live calls"]')).toBeNull();
     expect(requests.filter((request) => request.method !== "GET")).toEqual([]);
     expect(invoked.map(({ channel }) => channel)).not.toContain("credential:set");
@@ -303,7 +321,7 @@ describe("calling a bot off the Mac", () => {
     press(callButton());
     await vi.waitFor(() => expect(text()).toContain("Live calls need a microphone, and this window can't use one. Open OpenMausBot at a secure https address to make the call."));
     expect(text()).not.toContain("WebRTC");
-    expect(text()).not.toContain(KEY_FORM);
+    expect(text()).not.toContain(KEY_NEEDED);
     expect(requests.filter((request) => request.method !== "GET")).toEqual([]);
   });
 
