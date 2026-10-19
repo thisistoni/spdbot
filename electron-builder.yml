@@ -1,9 +1,11 @@
+# Keep the established OS/runtime identity until a tested credential migration exists.
+# Display labels and download names are SPDBot; data paths and deep links stay compatible.
 appId: com.openmausbot.app
 productName: OpenMausBot
-artifactName: OpenMausBot-${version}-${arch}.${ext}
+artifactName: SPDBot-${version}-${arch}.${ext}
 
 protocols:
-  - name: OpenMausBot package install
+  - name: SPDBot package install
     schemes: [openmausbot]
 
 # In-app auto-update reads latest-mac.yml + the .zip (macOS) or latest.yml +
@@ -15,8 +17,8 @@ protocols:
 # stranded on its installed version.
 publish:
   - provider: github
-    owner: milind-soni
-    repo: OpenMausBot
+    owner: thisistoni
+    repo: spdbot
 
 directories:
   buildResources: build
@@ -87,6 +89,8 @@ extraResources:
     to: ui
   - from: dist-server
     to: server
+    # SPDBot distributes the permitted core edition, not enterprise/LICENSE code.
+    filter: ["**/*", "!enterprise{,/**/*}"]
   # the companion sidecar — a separate process because it is the only part
   # of the app that listens off this machine, and it stays off until asked
   - from: dist-companion
@@ -135,10 +139,10 @@ mac:
     - from: dist-native/duckdb/darwin-${arch}/node_modules
       to: duckdb/node_modules
   extendInfo:
-    NSMicrophoneUsageDescription: OpenMausBot uses the microphone for voice dictation into the composer.
-    NSSpeechRecognitionUsageDescription: OpenMausBot transcribes your voice on-device to type messages for you.
-    NSAccessibilityUsageDescription: OpenMausBot uses Accessibility when you let a bot control this Mac.
-    NSScreenCaptureUsageDescription: OpenMausBot uses Screen Recording so bots can see this Mac before acting.
+    NSMicrophoneUsageDescription: SPDBot uses the microphone for voice dictation into the composer.
+    NSSpeechRecognitionUsageDescription: SPDBot transcribes your voice on-device to type messages for you.
+    NSAccessibilityUsageDescription: SPDBot uses Accessibility when you let a bot control this Mac.
+    NSScreenCaptureUsageDescription: SPDBot uses Screen Recording so bots can see this Mac before acting.
   # Notarization runs manually after the build (notarytool + staple),
   # mirroring the BlueyLite ship_release.sh flow.
   notarize: false
@@ -148,7 +152,7 @@ dmg:
   # ${arch} is load-bearing: without it the x64 dmg silently overwrites
   # the arm64 one when both arches build (this section overrides both the
   # top-level and mac-level artifactName, so it must carry the arch itself)
-  artifactName: OpenMausBot-${version}-${arch}.dmg
+  artifactName: SPDBot-${version}-${arch}.dmg
 
 win:
   target:
@@ -184,11 +188,11 @@ win:
 nsis:
   oneClick: true
   perMachine: false
-  shortcutName: OpenMausBot
+  shortcutName: SPDBot
   # Versioned, like the .dmg. The README's /latest/download/ button needs a
-  # STABLE filename, so ship a second copy named OpenMausBot-setup.exe on the
-  # release — the same trick as OpenMausBot.dmg beside OpenMausBot-${version}.dmg.
-  artifactName: OpenMausBot-${version}-setup.${ext}
+  # STABLE filename, so ship a second copy named SPDBot-setup.exe on the
+  # release — the same trick as SPDBot.dmg beside SPDBot-${version}.dmg.
+  artifactName: SPDBot-${version}-setup.${ext}
 
 linux:
   target:
@@ -221,7 +225,7 @@ linux:
       to: openmausbot-browser.apparmor
   desktop:
     entry:
-      Name: OpenMausBot
+      Name: SPDBot
       Comment: Your own team of AI bots, in a chat app
       Keywords: AI;Agents;Chat;Productivity;
 
