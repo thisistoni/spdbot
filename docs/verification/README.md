@@ -179,6 +179,10 @@ The [chat and settings polish fixture](chat-polish.md) exercises attachment
 galleries, opt-in video playback, persisted tool details, and responsive settings
 through the real renderer in an isolated fake-engine workspace.
 
+The [SPD theme fixture](spd-theme.md) checks theme switching and persistence,
+font and message-color preferences, responsive settings and Windows caption
+rendering with a stubbed desktop bridge in an isolated fake-engine workspace.
+
 The [rich tables fixture](rich-tables.md) checks Markdown tables and message-scoped
 CSV/TSV previews, large-file virtualization, sorting, search, export and keyboard
 interaction in a disposable workspace.

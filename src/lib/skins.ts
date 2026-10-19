@@ -1,6 +1,7 @@
-import { hasPriorRun } from "./prior-run";
+import type { LocaleKey } from "@/locales";
 
 export const SKIN_IDS = [
+  "spd",
   "midnight",
   "atelier",
   "foundry",
@@ -17,9 +18,11 @@ export type Skin = {
   id: SkinId;
   name: string;
   tagline: string;
+  taglineKey?: LocaleKey;
 };
 
 export const SKINS: readonly Skin[] = [
+  { id: "spd", name: "SPD", tagline: "Deep plum, soft lavender. SPD Studio.", taglineKey: "settings.skin.spd.tagline" },
   { id: "midnight", name: "Midnight", tagline: "The original. Cool and dark." },
   { id: "atelier", name: "Atelier", tagline: "Daylight on paper, warm and quiet." },
   { id: "foundry", name: "Foundry", tagline: "Night shift. Dark, warm, lit in brass." },
@@ -31,8 +34,7 @@ export const SKINS: readonly Skin[] = [
   { id: "meadow", name: "Meadow", tagline: "Fresh white with a calm green. The MausBot look." },
 ];
 
-export const DEFAULT_SKIN: SkinId = "meadow";
-export const PRIOR_INSTALL_SKIN: SkinId = "midnight";
+export const DEFAULT_SKIN: SkinId = "spd";
 
 const KEY = "omb-skin";
 
@@ -54,10 +56,9 @@ export function readSkin(): SkinId {
     const store = getStore();
     const stored = store?.getItem(KEY);
     if (isSkinId(stored)) return stored;
-    return hasPriorRun(store) ? PRIOR_INSTALL_SKIN : DEFAULT_SKIN;
   } catch {
-    return PRIOR_INSTALL_SKIN;
   }
+  return DEFAULT_SKIN;
 }
 
 export function applySkin(id: SkinId): void {
@@ -66,7 +67,7 @@ export function applySkin(id: SkinId): void {
     getStore()?.setItem(KEY, id);
   } catch {
   }
-  // On Windows the caption buttons sit in a native overlay the main process paints, out of CSS's reach.
+  // Keep the native window background in sync; Windows caption buttons use the CSS tokens.
   try {
     void window.ogb?.applySkin?.(id)?.catch(() => undefined);
   } catch {

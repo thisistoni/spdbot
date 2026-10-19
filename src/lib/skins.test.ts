@@ -2,7 +2,7 @@ import { readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import { dirname, join } from "node:path";
 import { describe, expect, it } from "vitest";
-import { SKINS, SKIN_IDS, DEFAULT_SKIN, PRIOR_INSTALL_SKIN } from "./skins";
+import { SKINS, SKIN_IDS, DEFAULT_SKIN } from "./skins";
 
 const css = readFileSync(
   join(dirname(fileURLToPath(import.meta.url)), "../styles.css"),
@@ -27,7 +27,7 @@ describe("skins", () => {
       const body = css.match(new RegExp(`\\[data-skin="${id}"\\]\\s*\\{([^}]*)\\}`))?.[1] ?? "";
       return new Set([...body.matchAll(/(--[\w-]+)\s*:/g)].map(([, name]) => name));
     };
-    const reference = tokensOf(PRIOR_INSTALL_SKIN);
+    const reference = tokensOf("midnight");
     expect(reference.size).toBeGreaterThan(15);
     expect(reference).toContain("--color-composer-ring");
     for (const id of SKIN_IDS) {
@@ -44,13 +44,12 @@ describe("skins", () => {
     expect(css).toMatch(/\.chat-md \.shiki\s*\{\s*color-scheme:\s*var\(--code-color-scheme\);\s*\}/);
   });
 
-  it("adds Meadow without moving or replacing the original eight", () => {
-    expect(SKIN_IDS).toContain("meadow");
-    expect(SKIN_IDS.slice(0, 8)).toEqual([
-      "midnight", "atelier", "foundry", "lagoon", "graphite", "linen", "dusk", "daylight",
+  it("puts the SPD default first while preserving the other choices and their relative order", () => {
+    expect(SKIN_IDS).toEqual([
+      "spd", "midnight", "atelier", "foundry", "lagoon", "graphite", "linen", "dusk", "daylight", "meadow",
     ]);
-    expect(DEFAULT_SKIN).toBe("meadow");
-    expect(PRIOR_INSTALL_SKIN).toBe("midnight");
+    expect(SKINS.map((skin) => skin.id)).toEqual(SKIN_IDS);
+    expect(DEFAULT_SKIN).toBe("spd");
   });
 
   it("gives Meadow's dark bubble its own inverted context", () => {

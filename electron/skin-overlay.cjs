@@ -1,4 +1,5 @@
-// The native chrome CSS cannot reach (the Windows caption-button overlay accepts no alpha, so opaque hex).
+// Native window backgrounds CSS cannot reach, plus opaque caption colors.
+// Windows currently draws caption buttons in the renderer using the same skin tokens.
 // Keep in step with src/styles.css and src/lib/skins.ts.
 "use strict";
 
@@ -12,9 +13,10 @@ const SKIN_CHROME = Object.freeze({
   dusk: Object.freeze({ color: "#121014", symbolColor: "#b9afbd" }),
   daylight: Object.freeze({ color: "#fcfcfc", symbolColor: "#575757" }),
   meadow: Object.freeze({ color: "#ffffff", symbolColor: "#4d5a52" }),
+  spd: Object.freeze({ color: "#08070e", symbolColor: "#b6a9c8" }),
 });
 
-const DEFAULT_SKIN = "midnight";
+const DEFAULT_SKIN = "spd";
 
 function skinChrome(skin) {
   return Object.hasOwn(SKIN_CHROME, skin) ? SKIN_CHROME[skin] : SKIN_CHROME[DEFAULT_SKIN];

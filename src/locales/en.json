@@ -1082,6 +1082,7 @@
   "settings.profile.learned.remove": "Remove",
   "settings.profile.learned.error": "Could not update About me. Try again.",
   "settings.skin.title": "Skin",
+  "settings.skin.spd.tagline": "Deep plum, soft lavender. SPD Studio.",
   "settings.skin.subtitle": "Applies instantly and is remembered on this machine.",
   "settings.chatWidth.title": "Chat width",
   "settings.chatWidth.subtitle": "How wide message bubbles can grow on this machine. Wide and Full width use more of a large window.",

@@ -1,0 +1,41 @@
+{
+  "checks": [
+    "Prior install without a saved skin defaults to SPD and persists it",
+    "SPD is the first theme option and selected by default; all previous themes retain their relative order",
+    "An explicitly selected non-default theme survives a real reload",
+    "All ten themes selectable; CSS backgrounds and desktop notifications match; custom font preserved",
+    "Reload restores SPD and the custom font while preserving chat width and interface mode",
+    "Bundled Outfit loads; skin default restores it; SPD option has keyboard focus outline",
+    "Windows caption hover uses SPD colors; minimize, maximize/restore and close reach the mocked bridge",
+    "Optional bot-colored messages stay enabled until changed explicitly; neutral bubbles use SPD plum and survive theme switching",
+    "Reload also restores SPD with its default Outfit font",
+    "390px touch layout: chat and selected SPD picker visible without horizontal overflow",
+    "No page errors or external requests, including fonts"
+  ],
+  "screenshots": [
+    "appearance-desktop.png",
+    "chat-desktop.png",
+    "menu-desktop.png",
+    "windows-caption-hover.png",
+    "chat-theme-bubbles.png",
+    "chat-mobile.png",
+    "appearance-mobile.png"
+  ],
+  "pageErrors": [],
+  "externalRequests": [],
+  "focus": {
+    "color": "rgb(213, 173, 255)",
+    "width": "2px",
+    "token": "#d5adff",
+    "visible": true,
+    "focused": true
+  },
+  "windowsRenderer": {
+    "caption": {
+      "color": "rgb(244, 240, 250)",
+      "background": "rgb(33, 22, 47)"
+    },
+    "nativeWindowsTested": false
+  },
+  "browser": "154.0.8037.57"
+}

@@ -768,6 +768,68 @@
   --identity-coral: #db3a20;
 }
 
+/* ── SPD ───────────────────────────────────────────────────────────────────
+   SPD-Studio's globals.css: plum surfaces, lavender actions and Outfit.
+   The landing page's 12px dashboard cells / 20px panels fit the existing
+   radius tokens; semantic status and identity colors remain distinct.
+   ───────────────────────────────────────────────────────────────────────── */
+@font-face {
+  font-family: "Outfit";
+  src: url("/fonts/outfit.ttf") format("truetype");
+  font-style: normal;
+  font-weight: 100 900;
+  font-display: swap;
+}
+
+[data-skin="spd"] {
+  --code-color-scheme: dark;
+  --color-app: #08070e;
+  --color-panel: #100c1e;
+  --color-raised: #21162f;
+  --color-raised-hover: #30223e;
+  --color-composer: #171122;
+  --color-composer-ring: #352943;
+  --color-card: #13101e;
+  --color-menu: #171122;
+  --color-inset: #08070e;
+  --color-control: #282034;
+  /* Reference #352943 is 1.48:1 on the page; this small lift clears 1.5:1. */
+  --color-hairline: #372b45;
+
+  --color-ink: #f4f0fa;
+  --color-ink-secondary: #b6a9c8;
+  --color-ink-tertiary: #a396b5;
+  --color-accent: #d5adff;
+  --color-accent-border: #d5adff;
+  --color-accent-text: #d5adff;
+  --color-focus: #d5adff;
+  --color-accent-ink: #1a0a2d;
+  --color-bubble-user: #21162f;
+  --color-bubble-user-ink: #e9dcf7;
+
+  --color-success: #6cdda1;
+  --color-danger: #f78e9b;
+  --color-success-ink: #10251b;
+  --color-danger-ink: #2d1019;
+  --color-warning: #e4bd71;
+  --color-scrollbar: #51405f;
+  --color-maus-line: #b6a9c8;
+
+  --font-sans: "Outfit", "Segoe UI", system-ui, sans-serif;
+  --radius-lg: 12px;
+  --radius-xl: 20px;
+  --identity-green: #009957;
+  --identity-blue: #377FE6;
+  --identity-red: #D94B52;
+  --identity-orange: #E78531;
+  --identity-purple: #8963cc;
+  --identity-cyan: #0EA5C6;
+  --identity-pink: #D84F8B;
+  --identity-yellow: #D8A729;
+  --identity-teal: #01A492;
+  --identity-coral: #E5634E;
+}
+
 /* Shiki emits both palettes so cached blocks follow the nearest skin without
    re-tokenizing. Scope the scheme to code; native controls keep their styling. */
 .chat-md .shiki {
@@ -1022,9 +1084,9 @@ body {
 }
 
 /* Liquid glass: the surface for centred pop-ups (Settings, Apps, Triggers).
-   Every value is derived from the active skin's own tokens, so each of the
-   nine skins gets a glass of its own colour and no skin block changes. The
-   app behind stays visible, blurred, through a light scrim. Unlayered so a
+   Every value is derived from the active skin's own tokens, so every skin
+   gets a glass of its own colour and no skin block changes. The app behind
+   stays visible, blurred, through a light scrim. Unlayered so a
    leftover `bg-panel` on the same element cannot win. */
 .glass-surface {
   background: color-mix(in srgb, var(--color-menu) 62%, transparent);

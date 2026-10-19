@@ -4,6 +4,7 @@ import { useState } from "react";
 import { Check } from "lucide-react";
 import { SKINS, applySkin, readSkin, type SkinId } from "@/lib/skins";
 import { cn } from "@/lib/cn";
+import { t } from "@/lib/i18n";
 
 function Miniature({ skin }: { skin: SkinId }) {
   return (
@@ -78,7 +79,7 @@ export function SkinPicker() {
               <div className="min-w-0 flex-1">
                 <div className="text-[13px] font-medium text-ink">{skin.name}</div>
                 <div className="mt-0.5 text-[11px] leading-snug text-ink-secondary">
-                  {skin.tagline}
+                  {skin.taglineKey ? t(skin.taglineKey) : skin.tagline}
                 </div>
               </div>
               {selected && <Check size={13} className="mt-0.5 shrink-0 text-accent-text" />}

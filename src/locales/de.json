@@ -425,6 +425,7 @@
   "settings.profile.learned.remove": "Entfernen",
   "settings.profile.learned.error": "„Über mich“ konnte nicht aktualisiert werden. Versuch es erneut.",
   "settings.skin.title": "Design",
+  "settings.skin.spd.tagline": "Dunkle Pflaume, sanftes Lavendel. SPD Studio.",
   "settings.skin.subtitle": "Wirkt sofort und wird auf diesem Rechner gemerkt.",
   "settings.roomTurns.title": "Gruppen-Züge",
   "settings.roomTurns.subtitle": "Lege die übliche Höchstdauer eines Bot-Zugs in einer Gruppe fest. Eine Unterhaltung kann einen eigenen Wert wählen.",
