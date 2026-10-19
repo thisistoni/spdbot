@@ -125,6 +125,8 @@ describe("routine comms e2e on the job runtime (fake ACP fleet)", () => {
       method,
       headers: body ? { "content-type": "application/json" } : undefined,
       body: body ? JSON.stringify(body) : undefined,
+    }).catch((cause) => {
+      throw new Error(`${method} ${path} failed (server exit: ${child?.exitCode ?? "running"}).\n${stderr.slice(-1500)}`, { cause });
     });
     return { status: res.status, body: await res.json() };
   };
