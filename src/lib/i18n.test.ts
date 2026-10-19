@@ -36,12 +36,18 @@ describe("t", () => {
   });
 
   it("keeps new team lifecycle labels available in partial packs, with interpolated names and counts", () => {
-    setLocale("de");
-    expect(t("team.create")).toBe("Create team");
-    expect(t("team.moveTo", { name: "Research" })).toBe("Move bots to Research");
-    expect(t("team.moveMany", { count: 2 })).toBe("Move 2 bots");
-    expect(t("team.deleteTitle", { name: "Research" })).toBe("Delete Research team?");
-    expect(t("team.instructionsTitle", { name: "Research" })).toBe("Research shared instructions");
+    locales["zz"] = { "engines.cloud": "Wolke" };
+    try {
+      setLocale("zz");
+      expect(t("team.create")).toBe("Create team");
+      expect(t("team.moveTo", { name: "Research" })).toBe("Move bots to Research");
+      expect(t("team.moveMany", { count: 2 })).toBe("Move 2 bots");
+      expect(t("team.deleteTitle", { name: "Research" })).toBe("Delete Research team?");
+      expect(t("team.instructionsTitle", { name: "Research" })).toBe("Research shared instructions");
+    } finally {
+      delete locales["zz"];
+      setLocale("en");
+    }
   });
 
   it("setLocale reports the locale that actually took effect", () => {
