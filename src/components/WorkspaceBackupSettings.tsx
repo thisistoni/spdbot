@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState, type ReactNode } from "react";
 import { Download, Loader2, Upload } from "lucide-react";
 import type { WorkspaceBackupSummary } from "../../shared/workspace-backup";
+import { en, type LocaleKey } from "@/locales";
 import { api } from "@/state/store";
 import { t } from "@/lib/i18n";
 import { applyWorkspaceClientState, collectWorkspaceClientState, WORKSPACE_RESTORE_MARKER } from "@/lib/workspace-backup-client";
@@ -11,6 +12,31 @@ type BackupStatus = { busy: boolean; pendingRestore?: boolean; lastRestoreId?: s
 const inputClass = "w-full rounded-lg border border-hairline/50 bg-inset px-3 py-2 text-[14px] text-ink disabled:opacity-50";
 const buttonClass = "cursor-pointer inline-flex items-center justify-center gap-2 rounded-lg bg-accent px-3 py-2 text-[13px] font-medium text-accent-ink disabled:opacity-40";
 const validPassword = (value: string) => value.length >= 12 && value.length <= 1024;
+
+// Older backups keep these server-written English notes in their metadata.
+// Match only known text; preserve unrecognized notes verbatim.
+const summaryNotes = [
+  "backup.summary.exclusion.identity", "backup.summary.exclusion.credentials",
+  "backup.summary.exclusion.tools", "backup.summary.exclusion.dependencies",
+  "backup.summary.exclusion.external", "backup.summary.exclusion.cloud",
+  "backup.summary.warning.editors", "backup.summary.warning.secrets",
+  "backup.summary.warning.restore",
+] as const satisfies readonly LocaleKey[];
+const countedSummaryNotes = [
+  "backup.summary.warning.skillLinks", "backup.summary.warning.dependencies",
+  "backup.summary.warning.workLinks",
+] as const satisfies readonly LocaleKey[];
+
+function localizeSummaryNote(note: string): string {
+  for (const key of summaryNotes) if (note === en[key]) return t(key);
+  for (const key of countedSummaryNotes) {
+    const [before, after] = en[key].split("{count}");
+    if (!note.startsWith(before!) || !note.endsWith(after!)) continue;
+    const count = note.slice(before!.length, note.length - after!.length);
+    if (/^\d+$/.test(count)) return t(key, { count });
+  }
+  return note;
+}
 
 /** A renderer reload cannot apply a restore; the owning server must restart. */
 export function WorkspaceBackupRestartNotice({ onRetry }: { onRetry?: () => void } = {}) {
@@ -48,8 +74,8 @@ export function WorkspaceBackupSummaryView({ summary }: { summary: WorkspaceBack
       <dt className="text-ink-secondary">{t("backup.files")}</dt><dd className="text-ink">{summary.files}</dd>
       <dt className="text-ink-secondary">{t("backup.bytes")}</dt><dd className="text-ink">{summary.bytes.toLocaleString()}</dd>
     </dl>
-    {summary.warnings.length > 0 && <ul className="mt-3 list-disc space-y-1 pl-4 text-[12px] text-warning">{summary.warnings.map((warning, index) => <li key={index}>{warning}</li>)}</ul>}
-    {summary.exclusions.length > 0 && <div className="mt-3 text-[12px] text-ink-secondary"><p className="font-medium">{t("backup.exclusions")}</p><ul className="mt-1 list-disc space-y-1 pl-4">{summary.exclusions.map((exclusion, index) => <li key={index}>{exclusion}</li>)}</ul></div>}
+    {summary.warnings.length > 0 && <ul className="mt-3 list-disc space-y-1 pl-4 text-[12px] text-warning">{summary.warnings.map((warning, index) => <li key={index}>{localizeSummaryNote(warning)}</li>)}</ul>}
+    {summary.exclusions.length > 0 && <div className="mt-3 text-[12px] text-ink-secondary"><p className="font-medium">{t("backup.exclusions")}</p><ul className="mt-1 list-disc space-y-1 pl-4">{summary.exclusions.map((exclusion, index) => <li key={index}>{localizeSummaryNote(exclusion)}</li>)}</ul></div>}
   </div>;
 }
 

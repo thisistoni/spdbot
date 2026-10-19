@@ -72,6 +72,23 @@ describe("Settings full backups", () => {
     for (const text of ["Validated backup", "0.1.71", "Bots", "Threads", "Messages", "Fixture warning", "External CLI sign-ins"]) expect(preview).toContain(text);
   });
 
+  it("shows known server backup notes in German and preserves unknown archive notes", () => {
+    setLocale("de");
+    const fromServer: WorkspaceBackupSummary = {
+      ...summary,
+      warnings: [
+        "Conversation text and user files are not redacted and may contain secrets you pasted. Keep the encrypted backup private.",
+        "Restoring pauses routines, webhooks and calendar calls, and does not resume pending delegations, queued chat messages or queued runs. Definitions and historical receipts are retained; review before enabling them again.",
+        "3 installed dependency folder(s) (node_modules) were omitted; reinstall them in the project after restoring.",
+        "Unknown future warning",
+      ],
+      exclusions: ["Saved credentials, provider and MCP connections, managed provider login homes and browser login profiles are not transferred. Destination connections are preserved; reconnect on a new device."],
+    };
+    const html = renderToStaticMarkup(createElement(WorkspaceBackupSummaryView, { summary: fromServer }));
+    for (const text of ["eingefügte Geheimnisse", "verschlüsselte Backup vertraulich", "Ausstehende Delegierungen", "3 installierte Abhängigkeitsordner", "Verbindungen am Ziel bleiben erhalten", "Unknown future warning"]) expect(html).toContain(text);
+    expect(html).not.toContain("Conversation text and user files are not redacted");
+  });
+
   it("exports encrypted state by POST and downloads without putting the password in a URL or storage", async () => {
     await ready();
     storage.set("omb-drafts", "private draft"); storage.set("auth-token", "not exported"); storage.set("omb-webhook-credentials", "not exported either");

@@ -1,9 +1,11 @@
 import { createElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { afterEach, describe, expect, it } from "vitest";
+
 import { setLocale } from "@/lib/i18n";
-afterEach(() => setLocale("en"));
 import { CustomDomainDnsRecord, customDomainDnsName, CustomDomainGuide, customDomainProxyExample, type CustomDomainStatus } from "./CustomDomainSettings";
+
+afterEach(() => setLocale("en"));
 
 const status: CustomDomainStatus = {
   publicUrl: "https://old.example.com",

@@ -2698,5 +2698,17 @@
   "cloudMove.bring.deleted": "{count} Gespräche, die du auf {server} gelöscht hast, wurden nicht zurückgeholt.",
   "cloudMove.bring.context": "Bots auf {server} haben Ergänzungen zu Gesprächen, an denen sie bereits beteiligt waren, möglicherweise nicht gelesen.",
   "cloudMove.bring.failed": "{server} konnte die Chats nicht hinzufügen: {detail} Auf {server} wurde nichts entfernt.",
-  "cloudMove.home.note": "Deine Bots liegen jetzt auf My Cloud. Die Chats hier bleiben auf diesem Computer."
+  "cloudMove.home.note": "Deine Bots liegen jetzt auf My Cloud. Die Chats hier bleiben auf diesem Computer.",
+  "backup.summary.exclusion.identity": "Gerätekopplungen, Serveridentität, aktive Sperren und Laufzeitdateien werden nicht übertragen (bestehende Identitäten am Ziel bleiben erhalten).",
+  "backup.summary.exclusion.credentials": "Gespeicherte Zugangsdaten, Anbieter- und MCP-Verbindungen, verwaltete Anbieter-Anmeldedaten und Browser-Anmeldeprofile werden nicht übertragen. Verbindungen am Ziel bleiben erhalten; verbinde sie auf einem neuen Gerät erneut.",
+  "backup.summary.exclusion.tools": "Heruntergeladene Werkzeuge und Zwischenspeicher (sie können erneut installiert werden) sowie aufgezeichnete Screenshots von Browserschritten (exportiere sie aus einer Unterhaltung, um sie zu behalten).",
+  "backup.summary.exclusion.dependencies": "Installierte Abhängigkeitsordner (node_modules) und symbolische Links in Arbeitsordnern von Unterhaltungen; installiere oder erstelle sie im Projekt erneut.",
+  "backup.summary.exclusion.external": "Externe Projektordner, CLI-Anmeldedatenordner, Browser-Sitzungsordner, Schlüsselbunde des Betriebssystems, Begleitgeräte und andere Server.",
+  "backup.summary.exclusion.cloud": "Festplattenebenen von VMs und Containern sowie entfernte Cloud-Daten; dauerhaft gespeicherte Dateien in diesem Arbeitsbereich sind enthalten.",
+  "backup.summary.warning.editors": "Beende externe Editoren und verwaltete Desktop-Apps vor dem Export; Dateien, die außerhalb dieses Servers geschrieben werden, können während des Backups nicht angehalten werden.",
+  "backup.summary.warning.secrets": "Unterhaltungstexte und Nutzerdateien werden nicht bereinigt und können eingefügte Geheimnisse enthalten. Bewahre das verschlüsselte Backup vertraulich auf.",
+  "backup.summary.warning.restore": "Bei der Wiederherstellung werden Routinen, Webhooks und Kalenderaufrufe pausiert. Ausstehende Delegierungen, eingereihte Chatnachrichten und geplante Ausführungen werden nicht fortgesetzt. Definitionen und bisherige Nachweise bleiben erhalten; prüfe sie vor dem erneuten Aktivieren.",
+  "backup.summary.warning.skillLinks": "{count} verwaltete Links zur Skill-Erkennung wurden ausgelassen und werden von der App neu erstellt.",
+  "backup.summary.warning.dependencies": "{count} installierte Abhängigkeitsordner (node_modules) wurden ausgelassen; installiere sie nach der Wiederherstellung im Projekt erneut.",
+  "backup.summary.warning.workLinks": "{count} symbolische Links in Arbeitsordnern von Unterhaltungen wurden ausgelassen; ihre Ziele liegen außerhalb dieses Backups."
 }

@@ -5962,5 +5962,17 @@
   "onboarding.reel.demo.hour": "{hour} AM",
   "voice.agentVoice": "{name}'s voice",
   "voice.sample": "Morning. Overnight the tests went green, and I left two notes for you in the thread.",
-  "organization.logo": "Organization logo"
+  "organization.logo": "Organization logo",
+  "backup.summary.exclusion.identity": "Device pairing, server identity, live leases and runtime files (existing destination identities are preserved).",
+  "backup.summary.exclusion.credentials": "Saved credentials, provider and MCP connections, managed provider login homes and browser login profiles are not transferred. Destination connections are preserved; reconnect on a new device.",
+  "backup.summary.exclusion.tools": "Downloaded tools and caches (they can be installed again), and recorded browser step screenshots (export them from a conversation to keep them).",
+  "backup.summary.exclusion.dependencies": "Installed dependency folders (node_modules) and symbolic links inside conversation work folders; reinstall or recreate them in the project.",
+  "backup.summary.exclusion.external": "External project folders, CLI login homes, browser session homes, OS keychains, companion devices and other servers.",
+  "backup.summary.exclusion.cloud": "VM/container disk layers and remote cloud data; durable files inside this workspace are included.",
+  "backup.summary.warning.editors": "Stop external editors and managed desktops before exporting; files written outside this server cannot be frozen by the backup gate.",
+  "backup.summary.warning.secrets": "Conversation text and user files are not redacted and may contain secrets you pasted. Keep the encrypted backup private.",
+  "backup.summary.warning.restore": "Restoring pauses routines, webhooks and calendar calls, and does not resume pending delegations, queued chat messages or queued runs. Definitions and historical receipts are retained; review before enabling them again.",
+  "backup.summary.warning.skillLinks": "{count} managed skill discovery link(s) were omitted and are recreated by the app.",
+  "backup.summary.warning.dependencies": "{count} installed dependency folder(s) (node_modules) were omitted; reinstall them in the project after restoring.",
+  "backup.summary.warning.workLinks": "{count} symbolic link(s) in conversation work folders were omitted; what they point to is outside this backup."
 }

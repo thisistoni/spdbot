@@ -2701,7 +2701,19 @@
       "cloudMove.bring.deleted": "7907e994fe8affa70b0ef5d08ceccac0fbf23b38b1131894b46c2c00febbb845",
       "cloudMove.bring.context": "b1e42ce43ac358da085687564164e9f2211d655a5df25b074d4f6df82005fe8c",
       "cloudMove.bring.failed": "375a243539b2effdb03f67ada1f0b1671810a62637748978efd90e9d728a765d",
-      "cloudMove.home.note": "db4072a8ad1fffa39b5fa6dc787ad808ec3ba721f8291d8a2e0cdd42fec2d2d8"
+      "cloudMove.home.note": "db4072a8ad1fffa39b5fa6dc787ad808ec3ba721f8291d8a2e0cdd42fec2d2d8",
+      "backup.summary.exclusion.identity": "a10911897cabdf38ad4d8a06cfb5555f47308b7d343be8bb88eb7e146a9ae31d",
+      "backup.summary.exclusion.credentials": "eea154b8615de63c41822f23f3b3cbb61c9b5155cf24f8159590b7dcc4e60ef2",
+      "backup.summary.exclusion.tools": "0ed78938541c5f735a4a9b36c6591494a998849952acdb8a4cc1c32fecc76aca",
+      "backup.summary.exclusion.dependencies": "63943fd3ec54e089ace70d2692f0c6489a6fcf88d396261c49e42eaa302d6ce5",
+      "backup.summary.exclusion.external": "302e5896028818bae3b52bf0979afdde51d0b7fd8b2f29c780933e0ece037872",
+      "backup.summary.exclusion.cloud": "9c8a7887cfdeee163fd6a1c4288da33bd44db036140a15ce482769b257cff435",
+      "backup.summary.warning.editors": "a2f35c298d4fd72c3ca5584fdba552b7ff60a0badff523694741d2e9a42465e7",
+      "backup.summary.warning.secrets": "a2b45b7d6d67f2c980005720c898eddef5cfffa23084730c89ce11f607ed3f2f",
+      "backup.summary.warning.restore": "a9cd65c380ea7f5f48a5e5a230d480a1bee473193df63767873c15f5b53de9e4",
+      "backup.summary.warning.skillLinks": "e84c0992d78058ef5b3813bc33295c8c0618114e769d63959da4e5956192afbd",
+      "backup.summary.warning.dependencies": "d44545084a4885bbb53ba766a77f194be7f30a6035b22ea6a55d1a13350c8a60",
+      "backup.summary.warning.workLinks": "21734465638891270cff2c9a3919f07d397dd69a2fcfff27ba662ee0665f18ba"
     },
     "es": {
       "whop.description": "1a07cf04ef17029448d3781415cbac16d54e66b821907a40d94e0e6349710e70",
