@@ -3,7 +3,8 @@ import { renderToStaticMarkup } from "react-dom/server";
 import { afterEach, beforeEach, expect, it, vi } from "vitest";
 import type { CloudAccountBridge, CloudAccountState } from "../../electron/cloud-account.mjs";
 import { setLocale } from "@/lib/i18n";
-const f = vi.hoisted(() => ({ values: [] as unknown[], index: 0, effects: [] as EffectCallback[], platform: "darwin" as DesktopCapabilities["host"]["platform"] }));
+const f = vi.hoisted(() => ({ values: [] as unknown[], index: 0, effects: [] as EffectCallback[], platform: "darwin" as DesktopCapabilities["host"]["platform"], commerce: true }));
+vi.mock("@/lib/cloud-offers", () => ({ cloudOffersAvailable: () => f.commerce }));
 vi.mock("react", async original => ({ ...await original<typeof import("react")>(),
   useState: (initial: unknown) => { const index = f.index++; if (!(index in f.values)) f.values[index] = initial; return [f.values[index], (next: unknown) => { f.values[index] = next; }]; },
   useRef: (initial: unknown) => { const index = f.index++; if (!(index in f.values)) f.values[index] = { current: initial }; return f.values[index]; },
@@ -22,7 +23,7 @@ const click = (label: string) => { const button = render().nodes.find(node => no
 let bridge: CloudAccountBridge, push: (state: CloudAccountState) => void;
 const free: CloudAccountState = { status: "connected", account: { id: "fixture", email: "person@example.test" }, entitlement: { plan: "free", status: "inactive", expiresAt: null, version: 0 } };
 beforeEach(() => {
-  f.values = []; f.index = 0; f.effects = []; f.platform = "darwin"; push = () => {};
+  f.values = []; f.index = 0; f.effects = []; f.platform = "darwin"; f.commerce = true; push = () => {};
   bridge = { state: vi.fn().mockResolvedValue({ status: "signed-out" }), begin: vi.fn().mockResolvedValue({ status: "connecting" }),
     signInAgain: vi.fn().mockResolvedValue({ status: "connecting" }),
     reopen: vi.fn().mockResolvedValue({ status: "connecting" }), cancel: vi.fn().mockResolvedValue({ status: "signed-out" }),
@@ -36,6 +37,19 @@ it("loads optional account state without enrollment/network and delegates sign-i
   await ready(); expect(bridge.begin).not.toHaveBeenCalled(); expect(fetch).not.toHaveBeenCalled();
   expect(render().html).toContain("Free local use"); expect(render().html).toContain("separate from organization sign-in");
   click("Sign in to your Cloud plan"); await flush(); expect(bridge.begin).toHaveBeenCalledExactlyOnceWith();
+});
+it("signs in directly and never offers upstream checkout when no owned offer exists", async () => {
+  f.commerce = false;
+  const onAddCloud = vi.fn(), onSignIn = vi.fn();
+  await ready();
+  const view = render({ onAddCloud, onSignIn });
+  expect(view.html).not.toContain("Add a Cloud");
+  expect(view.html).not.toContain("Start free trial");
+  view.nodes.find(node => node.type === "button" && node.props.children === "Sign in to your Cloud plan")!.props.onClick!();
+  await flush();
+  expect(bridge.begin).toHaveBeenCalledExactlyOnceWith();
+  expect(onSignIn).not.toHaveBeenCalled();
+  expect(onAddCloud).not.toHaveBeenCalled();
 });
 it("a free account starts in the Add a Cloud dialog, but only a verified native update displays Pro; unavailable/revoked states remove it", async () => {
   const onAddCloud = vi.fn();

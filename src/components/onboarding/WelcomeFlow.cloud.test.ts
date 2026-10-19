@@ -5,7 +5,8 @@ import { afterEach, beforeEach, expect, it, vi } from "vitest";
 import type { CloudOffer } from "../../../electron/cloud-home.mjs";
 import { setLocale } from "@/lib/i18n";
 
-const f = vi.hoisted(() => ({ state: {} as any, dispatch: vi.fn() }));
+const f = vi.hoisted(() => ({ state: {} as any, dispatch: vi.fn(), commerce: true }));
+vi.mock("@/lib/cloud-offers", () => ({ cloudOffersAvailable: () => f.commerce }));
 vi.mock("@/state/store", () => ({ useStore: () => ({ state: f.state, dispatch: f.dispatch }), api: async () => ({}) }));
 vi.mock("@/lib/analytics", () => ({ track: vi.fn(), setEmailGateDone: vi.fn() }));
 vi.mock("@/components/Avatar", () => ({ MausAvatar: () => null }));
@@ -18,7 +19,7 @@ const { welcomeOnScreen } = await import("@/lib/onboarding");
 const allowances = { cpus: 2, memoryMb: 2048, diskGb: 20, maxDiskGb: 20, computers: 1, computerHours: 50, voiceCharacters: 1 };
 const OFFER: CloudOffer = { recommended: "pro", plans: [{ tier: "pro", amount: 4900, trialDays: 3, allowances }] };
 let host: HTMLDivElement, root: Root;
-beforeEach(() => { setLocale("en"); f.state = { config: {}, cloudAdd: null, bots: [] }; host = document.createElement("div"); document.body.append(host); root = createRoot(host); });
+beforeEach(() => { setLocale("en"); f.commerce = true; f.state = { config: {}, cloudAdd: null, bots: [] }; host = document.createElement("div"); document.body.append(host); root = createRoot(host); });
 afterEach(async () => { await act(async () => root.unmount()); host.remove(); });
 const flow = (extra: Record<string, unknown> = {}) => createElement(WelcomeFlow, { bot: null, onDone: vi.fn(), reel: false, dictation: false, initialBeat: "cloud", cloudOffer: OFFER, ...extra });
 
@@ -34,6 +35,13 @@ it("the welcome offers MausBot Cloud between the phone and the first bot, and No
 
 it("without an offer the welcome has no Cloud beat at all", async () => {
   await act(async () => { root.render(flow({ cloudOffer: null })); });
+  expect(host.textContent).not.toContain("Keep your bots working while you sleep");
+  expect(host.textContent).toContain("1 of 4");
+});
+
+it("omits a supplied Cloud offer when this fork has no checkout", async () => {
+  f.commerce = false;
+  await act(async () => { root.render(flow()); });
   expect(host.textContent).not.toContain("Keep your bots working while you sleep");
   expect(host.textContent).toContain("1 of 4");
 });

@@ -92,7 +92,7 @@ import { DESKTOP_PORTS, jsonFile, registerDesktopPrefs } from "./desktop-prefs.m
 import { createDesktopIncludedX } from "./included-x.mjs";
 import { cloudHomeConnectUrl, cloudPlanDisk, cloudUnreachableText, isCloudHomeEntry, myCloudOrigin, rememberedCloudHome, savedCloudHomeOrigin, signInCloudSession, withCloudHome } from "./cloud-home.mjs";
 import { installCloudFiles } from "./cloud-sync-main.mjs";
-import { createCloudEntry } from "./cloud-entry.mjs";
+import { createCloudEntry, createCloudOfferPolicy } from "./cloud-entry.mjs";
 import { cloudPageSenderAllowed, createCloudMove, mintOwnerCode, moveBlocked, moveFit, moveRefusal, moveSenderDestination, parseCloudMoveStatus } from "./cloud-move.mjs";
 import { registerCloudLoginsIpc } from "./cloud-logins.mjs";
 import { cloudMoveChoices } from "./cloud-move-choices.mjs";
@@ -222,7 +222,7 @@ if (process.platform === "linux") {
 }
 
 if (!app.requestSingleInstanceLock()) {
-  console.log("[desktop] OpenMausBot is already running — focusing that window");
+  console.log("[desktop] SPDBot is already running — focusing that window");
   process.exit(0);
 }
 
@@ -365,7 +365,7 @@ const serverSupervisor = createServerSupervisor({
     slog("server recovery paused after repeated failures; quit and reopen to retry");
     dialog.showErrorBox(
       "The bot server stopped",
-      "Automatic recovery could not restart the background server. Quit and reopen OpenMausBot to try again. Interrupted chat turns were not resent.\n\n" +
+      "Automatic recovery could not restart the background server. Quit and reopen SPDBot to try again. Interrupted chat turns were not resent.\n\n" +
         `Server log: ${path.join(LOG_DIR, "server.log")}`,
     );
   },
@@ -887,22 +887,10 @@ function cloudTrialNotices() {
   return trialNotices ??= createTrialNotices(jsonFile(path.join(app.getPath("userData"), "cloud-trial-notices.json")));
 }
 
-let brandedBuild = null;
-async function readCloudOfferBrand() {
-  if (brandedBuild !== null || !app.isPackaged || desktopRemoteAccess) return;
-  const status = await fetch(`http://127.0.0.1:${SERVER_PORT}/api/brand`, { signal: AbortSignal.timeout(3_000) })
-    .then(res => (res.ok ? res.json() : null)).catch(() => null);
-  if (!status || brandedBuild !== null) return;
-  brandedBuild = status.source === "file";
-  refreshApplicationMenu();
-}
-function cloudOffersAllowed() {
-  return app.isPackaged && !desktopRemoteAccess && brandedBuild === false;
-}
-async function cloudOffersReady() {
-  if (brandedBuild === null && serverReady) await readCloudOfferBrand();
-  return cloudOffersAllowed();
-}
+const { readCloudOfferBrand, cloudOffersAllowed, cloudOffersReady } = createCloudOfferPolicy({
+  isPackaged: () => app.isPackaged, isRemote: () => desktopRemoteAccess,
+  serverReady: () => serverReady, serverPort: () => SERVER_PORT, refreshMenu: refreshApplicationMenu,
+});
 const menuDate = value => new Intl.DateTimeFormat(app.getLocale() || "en-US", { day: "numeric", month: "short" }).format(new Date(value));
 function cloudHomeEntry() {
   const homeOrigin = cloudAccount?.homeTarget()?.origin ?? null;
@@ -1106,7 +1094,7 @@ async function runCompanyBackup(kind, input, scheduled = null) {
     const status = await localBackupStatus(proc);
     if (status.pendingRestore) {
       publishCompanyBackupState({ busy: false, pendingRestore: true });
-      throw new Error("Restart OpenMausBot to finish the pending restore before starting another backup operation.");
+      throw new Error("Restart SPDBot to finish the pending restore before starting another backup operation.");
     }
     if (status.busy) throw companyBackupDeferred();
     const transfers = createCompanyBackups({
@@ -1292,8 +1280,8 @@ function buildErrorPage({ allPortsOccupied }) {
   const serverLogPath = path.join(LOG_DIR, "server.log");
   const serverLogHref = pathToFileURL(serverLogPath).href;
   const reason = allPortsOccupied
-    ? "Every OpenMausBot port answered health checks from another process — likely a second copy of the app, or another program on ports 8799–28799. Quit that program, then quit and reopen OpenMausBot."
-    : "The background server didn't come up in time — this is usually slow startup, not a port conflict. Quit and reopen OpenMausBot.";
+    ? "Every SPDBot port answered health checks from another process — likely a second copy of the app, or another program on ports 8799–28799. Quit that program, then quit and reopen SPDBot."
+    : "The background server didn't come up in time — this is usually slow startup, not a port conflict. Quit and reopen SPDBot.";
   return (
     "data:text/html;charset=utf-8," +
     encodeURIComponent(
@@ -1346,7 +1334,7 @@ function desktopViewerErrorPage(message, retryUrl) {
 }
 
 function openDesktopViewer(owner, rawUrl, rawTitle, contextId) {
-  if (!owner || owner.isDestroyed()) throw new Error("The OpenMausBot window is unavailable");
+  if (!owner || owner.isDestroyed()) throw new Error("The SPDBot window is unavailable");
   const url = desktopViewerUrl(rawUrl);
   const titleCandidate = Object.prototype.toString.call(rawTitle) === "[object String]" ? rawTitle.trim() : "";
   const title = titleCandidate ? titleCandidate.slice(0, 80) : "Live desktop";
@@ -1446,7 +1434,7 @@ function openDesktopViewer(owner, rawUrl, rawTitle, contextId) {
 }
 
 function ensureDesktopWorkspace(owner) {
-  if (!owner || owner.isDestroyed()) throw new Error("The OpenMausBot window is unavailable");
+  if (!owner || owner.isDestroyed()) throw new Error("The SPDBot window is unavailable");
   if (desktopWorkspaceManager) {
     if (desktopWorkspaceOwner !== owner) {
       throw new Error("The two-desktop view belongs to another app window");
@@ -1706,7 +1694,7 @@ async function switchLocalEnvironmentTo(targetDir, targetId) {
   const failedSwitch = () => {
     dialog.showErrorBox(
       "Could not switch environments",
-      "OpenMausBot could not switch to that environment. The app log has the details.",
+      "SPDBot could not switch to that environment. The app log has the details.",
     );
     return { ok: false, error: "switch-failed" };
   };
@@ -3150,7 +3138,7 @@ app.whenReady().then(async () => {
       persistEnvironments({ ...environmentsState, activeId: LOCAL_ID });
       dialog.showErrorBox(
         "The environment's folder is missing",
-        `${boot.missingDir} is not there anymore, so OpenMausBot came up on this computer's default data folder instead. Restore or remount that folder, then choose the environment again from the Server menu.`,
+        `${boot.missingDir} is not there anymore, so SPDBot came up on this computer's default data folder instead. Restore or remount that folder, then choose the environment again from the Server menu.`,
       );
     }
     bootDataDir = boot.dataDir;
@@ -3164,8 +3152,8 @@ app.whenReady().then(async () => {
       runningDataDir = bootDataDir;
     } catch (error) {
       dialog.showErrorBox(
-        "OpenMausBot could not start safely",
-        error?.message ?? "Another process is using this OpenMausBot data folder.",
+        "SPDBot could not start safely",
+        error?.message ?? "Another process is using this SPDBot data folder.",
       );
       app.quit();
       return;
@@ -3292,8 +3280,8 @@ app.whenReady().then(async () => {
         runningDataDir = desktopDataDir();
       } catch (error) {
         dialog.showErrorBox(
-          "OpenMausBot could not start safely",
-          error?.message ?? "Another process is using this OpenMausBot data folder.",
+          "SPDBot could not start safely",
+          error?.message ?? "Another process is using this SPDBot data folder.",
         );
         app.quit();
         return;
@@ -3302,12 +3290,12 @@ app.whenReady().then(async () => {
       if (retried) {
         dialog.showErrorBox(
           "The environment was unhealthy",
-          `OpenMausBot could not start on ${bootDataDir} and came up on this computer's default data folder instead. Choose that environment again from the Server menu once it is available.`,
+          `SPDBot could not start on ${bootDataDir} and came up on this computer's default data folder instead. Choose that environment again from the Server menu once it is available.`,
         );
       } else {
         dialog.showErrorBox(
-          "OpenMausBot could not start",
-          `OpenMausBot could not start on ${bootDataDir} or on this computer's default data folder. Check that both folders are readable, then start the app again.`,
+          "SPDBot could not start",
+          `SPDBot could not start on ${bootDataDir} or on this computer's default data folder. Check that both folders are readable, then start the app again.`,
         );
         app.quit();
       }

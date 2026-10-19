@@ -5,6 +5,7 @@ import { useStore } from "@/state/store";
 import { buyOfferAllowed, cloudPlanLine, cloudPlanView, moneyBackLine, offerTrialDays, usd, type CloudPlanView } from "@/lib/cloud-plan";
 import { useCloudOffer } from "@/lib/use-cloud-offer";
 import { t } from "@/lib/i18n";
+import { cloudOffersAvailable } from "@/lib/cloud-offers";
 
 export function proOfferAvailable(account: CloudAccountState | null): boolean {
   return buyOfferAllowed(cloudPlanView(account));
@@ -26,7 +27,7 @@ export function useCloudPlan(): { view: CloudPlanView; account: CloudAccountStat
 export function ProSettingsCard() {
   const { dispatch } = useStore();
   const plan = useCloudPlan();
-  const offering = plan !== null && buyOfferAllowed(plan.view);
+  const offering = cloudOffersAvailable() && plan !== null && buyOfferAllowed(plan.view);
   const offer = useCloudOffer(offering, plan?.account?.offer);
   if (!plan) return null;
   const { view } = plan;

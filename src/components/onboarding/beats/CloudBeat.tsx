@@ -8,6 +8,7 @@ import { CloudMascotScene } from "@/components/cloud-buy/CloudMascotScene";
 import { track } from "@/lib/analytics";
 import { brandStatus } from "@/lib/brand";
 import { buyOfferAllowed, cloudBeatTerms, cloudPlanView } from "@/lib/cloud-plan";
+import { cloudOffersAvailable } from "@/lib/cloud-offers";
 import { t } from "@/lib/i18n";
 import { CLOUD_PRO_UPDATE_NOTICE } from "@/lib/notices";
 import { cloudBeatPossible, cloudBeatWanted, hintSeenPatch, ONBOARDING_CLOUD_HINT } from "@/lib/onboarding";
@@ -27,7 +28,7 @@ export function useCloudBeatOffer(hosted: boolean, shown?: CloudOffer | null, wa
   const bridge = remote ? undefined : window.ogb?.cloudAccount;
   const desktop = remote ? undefined : window.ogb?.desktopNotices;
   const place = { bridge: Boolean(bridge?.offer), branded: brandStatus().source === "file", hosted, remote };
-  const possible = shown === undefined && cloudBeatPossible(place);
+  const possible = cloudOffersAvailable() && shown === undefined && cloudBeatPossible(place);
   const [decided, setDecided] = useState<CloudOffer | null>(null);
   useEffect(() => {
     if (!possible || !bridge?.offer) return;
@@ -48,7 +49,7 @@ export function useCloudBeatOffer(hosted: boolean, shown?: CloudOffer | null, wa
     return () => { active = false; unsubscribe(); clearTimeout(timer); };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [possible, bridge]);
-  return shown !== undefined ? shown : decided;
+  return cloudOffersAvailable() ? shown !== undefined ? shown : decided : null;
 }
 
 export function CloudBeat({ offer, onNext, onSkip, setMascot }: BeatProps & { offer: CloudOffer }) {

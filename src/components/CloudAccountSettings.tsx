@@ -5,6 +5,7 @@ import { CloudMoveSettings } from "./CloudMove";
 import { cloudFilesBridge } from "@/lib/cloud-files";
 import { activeLocale, t } from "@/lib/i18n";
 import { buyOfferAllowed, cloudCreditLine, cloudPlanLabel, cloudPlanLine, cloudPlanView, cloudTrialView, moneyBackLine, offerTrialDays, trialRunning, type CloudPlanView } from "@/lib/cloud-plan";
+import { cloudOffersAvailable } from "@/lib/cloud-offers";
 import { useCloudOffer } from "@/lib/use-cloud-offer";
 import type { LocaleKey } from "@/locales";
 import { Card } from "./SettingsPrimitives";
@@ -221,7 +222,7 @@ export function CloudAccountSettings({ linkRequest = 0, cloudHome = false, onCon
     if (action === "sign-in") void perform(() => bridge.begin());
     if (action === "connect") { link.current.connected = true; connectHome(); }
   }, [bridge, linkRequest, account, busy]);
-  const offer = useCloudOffer(Boolean(account) && buyOfferAllowed(cloudPlanView(account)), account?.offer);
+  const offer = useCloudOffer(cloudOffersAvailable() && Boolean(account) && buyOfferAllowed(cloudPlanView(account)), account?.offer);
   if (!bridge) {
     const plan = window.ogb?.remoteClient?.active || !cloudHome ? undefined : window.ogb?.cloudPlan;
     return <>
@@ -236,7 +237,7 @@ export function CloudAccountSettings({ linkRequest = 0, cloudHome = false, onCon
   const machine: CloudMachine | undefined = account?.status === "connected" ? account.machine ?? (view.kind === "paid" ? { status: "provisioning" } : undefined) : undefined;
   const enrollment = account?.status === "connecting" ? account.enrollment : undefined;
   const moneyBack = moneyBackLine(offer);
-  const addCloudButton = onAddCloud && buyOfferAllowed(view) && <div className="flex flex-col items-start gap-1">
+  const addCloudButton = cloudOffersAvailable() && onAddCloud && buyOfferAllowed(view) && <div className="flex flex-col items-start gap-1">
     <button type="button" disabled={busy} className="ui-button ui-button-primary" onClick={onAddCloud}>{t(offerTrialDays(offer) !== null ? "cloudIntro.start" : "cloudAccount.upgrade")}</button>
     {moneyBack && <p className="text-[12px] text-ink-secondary">{moneyBack}</p>}
   </div>;
@@ -249,7 +250,7 @@ export function CloudAccountSettings({ linkRequest = 0, cloudHome = false, onCon
       {(view.kind === "signed-out" || view.kind === "removed") && <div className="flex flex-col items-start gap-3">
         {addCloudButton}
         <button type="button" disabled={busy} className={addCloudButton ? "text-[13px] font-medium text-accent-text underline underline-offset-2 hover:text-ink" : "ui-button"}
-          onClick={() => onSignIn ? onSignIn() : void perform(() => bridge.begin())}>{t("cloudAccount.signIn")}</button>
+          onClick={() => cloudOffersAvailable() && onSignIn ? onSignIn() : void perform(() => bridge.begin())}>{t("cloudAccount.signIn")}</button>
       </div>}
       {account?.status === "connecting" && <div className="flex flex-col items-start gap-3">
         <p role="status" className="text-[13px] text-ink-secondary">{t("cloudAccount.browser")}</p>

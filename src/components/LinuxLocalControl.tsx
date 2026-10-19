@@ -10,11 +10,11 @@ import {
 } from "lucide-react";
 
 import { cn } from "@/lib/cn";
+import { APP_REPOSITORY } from "@/lib/app-links";
 import { t } from "@/lib/i18n";
 import { useDesktopCapabilities } from "./DesktopCapabilities";
 
-const LINUX_GUIDE_URL =
-  "https://github.com/milind-soni/OpenMausBot/blob/main/docs/linux-desktop.md#enable-local-control";
+const LINUX_GUIDE_URL = `${APP_REPOSITORY}/blob/main/docs/linux-desktop.md#enable-local-control`;
 
 export function LinuxLocalControl() {
   const { capabilities } = useDesktopCapabilities();

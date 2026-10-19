@@ -1,7 +1,7 @@
-import { useState, type ReactNode } from "react";
+import type { ReactNode } from "react";
 import {
   Archive, AudioWaveform, Check, CheckCheck, Copy, FileCode2, FileText, History, LayoutGrid, Lock, Phone, Puzzle, Search,
-  SlidersHorizontal, Slack, Smartphone, Trash2, Users, Zap, ClipboardCopy, Loader2,
+  SlidersHorizontal, Slack, Trash2, Users, Zap, ClipboardCopy, Loader2,
 } from "lucide-react";
 
 import { t } from "@/lib/i18n";
@@ -11,7 +11,6 @@ import { requestNotificationPermission } from "@/lib/notify";
 import { useOwnerOrAdmin } from "@/lib/use-owner-or-admin";
 import { useStore, type Bot } from "@/state/store";
 import { ConfirmDialog } from "../ConfirmDialog";
-import { PhoneAppDialog } from "../PhoneAppDialog";
 import { botConfirmCopy } from "../Sidebar";
 import { UsageSection } from "../bot-settings/UsageSection";
 import { formFromVisibility } from "../bot-settings/VisibilitySection";
@@ -64,7 +63,6 @@ export function SettingsTab({ bot, derived, slackUrl, query, onQuery, onOpen, on
   const actions = useBotActions(bot);
   const ownerOrAdmin = useOwnerOrAdmin();
   const advanced = useAdvancedMode();
-  const [phoneAppOpen, setPhoneAppOpen] = useState(false);
   const { patch, canCoordinate, sectionName } = derived;
   const displaySectionName = sectionName === "General" ? t("botAccess.teams.general") : sectionName;
   const visibilityShown = !window.ogb && ownerOrAdmin === true;
@@ -140,9 +138,6 @@ export function SettingsTab({ bot, derived, slackUrl, query, onQuery, onOpen, on
       page("always", Check, t("botPanel.alwaysHint"), alwaysAllowed || none),
     ] },
     { label: t("botPanel.card.sharing"), anchor: "sharing", rows: [
-      inline("phoneapp", `${t("botPanel.phoneApp")} iphone android`, (
-        <NavRow key="phoneapp" data-panel-row="phoneapp" icon={Smartphone} title={t("botPanel.phoneApp")} hint={t("botPanel.phoneAppHint")} onClick={() => setPhoneAppOpen(true)} />
-      )),
       ...(slackUrl ? [page("slack", Slack, t("botPanel.slackHint"))] : []),
       ...(visibilityShown ? [page("visibility", Lock, t("botPanel.visibilityHint"), t(VISIBILITY_VALUE[formFromVisibility(bot.visibility).mode]))] : []),
       inline("contact", `${t("botPanel.phoneEmail")} ${t("botPanel.phoneEmailHint")} number inbox`, (
@@ -293,7 +288,6 @@ export function SettingsTab({ bot, derived, slackUrl, query, onQuery, onOpen, on
         />
       </label>
       {body}
-      <PhoneAppDialog open={phoneAppOpen} onClose={() => setPhoneAppOpen(false)} />
       <ConfirmDialog
         open={actions.confirm !== null}
         {...confirmCopy}

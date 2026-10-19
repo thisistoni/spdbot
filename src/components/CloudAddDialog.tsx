@@ -9,6 +9,7 @@ import { track } from "@/lib/analytics";
 import { cn } from "@/lib/cn";
 import { cloudColor, cloudNameShown, DEFAULT_CLOUD_COLOR } from "@/lib/cloud-look";
 import { cloudAddView, offerPlan, sameTerms, type CloudAddView, type CloudSignInPhase } from "@/lib/cloud-plan";
+import { cloudOffersAvailable } from "@/lib/cloud-offers";
 import { t } from "@/lib/i18n";
 import { welcomeOnScreen } from "@/lib/onboarding";
 import { useStore } from "@/state/store";
@@ -126,7 +127,10 @@ export function CloudAddDialog({ now = Date.now }: { now?: () => number }) {
   const [, setTick] = useState(0);
   const [arrived, setArrived] = useState(false);
   const [terms, setTerms] = useState(false);
-  const open = Boolean(request && bridge);
+  const open = cloudOffersAvailable() && Boolean(request && bridge);
+  useEffect(() => {
+    if (request && !cloudOffersAvailable()) dispatch({ type: "closeCloudAdd" });
+  }, [request, dispatch]);
   const profileEmail = state.config?.profile?.email?.trim() || null;
   // Over the welcome flow the sheet is as good as closed for "ready": main notifies, and nothing switches the window away.
   const overWelcome = welcomeOnScreen();
