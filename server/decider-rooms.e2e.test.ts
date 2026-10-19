@@ -405,9 +405,13 @@ describe("Auto rooms ask the decision model who answers", { timeout: 90_000 }, (
       expect(jevRequests.every((jevRequest) => jevRequest.auth !== `Bearer ${OR_KEY}`)).toBe(true);
 
       const dir = join(data, "decider-log");
-      const log = readdirSync(dir).map((name) => readFileSync(join(dir, name), "utf8")).join("");
-      const rows = log.trim().split("\n").map((line) => JSON.parse(line));
-      expect(rows.some((row) => row.provider === "openrouter" && row.model === MODEL && row.seam === "roomRouting" && row.ok && row.choice === bots.Theo!.id)).toBe(true);
+      let log = "";
+      // Decision logs are queued independently of the room's reply.
+      await expect.poll(() => {
+        log = readdirSync(dir).map((name) => readFileSync(join(dir, name), "utf8")).join("");
+        const rows = log.trim().split("\n").map((line) => JSON.parse(line));
+        return rows.some((row) => row.provider === "openrouter" && row.model === MODEL && row.seam === "roomRouting" && row.ok && row.choice === bots.Theo!.id);
+      }, { timeout: 5_000 }).toBe(true);
       expect(log).not.toContain(OR_KEY);
       expect(log).not.toContain("pricing page");
       expect(output).not.toContain(OR_KEY);
