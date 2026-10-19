@@ -157,7 +157,7 @@ test("the Cloud entry checks the owned server, waits for the saved sign-in, and 
   assert.deepEqual([...entry.matchAll(/loadURL\((.*)\);/g)].map(match => match[1]), ["`${rendererOrigin()}/?desktop-settings=${action}`"]);
 });
 
-test("Add a Cloud… is always the sheet on this computer's page, never a native box: the sheet says setting up or one Cloud for now", () => {
+test("Cloud checkout stays disabled in this fork; the guarded legacy sheet path has no native box", () => {
   const add = between("async function openCloudAdd(source)", "\n}\n");
   assert.ok(add.indexOf("if (!cloudOffersAllowed() || !serverReady) return;") < add.indexOf("await cloudAccountRestored();"));
   const restored = add.indexOf("await cloudAccountRestored();");
@@ -168,6 +168,8 @@ test("Add a Cloud… is always the sheet on this computer's page, never a native
   assert.match(add, /const action = source === "app_howto" \? "cloud-add-howto" : "cloud-add";/);
   assert.deepEqual([...add.matchAll(/webContents\.send\(([^)]*)\)/g)].map(match => match[1]), ['"app:open-settings", action']);
   assert.deepEqual([...add.matchAll(/loadURL\((.*)\);/g)].map(match => match[1]), ["`${rendererOrigin()}/?desktop-settings=${action}`"]);
-  assert.match(between("function cloudOffersAllowed()", "\n}\n"), /return app\.isPackaged && !desktopRemoteAccess && brandedBuild === false;/);
+  assert.match(main, /const OWNED_CLOUD_OFFERS_AVAILABLE = false;/);
+  assert.match(between("function cloudOffersAllowed()", "\n}\n"), /return OWNED_CLOUD_OFFERS_AVAILABLE && app\.isPackaged && !desktopRemoteAccess && brandedBuild === false;/);
+  assert.match(between("async function cloudOffersReady()", "\n}\n"), /if \(!OWNED_CLOUD_OFFERS_AVAILABLE\) return false;/);
   assert.match(between("async function readCloudOfferBrand()", "\n}\n"), /fetch\(`http:\/\/127\.0\.0\.1:\$\{SERVER_PORT\}\/api\/brand`/);
 });

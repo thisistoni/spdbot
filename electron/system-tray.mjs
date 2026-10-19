@@ -13,11 +13,11 @@ export function createSystemTray({ Tray, Menu, nativeImage, iconPath, getWindow,
     win.focus();
     return true;
   };
-  tray.setToolTip("OpenMaus Bot");
+  tray.setToolTip("SPDBot");
   tray.setContextMenu(Menu.buildFromTemplate([
-    { label: "Open OpenMaus Bot", click: show },
+    { label: "Open SPDBot", click: show },
     { type: "separator" },
-    { label: "Quit OpenMaus Bot", click: onQuit },
+    { label: "Quit SPDBot", click: onQuit },
   ]));
   tray.on("click", show);
   tray.on("double-click", show);

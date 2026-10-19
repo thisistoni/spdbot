@@ -10,6 +10,7 @@ import { GuidedTour } from "@/components/onboarding/GuidedTour";
 import { LiveCallHost } from "@/components/LiveCallHost";
 import { ThreadRefsProvider } from "@/components/ThreadRefs";
 import { initAnalytics } from "@/lib/analytics";
+import { cloudOffersAvailable } from "@/lib/cloud-offers";
 import { parseComputerHelp } from "@/lib/computer-control";
 import { Sidebar } from "@/components/Sidebar";
 import { ChatView } from "@/components/ChatView";
@@ -85,7 +86,9 @@ function Shell({ viewer }: { viewer: WelcomeViewer | null }) {
       else if (requestedSettings === "organization") dispatch({ type: "toggleAppSettings", open: true, section: "organization" });
       else if (requestedSettings === "cloud") dispatch(CLOUD_LINK_SETTINGS);
       else if (requestedSettings === "cloud-settings") dispatch({ type: "toggleAppSettings", open: true, section: "cloudAccount" });
-      else if (requestedSettings === "cloud-add" || requestedSettings === "cloud-add-howto") dispatch({ type: "openCloudAdd", source: requestedSettings === "cloud-add" ? "app_menu" : "app_howto" });
+      else if (requestedSettings === "cloud-add" || requestedSettings === "cloud-add-howto") dispatch(cloudOffersAvailable()
+        ? { type: "openCloudAdd", source: requestedSettings === "cloud-add" ? "app_menu" : "app_howto" }
+        : { type: "toggleAppSettings", open: true, section: "cloudAccount" });
       else open();
     }
     return window.ogb.environments.onOpenSettings?.(open);
@@ -232,7 +235,9 @@ function Shell({ viewer }: { viewer: WelcomeViewer | null }) {
 
   useEffect(() => {
     return window.ogb?.onOpenAppSettings?.(section => dispatch((section === "cloud-add" || section === "cloud-add-howto") && window.ogb?.cloudAccount && !remoteClient
-      ? { type: "openCloudAdd", source: section === "cloud-add" ? "app_menu" : "app_howto" }
+      ? cloudOffersAvailable()
+        ? { type: "openCloudAdd", source: section === "cloud-add" ? "app_menu" : "app_howto" }
+        : { type: "toggleAppSettings", open: true, section: "cloudAccount" }
       : section === "cloud" && window.ogb?.cloudAccount && !remoteClient
         ? CLOUD_LINK_SETTINGS
         : section === "cloud-settings" && window.ogb?.cloudAccount && !remoteClient

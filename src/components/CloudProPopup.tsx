@@ -6,6 +6,7 @@ import type { DesktopHandoffIntent, DesktopNoticesBridge, DesktopNoticesState } 
 import { analyticsChoiceKnown, identifyEmail, track } from "@/lib/analytics";
 import { buyOfferAllowed, cloudIntroView, cloudPlanLabel, cloudPlanLine, cloudPlanView, moneyBackLine, trialRunning, usd, type CloudPlanView, type CloudSource } from "@/lib/cloud-plan";
 import { t } from "@/lib/i18n";
+import { cloudOffersAvailable } from "@/lib/cloud-offers";
 import { cloudPlanFromAccount, cloudPlanFromSnapshot, type CloudPlanFacts } from "@/lib/usage-snapshot";
 import type { Action } from "@/state/store";
 import { NotNowButton } from "./NoticeCard";
@@ -151,7 +152,7 @@ export function finishCloudProHandoff({ intent, via }: CloudProHandoff, bridge: 
   const finish = () => {
     if (done) return;
     done = true; clearTimeout(timer); unsubscribe();
-    const buying = intent === "cloud-pro" && buyOfferAllowed(cloudPlanView(account));
+    const buying = cloudOffersAvailable() && intent === "cloud-pro" && buyOfferAllowed(cloudPlanView(account));
     reportCloudProPopup(buying ? "upgrade" : "manage", cloudProPopupWho(account), "local", via);
     if (intent === "cloud-pro") dispatch(buying ? { type: "openCloudAdd", source: CLOUD_PRO_POPUP_SOURCE } : CLOUD_SETTINGS);
   };

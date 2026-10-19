@@ -15,6 +15,7 @@ vi.mock("@/components/EngineLibrary", () => ({ engineReady: () => true }));
 const ph = vi.hoisted(() => {
   const ph = {
     loads: 0,
+    commerce: true,
     calls: [] as unknown[][],
     module: () => {
       ph.loads += 1;
@@ -29,6 +30,7 @@ const ph = vi.hoisted(() => {
   return ph;
 });
 vi.mock("posthog-js", () => ph.module());
+vi.mock("@/lib/cloud-offers", () => ({ cloudOffersAvailable: () => ph.commerce }));
 import { CLOUD_PRO_HANDOFF_WAIT_MS, CloudProPopup, cloudProCloudPageView, cloudProElsewhereView, cloudProPopupView, otherDialogOpen, takeCloudProHandoff, useOtherDialogOpen,
   type CloudProPopupView } from "./CloudProPopup";
 import { Spotlight } from "./onboarding/Spotlight";
@@ -46,7 +48,7 @@ const onPlan = (tier: string | undefined, extra: Partial<CloudAccountState> = {}
   ({ ...free, entitlement: { plan: "pro", ...(tier ? { tier } : {}), status: "active", expiresAt: NOW + 30 * DAY, version: 2 }, ...extra });
 const running = { state: "active" as const, tier: "pro", endsAt: NOW + DAY, amount: 4900, chargeAt: NOW + DAY, holdUntil: null, deleteAt: null, keep: "none" as const };
 
-beforeEach(() => setLocale("en"));
+beforeEach(() => { setLocale("en"); ph.commerce = true; });
 
 const PRELOAD = readFileSync(join(process.cwd(), "electron", "preload.cjs"), "utf8").replace(/\r\n/g, "\n");
 type Ogb = NonNullable<Window["ogb"]>;
@@ -410,6 +412,18 @@ describe("who clicked, through the app's analytics", () => {
       await vi.advanceTimersByTimeAsync(CLOUD_PRO_HANDOFF_WAIT_MS);
       expect(dispatch, "nothing opens later").toHaveBeenCalledTimes(1);
     } finally { vi.useRealTimers(); }
+  });
+
+  it("routes a stale purchase handoff to account settings without an owned offer", async () => {
+    await fresh(true); ph.commerce = false;
+    const { finishCloudProHandoff } = await import("./CloudProPopup");
+    const dispatch = vi.fn();
+    finishCloudProHandoff({ intent: "cloud-pro", via: "server" }, {
+      state: async () => free,
+      onState: () => () => {},
+    }, dispatch);
+    await vi.waitFor(() => expect(dispatch).toHaveBeenCalledExactlyOnceWith({ type: "toggleAppSettings", open: true, section: "cloudAccount" }));
+    expect(sent()).toContainEqual(["capture", "cloud_pro_popup", { action: "manage", plan: "none", signed_in: true, page: "local", via: "server" }]);
   });
 
   it("an opt-out made on port 8799 holds when the app gets 18799: a click there sends nothing, not even the email", async () => {

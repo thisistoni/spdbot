@@ -4,7 +4,8 @@ import { afterEach, beforeEach, expect, it, vi } from "vitest";
 import type { CloudAccountState } from "../../electron/cloud-account.mjs";
 import type { CloudOffer } from "../../electron/cloud-home.mjs";
 
-const f = vi.hoisted(() => ({ values: [] as unknown[], index: 0, effects: [] as EffectCallback[], dispatch: null as any }));
+const f = vi.hoisted(() => ({ values: [] as unknown[], index: 0, effects: [] as EffectCallback[], dispatch: null as any, commerce: true }));
+vi.mock("@/lib/cloud-offers", () => ({ cloudOffersAvailable: () => f.commerce }));
 vi.mock("react", async original => ({ ...await original<typeof import("react")>(),
   useState: (initial: unknown) => { const index = f.index++; if (!(index in f.values)) f.values[index] = typeof initial === "function" ? initial() : initial;
     return [f.values[index], (next: unknown) => { f.values[index] = next; }]; },
@@ -25,7 +26,7 @@ let offer: CloudOffer | null;
 let openExternal: ReturnType<typeof vi.fn>;
 let bridge: Record<string, ReturnType<typeof vi.fn>>;
 beforeEach(() => {
-  vi.clearAllMocks(); f.values = []; f.index = 0; f.effects = []; f.dispatch = vi.fn(); offer = TRIAL;
+  vi.clearAllMocks(); f.values = []; f.index = 0; f.effects = []; f.dispatch = vi.fn(); f.commerce = true; offer = TRIAL;
   openExternal = vi.fn().mockResolvedValue(true);
   bridge = { state: vi.fn(async () => signedOut), onState: vi.fn(() => () => {}), offer: vi.fn(async () => offer) };
   vi.stubGlobal("window", { ogb: { cloudAccount: bridge, openExternal } });
@@ -46,6 +47,16 @@ const press = (label: string, Component = ProSettingsCard) => {
   const button = nodes(Component()).find(node => node.type === "button" && renderToStaticMarkup(node).includes(`>${label}<`));
   expect(button, label).toBeTruthy(); button!.props.onClick!();
 };
+
+it("hides checkout when no owned offer exists but keeps a verified plan accessible", async () => {
+  f.commerce = false;
+  expect(await card(signedOut)).toBe("");
+  expect(bridge.offer).not.toHaveBeenCalled();
+  const html = await card(plan({ entitlement: paid("max") }));
+  expect(html).toContain("Max active");
+  expect(html).toContain("MausBot Cloud settings");
+  expect(html).not.toContain("Start free trial");
+});
 
 it("for someone who may buy: what Cloud does, the Admin's lowest price and money-back; Start free trial and Compare plans both open the sheet, never the website", async () => {
   const html = await card(signedOut);

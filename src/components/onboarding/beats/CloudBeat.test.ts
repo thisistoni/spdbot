@@ -6,7 +6,8 @@ import type { CloudAccountState } from "../../../../electron/cloud-account.mjs";
 import type { CloudOffer } from "../../../../electron/cloud-home.mjs";
 import { setLocale } from "@/lib/i18n";
 
-const f = vi.hoisted(() => ({ state: {} as any, dispatch: vi.fn(), api: vi.fn(), branded: false }));
+const f = vi.hoisted(() => ({ state: {} as any, dispatch: vi.fn(), api: vi.fn(), branded: false, commerce: true }));
+vi.mock("@/lib/cloud-offers", () => ({ cloudOffersAvailable: () => f.commerce }));
 vi.mock("@/state/store", () => ({ useStore: () => ({ state: f.state, dispatch: f.dispatch }), api: (...args: unknown[]) => f.api(...args) }));
 vi.mock("@/lib/analytics", () => ({ track: vi.fn() }));
 vi.mock("@/lib/brand", async original => ({ ...await original<typeof import("@/lib/brand")>(), brandStatus: () => ({ source: f.branded ? "file" : "default" }) }));
@@ -29,7 +30,7 @@ const rerender = async (element: ReturnType<typeof createElement>) => { await ac
 const button = (name: string) => [...host.querySelectorAll("button")].find(node => node.textContent === name)!;
 beforeEach(() => {
   setLocale("en"); f.state = { config: { onboarding: { completedAt: "", version: 0, reelSeen: false, hintsSeen: [] } }, cloudAdd: null };
-  f.dispatch = vi.fn(); f.api = vi.fn(async () => ({ onboarding: {} })); f.branded = false; vi.clearAllMocks();
+  f.dispatch = vi.fn(); f.api = vi.fn(async () => ({ onboarding: {} })); f.branded = false; f.commerce = true; vi.clearAllMocks();
   host = document.createElement("div"); document.body.append(host);
 });
 afterEach(async () => { if (root) await act(async () => root!.unmount()); root = null; host.remove(); vi.useRealTimers(); vi.unstubAllGlobals(); });
@@ -43,6 +44,14 @@ const desktop = (account: CloudAccountState, offer: () => Promise<CloudOffer | n
   vi.stubGlobal("window", Object.assign(window, { ogb: { remoteClient: { active: false }, cloudAccount: bridge, ...extra } }));
   return bridge;
 };
+
+it("does not fetch an upstream offer when checkout is unavailable", async () => {
+  f.commerce = false;
+  const bridge = desktop(signedOut, async () => OFFER);
+  await mount(createElement(Probe));
+  expect(host.textContent).toBe("none");
+  expect(bridge.offer).not.toHaveBeenCalled();
+});
 
 it("the beat's offer: an account that may buy and the Admin's offer; nothing for a plan, no offer, branded, hosted or remote", async () => {
   desktop(signedOut, async () => OFFER);

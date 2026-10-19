@@ -7,7 +7,8 @@ import { setLocale } from "@/lib/i18n";
 
 // useState by call order; useEffect as React runs it: again only when its dependencies change, after the last one's cleanup.
 const f = vi.hoisted(() => ({ values: [] as unknown[], index: 0, effects: [] as Array<{ effect: EffectCallback; deps?: readonly unknown[] }>,
-  ran: [] as Array<{ deps?: readonly unknown[]; cleanup?: () => void } | undefined>, state: {} as any, dispatch: null as any }));
+  ran: [] as Array<{ deps?: readonly unknown[]; cleanup?: () => void } | undefined>, state: {} as any, dispatch: null as any, commerce: true }));
+vi.mock("@/lib/cloud-offers", () => ({ cloudOffersAvailable: () => f.commerce }));
 vi.mock("react", async original => ({ ...await original<typeof import("react")>(),
   useState: (initial: unknown) => { const index = f.index++; if (!(index in f.values)) f.values[index] = typeof initial === "function" ? initial() : initial;
     return [f.values[index], (next: unknown) => { f.values[index] = next; }]; },
@@ -67,7 +68,7 @@ const inOrder = (plain: string, words: string[]) => {
   }
 };
 
-beforeEach(() => { vi.clearAllMocks(); setLocale("en"); });
+beforeEach(() => { vi.clearAllMocks(); setLocale("en"); f.commerce = true; });
 afterEach(() => { vi.unstubAllGlobals(); vi.useRealTimers(); setLocale("en"); });
 
 describe("each screen of the sheet says one thing and offers one next step", () => {
@@ -300,6 +301,15 @@ describe("the sheet", () => {
       connectHome: vi.fn(async () => account) };
     vi.stubGlobal("window", { ogb: { cloudAccount: bridge }, addEventListener: vi.fn(), removeEventListener: vi.fn() });
     vi.stubGlobal("document", { querySelector: () => null, activeElement: opener, body: {}, hasFocus: () => focused });
+  });
+
+  it("closes a stale purchase request when checkout is unavailable", async () => {
+    f.commerce = false;
+    expect(await settle()).toBe("");
+    expect(f.dispatch).toHaveBeenCalledWith({ type: "closeCloudAdd" });
+    expect(bridge.state).not.toHaveBeenCalled();
+    expect(bridge.offer).not.toHaveBeenCalled();
+    expect(bridge.sheet).not.toHaveBeenCalled();
   });
 
   it("signed out, Start free trial signs in inside the sheet: the code, then straight to checkout, with no browser until payment", async () => {

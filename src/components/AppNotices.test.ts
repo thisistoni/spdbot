@@ -12,7 +12,8 @@ import { EMPTY_ONBOARDING, LOCAL_VIEWER, type WelcomeViewer } from "@/lib/onboar
 import { setPendingIntent } from "@/lib/cloud-intent";
 import { registerDesktopPrefs } from "../../electron/desktop-prefs.mjs";
 
-const f = vi.hoisted(() => ({ values: [] as unknown[], index: 0, effects: [] as EffectCallback[], state: {} as any, updater: null as any, dispatch: null as any, brand: "default" }));
+const f = vi.hoisted(() => ({ values: [] as unknown[], index: 0, effects: [] as EffectCallback[], state: {} as any, updater: null as any, dispatch: null as any, brand: "default", commerce: true }));
+vi.mock("@/lib/cloud-offers", () => ({ cloudOffersAvailable: () => f.commerce }));
 vi.mock("react", async original => ({ ...await original<typeof import("react")>(),
   useState: (initial: unknown) => { const index = f.index++; if (!(index in f.values)) f.values[index] = typeof initial === "function" ? initial() : initial;
     return [f.values[index], (next: unknown) => { f.values[index] = typeof next === "function" ? (next as (value: unknown) => unknown)(f.values[index]) : next; }]; },
@@ -29,7 +30,7 @@ vi.mock("@/components/EngineLibrary", () => ({ engineReady: (instance: { snapsho
 import { AppNotices } from "./AppNotices";
 import { CLOUD_NOTICE_DISMISSED } from "./CloudNotice";
 import { CLOUD_PRO_HANDOFF_WAIT_MS, finishCloudProHandoff, takeCloudProHandoff } from "./CloudProPopup";
-import { CLOUD_PRO_UPDATE_NOTICE, PRODUCT_HUNT_NOTICE, PRODUCT_HUNT_UNTIL, PRODUCT_HUNT_URL, CLOUD_INTRO, localDay, STAR_NOTICE } from "@/lib/notices";
+import { CLOUD_PRO_UPDATE_NOTICE, CLOUD_INTRO, localDay, STAR_NOTICE } from "@/lib/notices";
 import { identifyEmail, track } from "@/lib/analytics";
 import { api } from "@/state/store";
 
@@ -42,7 +43,7 @@ const plans = [
 const TRIAL_OFFER: CloudOffer = { plans, recommended: "pro", creditUsd: 5, refundDays: 14 };
 const PLAIN_OFFER: CloudOffer = { plans: plans.map(({ trialDays: _days, ...plan }) => plan), recommended: "pro", refundDays: 14 };
 const INTRO = "Keep your bots working when this computer is off";
-const STAR = "Enjoying OpenMausBot?";
+const STAR = "Enjoying SPDBot?";
 const signedOut: CloudAccountState = { status: "signed-out" };
 const free: CloudAccountState = { status: "connected", account: { id: "a", email: "person@example.test" }, entitlement: { plan: "free", status: "inactive", expiresAt: null, version: 1 } };
 const paid = (extra: Partial<CloudAccountState> = {}): CloudAccountState => ({ ...free, entitlement: { plan: "pro", tier: "pro", status: "active", expiresAt: NOW + 30 * DAY, version: 2 }, ...extra });
@@ -124,12 +125,12 @@ const press = (label: string) => {
   expect(button, label).toBeTruthy(); button!.props.onClick();
 };
 const returning = () => { f.state.bots = [{ tasks: [{ threadId: "t", createdAt: 1, usage: { turns: 2 } }] }]; };
-const launchCardsSeen = () => { desk.saved = { seen: [CLOUD_PRO_UPDATE_NOTICE] }; storage.set(PRODUCT_HUNT_NOTICE, "1"); };
+const launchCardsSeen = () => { desk.saved = { seen: [CLOUD_PRO_UPDATE_NOTICE] }; };
 const hints = () => f.state.config.onboarding.hintsSeen as string[];
 
 beforeEach(() => {
   vi.clearAllMocks(); vi.useFakeTimers({ toFake: ["setInterval", "clearInterval"] });
-  storage = new Map(); f.values = []; f.index = 0; f.effects = []; f.updater = null; f.brand = "default"; f.dispatch = vi.fn(); now = NOW; desk = desktopMachine();
+  storage = new Map(); f.values = []; f.index = 0; f.effects = []; f.updater = null; f.brand = "default"; f.commerce = true; f.dispatch = vi.fn(); now = NOW; desk = desktopMachine();
   setLocale("en"); viewer = LOCAL_VIEWER; account = signedOut; snapshot = { status: "none" }; offer = TRIAL_OFFER;
   f.state = { connected: true, bots: [], groups: [], routines: [], instances: [{ instanceId: "claude", snapshot: { state: "available", authenticated: true } }],
     config: { onboarding: { ...EMPTY_ONBOARDING, completedAt: "2026-09-01", version: 1, hintsSeen: withTourFinished(undefined) } } };
@@ -139,7 +140,7 @@ beforeEach(() => {
     return f.state.config;
   });
   vi.stubGlobal("localStorage", { getItem: (key: string) => storage.get(key) ?? null, setItem: (key: string, value: string) => storage.set(key, value) });
-  // The Cloud Pro popup and the Product Hunt card come first; the tests before their own are about the cards after them.
+  // The Cloud Pro popup comes before the account notices and repository star card.
   launchCardsSeen();
   accountListeners = new Set();
   bridges = {
@@ -152,6 +153,25 @@ beforeEach(() => {
   vi.stubGlobal("document", { activeElement: null, body: null, getElementById: () => null, querySelector: () => null, querySelectorAll: () => [] });
 });
 afterEach(() => { vi.unstubAllGlobals(); vi.useRealTimers(); setLocale("en"); });
+
+it("shows no foreign launch or Cloud purchase card when this fork has no offer", async () => {
+  f.commerce = false; desk.saved = { seen: [] }; returning();
+  const html = await launch();
+  expect(html).toContain(STAR);
+  expect(html).not.toContain(INTRO);
+  expect(html).not.toContain("Product Hunt");
+  expect(html).not.toContain("Start free trial");
+  expect(bridges.cloud.offer).not.toHaveBeenCalled();
+});
+
+it("keeps an existing account's trial notice without fetching a purchase offer", async () => {
+  f.commerce = false;
+  account = paid({ trial: trial("active") });
+  snapshot = { status: "paid", tier: "pro", trial: trial("active"), notice: "active" };
+  const html = await launch();
+  expect(html).toContain("Your free trial ends on");
+  expect(bridges.cloud.offer).not.toHaveBeenCalled();
+});
 
 describe("the card after the update", () => {
   it("offers the free trial to someone signed out who has used the app before, in the Admin's numbers, with Start free trial and Show me how", async () => {
@@ -345,41 +365,6 @@ describe("This computer's My Cloud card and the star", () => {
   });
 });
 
-describe("the Product Hunt launch card", () => {
-  const PH = "live on Product Hunt";
-  const fresh = () => { storage.delete(PRODUCT_HUNT_NOTICE); };
-
-  it("comes first, for everyone (new or not, any plan), and the upvote opens the launch and ends it for good", async () => {
-    fresh(); account = paid({ machine: ready });
-    const html = await launch();
-    expect(html).toContain(PH); expect(html).toContain("Upvote on Product Hunt");
-    expect(html).not.toContain(STAR); expect(html).not.toContain("Your always-on bots are on My Cloud");
-    press("Upvote on Product Hunt"); await flush();
-    expect(window.ogb?.openExternal).toHaveBeenCalledWith(PRODUCT_HUNT_URL);
-    expect(vi.mocked(track)).toHaveBeenCalledWith("product_hunt_card", { action: "upvote" });
-    expect(storage.get(PRODUCT_HUNT_NOTICE)).toBe("1"); expect(hints()).toContain(PRODUCT_HUNT_NOTICE);
-    expect(await launch()).toContain("Your always-on bots are on My Cloud");
-  });
-
-  it("Not now, the X and Escape end it for good too", async () => {
-    fresh();
-    expect(await launch()).toContain(PH);
-    press("Not now");
-    expect(vi.mocked(track)).toHaveBeenCalledWith("product_hunt_card", { action: "not_now" });
-    expect(storage.get(PRODUCT_HUNT_NOTICE)).toBe("1");
-    expect(await launch()).not.toContain(PH);
-  });
-
-  it("never on a branded build or an organization's desktop, never after the launch window, never over setup or an update", async () => {
-    fresh(); f.brand = "file";
-    expect(await launch()).not.toContain(PH);
-    f.brand = "default"; now = PRODUCT_HUNT_UNTIL;
-    expect(await launch()).not.toContain(PH);
-    now = NOW; f.updater = { status: "available", version: "9.9.9" };
-    expect(await launch()).not.toContain(PH);
-  });
-});
-
 describe("the Cloud Pro popup after the update", () => {
   const POPUP = "MausBot Cloud Pro";
   const ID = CLOUD_PRO_UPDATE_NOTICE;
@@ -426,7 +411,7 @@ describe("the Cloud Pro popup after the update", () => {
   });
 
   it("every install gets it once, before every other card, as a modal dialog with the Admin's offer; Start free trial opens Add a Cloud from it", async () => {
-    returning(); storage.delete(PRODUCT_HUNT_NOTICE);
+    returning();
     const html = await launch();
     const words = [POPUP, "Free for 7 days", "MausBot Cloud is your own always-on computer in the cloud.", "Routines run on time, day and night",
       "Reach your bots from your phone, even with this computer off", "$5 of Claude credit to start", "Then from $29/month + tax. Cancel any time.",
@@ -447,7 +432,7 @@ describe("the Cloud Pro popup after the update", () => {
     await flush(); expect(seenOnDesktop()).toEqual([ID]);
     expect(render()).toBe("");
     const next = await launch();
-    expect(next).not.toContain(POPUP); expect(next).toContain("live on Product Hunt");
+    expect(next).not.toContain(POPUP); expect(next).not.toContain("Product Hunt");
   });
 
   it("a new install gets it once onboarding is done, never in the middle of it", async () => {
@@ -492,7 +477,7 @@ describe("the Cloud Pro popup after the update", () => {
     expect(popupEvents("see_plans")).toEqual([event("see_plans", "none", true, "local")]);
     expect(lastOrder(vi.mocked(identifyEmail))).toBeLessThan(lastOrder(vi.mocked(track)));
     expect(render()).toBe("");
-    storage.clear(); storage.set(PRODUCT_HUNT_NOTICE, "1");
+    storage.clear();
     expect(await launch(), "the desktop keeps it, not the page's storage").not.toContain(POPUP);
 
     vi.clearAllMocks(); fresh(); await launch();
