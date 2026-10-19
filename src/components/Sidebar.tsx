@@ -1190,7 +1190,7 @@ export const BotListItem = memo(function BotListItem(props: BotRowProps) {
     <>
       <span className="relative flex shrink-0" title={iconOnly ? undefined : [bot.name, ...details].join(" · ")}>
         <BotAvatar
-          bot={bot}
+          bot={bot} busy={working}
           state={stateForBot({ ...bot, messages: visible })}
           size={avatarSize}
           motion={mascotMotion?.kind ?? "none"}

@@ -180,6 +180,7 @@ export const PinnedBotCircle = memo(function PinnedBotCircle({
             <BotAvatar
               bot={bot}
               state={stateForBot({ ...bot, messages: visible })}
+              busy={working}
               size={64}
               motion={mascotMotion?.kind ?? "none"}
               motionKey={mascotMotion?.nonce ?? 0}
