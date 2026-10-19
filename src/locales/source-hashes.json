@@ -2707,7 +2707,7 @@
       "backup.summary.exclusion.tools": "0ed78938541c5f735a4a9b36c6591494a998849952acdb8a4cc1c32fecc76aca",
       "backup.summary.exclusion.dependencies": "63943fd3ec54e089ace70d2692f0c6489a6fcf88d396261c49e42eaa302d6ce5",
       "backup.summary.exclusion.external": "302e5896028818bae3b52bf0979afdde51d0b7fd8b2f29c780933e0ece037872",
-      "backup.summary.exclusion.cloud": "9c8a7887cfdeee163fd6a1c4288da33bd44db036140a15ce482769b257cff435",
+      "backup.summary.exclusion.cloud": "1db55c0df21e24aa9c09391d0f4d60e4a067cc5b7908350c2691f4dd5e68d50b",
       "backup.summary.warning.editors": "a2f35c298d4fd72c3ca5584fdba552b7ff60a0badff523694741d2e9a42465e7",
       "backup.summary.warning.secrets": "a2b45b7d6d67f2c980005720c898eddef5cfffa23084730c89ce11f607ed3f2f",
       "backup.summary.warning.restore": "a9cd65c380ea7f5f48a5e5a230d480a1bee473193df63767873c15f5b53de9e4",
