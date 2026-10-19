@@ -3,18 +3,18 @@ import { Check, TerminalSquare } from "lucide-react";
 import { MausAvatar } from "@/components/Avatar";
 import { cn } from "@/lib/cn";
 import { reducedMotion } from "@/lib/onboarding";
+import { t } from "@/lib/i18n";
 import type { SceneProps } from "./types";
 
 const AGENT_CHAT_MS = 5400;
-
-const ASK = "Can you check whether the deploy script still passes its tests?";
-const REPLY = "Ran the suite on this machine: 42 tests, all green. One warning about a deprecated flag in deploy.sh, want me to fix it?";
 
 const THINK_AT = 700;
 const REPLY_AT = 2000;
 const CHARS_PER_S = 48;
 
 export function AgentChat({ playing, onCue, onEnded, label }: SceneProps) {
+  const ASK = t("onboarding.reel.demo.chat.ask");
+  const REPLY = t("onboarding.reel.demo.chat.reply");
   const still = reducedMotion() || !playing;
   const [phase, setPhase] = useState<"ask" | "think" | "reply">(still ? "reply" : "ask");
   const [shown, setShown] = useState(still ? REPLY.length : 0);
@@ -54,7 +54,7 @@ export function AgentChat({ playing, onCue, onEnded, label }: SceneProps) {
       });
     }, 50);
     return () => clearInterval(timer);
-  }, [phase, still]);
+  }, [phase, still, REPLY]);
 
   const replied = phase === "reply";
   const done = shown >= REPLY.length;
@@ -73,7 +73,7 @@ export function AgentChat({ playing, onCue, onEnded, label }: SceneProps) {
             {ASK}
           </div>
           <div className="flex size-7 shrink-0 items-center justify-center rounded-full bg-raised text-[11px] font-semibold text-ink">
-            You
+            {t("onboarding.reel.demo.you")}
           </div>
         </div>
 
@@ -109,7 +109,7 @@ export function AgentChat({ playing, onCue, onEnded, label }: SceneProps) {
                 >
                   {done ? <Check size={11} strokeWidth={3} /> : <TerminalSquare size={11} />}
                   <code className="font-mono">pnpm test</code>
-                  <span>{done ? "passed" : "running…"}</span>
+                  <span>{done ? t("onboarding.reel.demo.passed") : t("onboarding.reel.demo.running")}</span>
                 </div>
                 <p className="text-[13px] leading-relaxed text-ink">
                   {REPLY.slice(0, shown)}
