@@ -284,3 +284,17 @@ describe("optional desktop Organisation settings", () => {
     expect(bridge.state).not.toHaveBeenCalled();
   });
 });
+
+it("renders German organization sign-in and disconnect safeguards", async () => {
+  setLocale("de");
+  await ready();
+  expect(render().html).toContain("Bei deiner Organisation anmelden");
+  expect(render().html).toContain("Beim Verbinden wird dein Chatverlauf nicht hochgeladen");
+  push({ ...connected, branding: { logo: "https://example.test/logo.png", icons: [] } });
+  expect(render().html).toContain('alt="Logo der Organisation"');
+  button("Verbindung trennen…").props.onClick!();
+  expect(render().html).toContain("Firmenanfragen wechseln nicht zur persönlichen Abrechnung");
+  expect(render().html).toContain("Tägliche Sicherungen werden pausiert");
+  expect(render().html).toContain("Verbindung behalten");
+  expect(bridge.disconnect).not.toHaveBeenCalled();
+});

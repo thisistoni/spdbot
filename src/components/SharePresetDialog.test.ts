@@ -1,3 +1,4 @@
+import { setLocale } from "@/lib/i18n";
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { createElement } from "react";
@@ -63,4 +64,16 @@ describe("Share as preset", () => {
     expect(text(renderToStaticMarkup(createElement(TeamImportDetails, { pending: teamImportPreview(fixture("full-team.v2.json")), importedNames: ["Morgan", "Scout", "Quill"] }))))
       .toContain("Preset bots: 1 · appear in New bot");
   });
+});
+
+it("renders German preset contents and privacy hints", () => {
+  setLocale("de");
+  try {
+    const document = parsePackageDocument(fixture("library-only.v2.json"));
+    const preview: PresetShareResponse = { document, filename: "preset.json", summary: packageSummary(document), redacted: [], skipped: [] };
+    const words = text(renderToStaticMarkup(createElement(SharePresetContents, { preview, localSkips: [] })));
+    expect(words).toContain("Startnotizen Keine");
+    expect(words).toContain("Bilder Keine");
+    expect(words).toContain("Niemals enthalten: Modellauswahl, Ordner, Computer, Freigabestufen, verbundene Apps, MCP-Server und Routinen.");
+  } finally { setLocale("en"); }
 });

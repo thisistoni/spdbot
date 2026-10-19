@@ -50,4 +50,13 @@ describe("the greeting beat", () => {
       expect(html).not.toContain("shared OpenMausBot");
     }
   });
+
+  it("renders the local greeting and actions in German", () => {
+    setLocale("de");
+    const { html } = render(false);
+    expect(html).toContain("auf deinem Computer selbstständig Aufgaben erledigen");
+    expect(html).toContain('aria-label="Dein Name"');
+    expect(html).toContain("Vielleicht später");
+    expect(html).not.toContain("let you know when big things ship");
+  });
 });

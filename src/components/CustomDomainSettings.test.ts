@@ -1,7 +1,11 @@
 import { createElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
-import { describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it } from "vitest";
+
+import { setLocale } from "@/lib/i18n";
 import { CustomDomainDnsRecord, customDomainDnsName, CustomDomainGuide, customDomainProxyExample, type CustomDomainStatus } from "./CustomDomainSettings";
+
+afterEach(() => setLocale("en"));
 
 const status: CustomDomainStatus = {
   publicUrl: "https://old.example.com",
@@ -77,4 +81,18 @@ describe("copyable DNS record", () => {
     expect(html).not.toContain('aria-label="Copy Value / IP"');
     expect(html).not.toContain("127.0.0.1");
   });
+});
+
+it("renders German DNS labels and preserves server setup safeguards", () => {
+  setLocale("de");
+  const dns = renderToStaticMarkup(createElement(CustomDomainDnsRecord, { domain: "bots.company.com", serverIpv4: status.serverIpv4 }));
+  expect(dns).toContain('aria-label="Typ kopieren"');
+  expect(dns).toContain('aria-label="Wert / IP kopieren"');
+  expect(dns).toContain("bots.company.com");
+  expect(dns).toContain("8.8.8.8");
+  const guide = renderToStaticMarkup(createElement(CustomDomainGuide, { status }));
+  expect(guide).toContain("Erweiterte Servereinrichtung");
+  expect(guide).toContain("Dein Serveradministrator muss HTTPS vor SPDBot einrichten");
+  expect(guide).toContain("Gib den internen App-Port niemals direkt im Internet frei");
+  expect(guide).toContain("reverse_proxy 127.0.0.1:23456");
 });

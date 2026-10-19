@@ -20,7 +20,6 @@ import { voiceKeyDraftValue, type VoiceKeyDraft } from "@/lib/voice-key-draft";
 import { Select } from "./Select";
 import { Switch } from "./SettingsPrimitives";
 
-const SAMPLE = "Morning. Overnight the tests went green, and I left two notes for you in the thread.";
 const FISH_MODELS = [
   { value: "s2.1-pro", label: "voice.fish.modelPro" },
   { value: "s2.1-pro-free", label: "voice.fish.modelFree" },
@@ -297,8 +296,8 @@ export function VoiceSettings({
             value={key}
             onChange={(e) => setKeyDraft({ provider: cloudProvider.id, value: e.target.value })}
             onKeyDown={(e) => e.key === "Enter" && key.trim() && void saveKey()}
-            placeholder={configured && !included ? "••••••••  (paste to replace)" : cloudProvider.placeholder}
-            aria-label={`${cloudProvider.name} key`}
+            placeholder={configured && !included ? t("keys.replace") : cloudProvider.placeholder}
+            aria-label={t("voice.providerKey", { provider: cloudProvider.name })}
             autoComplete="off"
             className="w-full rounded-lg border border-hairline/40 bg-inset px-3 py-2 text-[13px] text-ink placeholder:text-ink-secondary focus:outline-none"
           />
@@ -408,7 +407,7 @@ export function VoiceSettings({
             <Select
               value={selectedVoice}
               onChange={(e) => chooseVoice(e.target.value)}
-              aria-label={`${bot.name}'s voice`}
+              aria-label={t("voice.agentVoice", { name: bot.name })}
               data-voice-picker
               className="w-full"
             >
@@ -432,7 +431,7 @@ export function VoiceSettings({
               ))}
             </Select>
             <button
-              onClick={() => void speaker.speak(SAMPLE, { voiceId: bot.voice, botId: bot.id })}
+              onClick={() => void speaker.speak(t("voice.sample"), { voiceId: bot.voice, botId: bot.id })}
               disabled={!ready}
               title={ready ? t("voice.hear") : t("voice.pickFirst")}
               aria-label={t("voice.hear")}

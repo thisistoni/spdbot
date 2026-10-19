@@ -3,6 +3,7 @@
 import { Children, createElement, isValidElement, type EffectCallback, type ReactElement, type ReactNode, type RefObject } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { setLocale } from "@/lib/i18n";
 import type { Bot } from "@/state/store";
 
 const fixture = vi.hoisted(() => ({
@@ -90,6 +91,7 @@ function paneWith(fields: { voicePicker?: FakeElement; firstField?: FakeElement 
 }
 
 beforeEach(() => {
+  setLocale("en");
   fixture.effects = [];
   fixture.voiceSettings = [];
   fixture.selectedId = "pepper";
@@ -99,9 +101,18 @@ beforeEach(() => {
   vi.stubGlobal("window", {});
   vi.stubGlobal("document", { body: {} });
 });
-afterEach(() => vi.unstubAllGlobals());
+afterEach(() => { vi.unstubAllGlobals(); setLocale("en"); });
 
 describe("voice set-up pop-up", () => {
+  it("renders the voice setup and action in German", () => {
+    setLocale("de");
+    const { html } = render({ ready: true });
+    expect(html).toContain("Gib Pepper eine Stimme");
+    expect(html).toContain("Die Stimme ist bereit");
+    expect(html).toContain("Anruf starten");
+    expect(html).toContain('aria-label="Stimmeinrichtung schließen"');
+  });
+
   it("is a glass pop-up holding the bot's own voice settings", () => {
     const { html } = render();
     expect(html).toContain("glass-popup-frame");
@@ -237,6 +248,12 @@ describe("voice set-up pop-up", () => {
     expect(tag).toContain('aria-label="Pepper&#x27;s voice"');
     expect(needsVoice.indexOf(key)).toBeGreaterThan(-1);
     expect(needsVoice.indexOf(key)).toBeLessThan(needsVoice.indexOf(tag!));
+
+    setLocale("de");
+    const german = card();
+    expect(german).toContain('aria-label="ElevenLabs-Schlüssel"');
+    expect(pickerTag(german)).toContain('aria-label="Stimme von Pepper"');
+    expect(german).toContain("Antworten vorlesen");
   });
 
   it("keeps Tab inside, and brings focus back when it has fallen out", () => {

@@ -100,7 +100,7 @@ export function MeetYourBotBeat({
               type="button"
               role="radio"
               aria-checked={c === color}
-              aria-label={t("onboarding.bot.colorAria", { color: c })}
+              aria-label={t("onboarding.bot.colorAria", { color: t(`onboarding.bot.color.${c}`) })}
               onClick={() => {
                 setColor(c);
                 bump("customize");

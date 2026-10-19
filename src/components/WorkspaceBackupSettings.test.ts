@@ -1,6 +1,7 @@
 import { Children, createElement, isValidElement, type EffectCallback, type ReactElement, type ReactNode } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { setLocale } from "@/lib/i18n";
 import type { WorkspaceBackupSummary } from "../../shared/workspace-backup";
 
 const fixture = vi.hoisted(() => ({ values: [] as unknown[], index: 0, effects: [] as EffectCallback[], api: vi.fn() }));
@@ -34,15 +35,30 @@ const change = (input: Node, value: string) => input.props.onChange!({ target: {
 const summary: WorkspaceBackupSummary = { format: "openmaus.workspace-backup", version: 1, id: "archive-id", createdAt: "2026-09-11T00:00:00Z", appVersion: "0.1.71", files: 9, directories: 3, bytes: 1234, bots: 2, groups: 1, threads: 4, messages: 8, warnings: ["Fixture warning"], exclusions: ["Saved account credentials and connections", "External CLI sign-ins"] };
 let storage: Map<string, string>;
 beforeEach(() => {
+  setLocale("en");
   fixture.values = []; fixture.index = 0; fixture.effects = []; fixture.api.mockReset();
   storage = new Map();
   vi.stubGlobal("localStorage", { getItem: (key: string) => storage.get(key) ?? null, setItem: (key: string, value: string) => storage.set(key, value), removeItem: (key: string) => storage.delete(key) });
   vi.stubGlobal("window", { location: { reload: vi.fn() } });
 });
-afterEach(() => vi.unstubAllGlobals());
+afterEach(() => { vi.unstubAllGlobals(); setLocale("en"); });
 async function ready() { fixture.api.mockResolvedValueOnce({ busy: false }); render(); fixture.effects[0](); await flush(); }
 
 describe("Settings full backups", () => {
+  it("renders German backup security, replacement and restart guidance", () => {
+    setLocale("de");
+    const html = render().html;
+    for (const text of ["Vollständiges Backup exportieren", "mindestens 12 Zeichen", "vorhandene Zugangsdaten am Ziel bleiben unverändert", "nicht automatisch um sensible Inhalte bereinigt", "bis zu 10 GB"]) expect(html).toContain(text);
+    fixture.values[8] = { id: "stage-id", summary };
+    const preview = render().html;
+    for (const text of ["Gib zur Bestätigung REPLACE ein", "nicht zusammengeführt", "Bot-Berechtigungen", "ausstehende Aufgaben werden nicht fortgesetzt"]) expect(preview).toContain(text);
+    fixture.values = [];
+    const restart = render("restart").html;
+    expect(restart).toContain("Beende SPDBot vollständig");
+    expect(restart).toContain("Serverprozess neu");
+    expect(restart).not.toContain("OpenMausBot");
+  });
+
   it("shows a native file input, password fields and validated summary with warnings", () => {
     const html = render().html;
     expect(html).toContain('type="file" accept=".ombbackup"');
@@ -54,6 +70,23 @@ describe("Settings full backups", () => {
     expect(html).not.toContain("Replace installation");
     const preview = renderToStaticMarkup(createElement(WorkspaceBackupSummaryView, { summary }));
     for (const text of ["Validated backup", "0.1.71", "Bots", "Threads", "Messages", "Fixture warning", "External CLI sign-ins"]) expect(preview).toContain(text);
+  });
+
+  it("shows known server backup notes in German and preserves unknown archive notes", () => {
+    setLocale("de");
+    const fromServer: WorkspaceBackupSummary = {
+      ...summary,
+      warnings: [
+        "Conversation text and user files are not redacted and may contain secrets you pasted. Keep the encrypted backup private.",
+        "Restoring pauses routines, webhooks and calendar calls, and does not resume pending delegations, queued chat messages or queued runs. Definitions and historical receipts are retained; review before enabling them again.",
+        "3 installed dependency folder(s) (node_modules) were omitted; reinstall them in the project after restoring.",
+        "Unknown future warning",
+      ],
+      exclusions: ["Saved credentials, provider and MCP connections, managed provider login homes and browser login profiles are not transferred. Destination connections are preserved; reconnect on a new device."],
+    };
+    const html = renderToStaticMarkup(createElement(WorkspaceBackupSummaryView, { summary: fromServer }));
+    for (const text of ["eingefügte Geheimnisse", "verschlüsselte Backup vertraulich", "Ausstehende Delegierungen", "3 installierte Abhängigkeitsordner", "Verbindungen am Ziel bleiben erhalten", "Unknown future warning"]) expect(html).toContain(text);
+    expect(html).not.toContain("Conversation text and user files are not redacted");
   });
 
   it("exports encrypted state by POST and downloads without putting the password in a URL or storage", async () => {

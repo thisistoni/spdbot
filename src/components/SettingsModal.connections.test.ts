@@ -25,6 +25,15 @@ afterEach(() => {
 });
 
 describe("Settings → Connections", () => {
+  it("renders the German provider key guidance without altering the command", async () => {
+    setLocale("de");
+    const { SettingsModal } = await import("./SettingsModal");
+    const html = renderToStaticMarkup(createElement(SettingsModal));
+    expect(html).toContain("Weitere Anbieter für OpenCode-Bots");
+    expect(html).toContain('<code class="font-mono">opencode auth login</code>');
+    expect(html).not.toContain("More providers for OpenCode bots");
+  });
+
   it.each(["router", "OpenRouter", "base URL", "API key", "OpenAI", "Anthropic", "Groq"])("is found by searching for %s", async (typed) => {
     const { SECTIONS, sectionMatches } = await import("./SettingsModal");
     const connections = SECTIONS.find((entry) => entry.id === "connections")!;

@@ -73,6 +73,16 @@ describe("archive / delete confirmation copy", () => {
 });
 
 describe("room delete confirmation copy", () => {
+  it("explains irreversible room deletion in German while keeping its name", () => {
+    setLocale("de");
+    const copy = roomDeleteCopy({ name: "Projekt Alpha" });
+    expect(copy.title).toBe("Projekt Alpha löschen?");
+    expect(copy.body).toContain("alle zugehörigen Threads werden dauerhaft gelöscht");
+    expect(copy.body).toContain("Die Bots bleiben erhalten");
+    expect(copy.body).toContain("kann nicht rückgängig gemacht werden");
+    expect(copy.confirmLabel).toBe("Gruppenchat löschen");
+  });
+
   it("names the group chat and says what goes and what stays", () => {
     const copy = roomDeleteCopy({ name: "Launch plan" });
     expect(copy.title).toBe("Delete Launch plan?");

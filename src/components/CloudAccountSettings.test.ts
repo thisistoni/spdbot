@@ -505,3 +505,19 @@ it("Sign in is the sheet's email code when Settings hands it over; the staging A
   const staging = render().html;
   expect(staging).toContain("data-cloud-staging"); expect(staging).toContain(">Staging<");
 });
+
+it("renders German account separation, browser consent and sign-out safeguards", async () => {
+  setLocale("de");
+  await ready();
+  expect(render().html).toContain("Kostenlose lokale Nutzung");
+  expect(render().html).toContain("von der Organisationsanmeldung getrennt");
+  push({ status: "connecting", enrollment: { userCode: "ABCDE-FGHIJ", expiresAt: 1_900_000_000_000 } });
+  expect(render().html).toContain("bestätige diesen Computer im Browser");
+  expect(render().html).toContain("ABCDE-FGHIJ");
+  push(free);
+  click("Von MausBot Cloud abmelden");
+  expect(render().html).toContain("Dein Abonnement wird nicht gekündigt");
+  expect(render().html).toContain("deine Organisation nicht getrennt");
+  expect(render().html).toContain("Angemeldet bleiben");
+  expect(bridge.signOut).not.toHaveBeenCalled();
+});

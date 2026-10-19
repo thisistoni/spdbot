@@ -98,6 +98,12 @@ describe("threads waiting on a teammate", () => {
 });
 
 describe("threads a bot opened", () => {
+  it("shows a bot-opened thread's status in German", () => {
+    setLocale("de");
+    expect(threadOpenerLabel({ openedBy: { botId: "scout", name: "Scout", at: 5 } })).toBe("geöffnet von Scout");
+    expect(render({ threadId: "queued", title: "Nächster Auftrag", queued: true })).toContain("Nächster Auftrag · In Warteschlange");
+  });
+
   const openedBy = { botId: "scout", name: "Scout", at: 5 };
   const render = (task: ThreadRowProps["task"]) => renderToStaticMarkup(createElement(SidebarThreadRow, {
     task, ownerId: "scout", current: false, onSelect: vi.fn(), onRename: vi.fn(), onDelete: vi.fn(), locale: "en",
