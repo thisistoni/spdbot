@@ -115,7 +115,6 @@ const { PermissionsSection } = await import("./bot-settings/PermissionsSection")
 const { RoutinesSection } = await import("./bot-settings/RoutinesSection");
 const { OverviewSection } = await import("./bot-settings/OverviewSection");
 const { RoutineEditor } = await import("./RoutinesPage");
-const { PhoneAppDialog } = await import("./PhoneAppDialog");
 const { ConfirmDialog } = await import("./ConfirmDialog");
 const { AvatarImageGenerator } = await import("./AvatarImageGenerator");
 const { AvatarFraming } = await import("./avatar-editing");
@@ -900,7 +899,7 @@ describe("the Settings tab", () => {
     expect(order.every((index) => index > -1)).toBe(true);
     expect([...order].sort((a, b) => a - b)).toEqual(order);
     for (const text of ["What Scout does", "Voice", "Notifications", "Team", "Chief of Staff", "Ask me before contacting other bots",
-      "MCP servers", "Tool selection", "Webhooks", "Always allowed", "Get it on your phone", "Phone and email", "Overview",
+      "MCP servers", "Tool selection", "Webhooks", "Always allowed", "Phone and email", "Overview",
       "What Scout sees", "History", "Usage for all bots", "Pin to top", "Duplicate", "Copy conversation ID",
       "Mark all conversations as read", "Archive Scout", "Delete Scout"]) expect(html).toContain(text);
     expect(html).not.toContain("Who can see it");
@@ -968,11 +967,9 @@ describe("the Settings tab", () => {
     expect(ofType(settings(makeBot()), ConfirmDialog)!.props).toMatchObject({ open: true, title: "Archive Scout?", tone: "neutral" });
   });
 
-  it("opens the phone apps from Get it on your phone", () => {
+  it("does not advertise upstream phone downloads", () => {
     const rendered = settings(makeBot());
-    expect(ofType(rendered, PhoneAppDialog)!.props.open).toBe(false);
-    click(row(rendered, "phoneapp"));
-    expect(ofType(settings(makeBot()), PhoneAppDialog)!.props.open).toBe(true);
+    expect(rendered.html).not.toContain('data-panel-row="phoneapp"');
   });
 
   it("searches pages, rows and other tabs, and says where each lives", () => {

@@ -3,8 +3,8 @@ import {
   ArrowDownToLine,
   Check,
   CircleUserRound,
-  Download,
   Gauge,
+  Github,
   Info,
   HelpCircle,
   Keyboard,
@@ -16,9 +16,7 @@ import {
 } from "lucide-react";
 
 import { InitialsAvatar } from "./Avatar";
-import { DiscordIcon } from "./DiscordIcon";
 import { AboutDialog } from "./AboutDialog";
-import { PhoneAppDialog } from "./PhoneAppDialog";
 import { SidebarPopoverMenu, type SidebarMenuItem } from "./SidebarPopoverMenu";
 import { ShortcutHint } from "./ShortcutHint";
 import { useSidebarPhoneStatus } from "./SidebarPhoneButton";
@@ -260,33 +258,23 @@ export function phoneMenuItems({
   destinations,
   connected,
   onConnect,
-  onGetApp,
 }: {
   destinations: PhoneDestination[];
   connected: boolean;
   onConnect: (destination: PhoneDestination) => void;
-  onGetApp: () => void;
 }): SidebarMenuItem[] {
-  return [
-    ...destinations.map((destination) => ({
-      key: destination.id === "cloud" ? "connect-phone-cloud" : "connect-phone",
-      label: t("sidebar.menu.connectPhone"),
-      subtitle: t(destination.subtitleKey),
-      ...(destination.noteKey ? { note: t(destination.noteKey) } : {}),
-      icon: <Smartphone size={18} />,
-      trailing:
-        destination.id === "here" && destination.target === "computer" && connected ? (
-          <span aria-hidden="true" className="size-1.5 shrink-0 rounded-full bg-success" />
-        ) : undefined,
-      onSelect: () => onConnect(destination),
-    } satisfies SidebarMenuItem)),
-    {
-      key: "phone-app",
-      label: t("sidebar.menu.getPhoneApp"),
-      icon: <Download size={18} />,
-      onSelect: onGetApp,
-    },
-  ];
+  return destinations.map((destination) => ({
+    key: destination.id === "cloud" ? "connect-phone-cloud" : "connect-phone",
+    label: t("sidebar.menu.connectPhone"),
+    subtitle: t(destination.subtitleKey),
+    ...(destination.noteKey ? { note: t(destination.noteKey) } : {}),
+    icon: <Smartphone size={18} />,
+    trailing:
+      destination.id === "here" && destination.target === "computer" && connected ? (
+        <span aria-hidden="true" className="size-1.5 shrink-0 rounded-full bg-success" />
+      ) : undefined,
+    onSelect: () => onConnect(destination),
+  } satisfies SidebarMenuItem));
 }
 
 export function profileMenuItems({
@@ -316,7 +304,7 @@ export function profileMenuItems({
 }): SidebarMenuItem[] {
   const help: SidebarMenuItem[] = [
     { key: "help", label: t("sidebar.menu.help"), icon: <HelpCircle size={18} />, onSelect: onHelp },
-    { key: "feedback", label: t("sidebar.menu.feedback"), icon: <DiscordIcon size={17} />, onSelect: onFeedback },
+    { key: "feedback", label: t("sidebar.menu.feedback"), icon: <Github size={17} />, onSelect: onFeedback },
     {
       key: "shortcuts",
       label: t("sidebar.menu.shortcuts"),
@@ -348,7 +336,6 @@ export function SidebarProfileMenu({ iconOnly = false, rail = false }: { iconOnl
   const serverUpdate = useServerUpdateItem(!window.ogb?.updater);
   const update = desktopUpdate ?? serverUpdate;
   const [aboutOpen, setAboutOpen] = useState(false);
-  const [phoneAppOpen, setPhoneAppOpen] = useState(false);
   const triggerRef = useRef<HTMLSpanElement>(null);
 
   const profile = state.config?.profile;
@@ -362,7 +349,6 @@ export function SidebarProfileMenu({ iconOnly = false, rail = false }: { iconOnl
       destinations,
       connected: phone.kind === "connected",
       onConnect: connectTo,
-      onGetApp: () => setPhoneAppOpen(true),
     }),
     usage: !remote,
     update: update?.item ?? null,
@@ -433,15 +419,6 @@ export function SidebarProfileMenu({ iconOnly = false, rail = false }: { iconOnl
         )}
       />
       <AboutDialog open={aboutOpen} onClose={() => setAboutOpen(false)} />
-      <PhoneAppDialog
-        open={phoneAppOpen}
-        onClose={() => setPhoneAppOpen(false)}
-        connect={destinations.map((destination) => ({
-          key: destination.id,
-          subtitle: t(destination.subtitleKey),
-          onSelect: () => connectTo(destination),
-        }))}
-      />
     </>
   );
 }
