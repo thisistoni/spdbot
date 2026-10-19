@@ -3,7 +3,6 @@ import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it, vi } from "vitest";
 
 import { StoreProvider, type Bot } from "@/state/store";
-import { MASCOT_BODY_IDS, MASCOT_BODIES } from "../../shared/mascot-bodies";
 import { BotProfileAvatarCard } from "./BotProfileAvatarCard";
 
 function makeBot(overrides: Partial<Bot> = {}): Bot {
@@ -37,28 +36,13 @@ function renderCard(bot: Bot) {
   );
 }
 
-describe("BotProfileAvatarCard body picker", () => {
-  it("renders one option per body catalog entry, labeled by name", () => {
+describe("BotProfileAvatarCard", () => {
+  it("shows the generated default without obsolete body, color or expression pickers", () => {
     const markup = renderCard(makeBot());
-
-    expect(markup).toContain(">Body<");
-    for (const id of MASCOT_BODY_IDS) {
-      expect(markup).toContain(`aria-label="Use the ${MASCOT_BODIES[id].name} body"`);
-    }
-  });
-
-  it("marks the current body pressed and the rest unpressed, defaulting to cursor", () => {
-    const markup = renderCard(makeBot());
-
-    expect(markup).toContain(`aria-pressed="true" aria-label="Use the ${MASCOT_BODIES.cursor.name} body"`);
-    expect(markup).toContain(`aria-pressed="false" aria-label="Use the ${MASCOT_BODIES.star.name} body"`);
-  });
-
-  it("reflects an explicitly chosen body", () => {
-    const markup = renderCard(makeBot({ mascotBody: "star" }));
-
-    expect(markup).toContain(`aria-pressed="true" aria-label="Use the ${MASCOT_BODIES.star.name} body"`);
-    expect(markup).toContain(`aria-pressed="false" aria-label="Use the ${MASCOT_BODIES.cursor.name} body"`);
+    expect(markup).toContain("data:image/svg+xml");
+    expect(markup).not.toContain('aria-label="Use the Cursor body"');
+    expect(markup).not.toContain('aria-label="Use blue mascot color"');
+    expect(markup).not.toContain('aria-label="Use happy expression"');
   });
 
   it("offers zoom and drag framing for a custom image", () => {
@@ -78,18 +62,11 @@ describe("BotProfileAvatarCard body picker", () => {
     expect(markup).not.toContain('aria-label="Zoom avatar"');
   });
 
-  it("hides the body picker for flat crops that have no mascot to wear one", () => {
-    const markup = renderCard(makeBot({ avatarCrop: "circle" }));
-
-    expect(markup).not.toContain(">Body<");
-    expect(markup).not.toContain(`aria-label="Use the ${MASCOT_BODIES.cursor.name} body"`);
-  });
-
-  it("hides the body picker for every flat crop, not just circle", () => {
-    for (const crop of ["rounded", "square"] as const) {
-      const markup = renderCard(makeBot({ avatarCrop: crop }));
-
-      expect(markup).not.toContain(">Body<");
+  it("preserves uploaded images and their chosen crop", () => {
+    for (const crop of ["circle", "rounded", "square"] as const) {
+      const markup = renderCard(makeBot({ avatarUrl: "/api/attachments/cat.webp", avatarCrop: crop }));
+      expect(markup).toContain("/api/attachments/cat.webp");
+      expect(markup).toContain(`bg-raised" style="width:168px;height:168px;border-radius:${crop === "circle" ? "50%" : crop === "rounded" ? "22%" : "0"}`);
     }
   });
 });

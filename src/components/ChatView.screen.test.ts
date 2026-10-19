@@ -47,7 +47,7 @@ describe("ChatView screenshot", () => {
       message: { id: "shot", role: "bot", kind: "screen", hasImage: true, mime: "image/jpeg", at: 2, parentId: "hi" } as Message });
     const markup = render(next.bots[0]);
     expect(markup).toContain(IMAGE);
-    expect(markup).not.toContain("data:image");
+    expect(markup).not.toContain("data:image/png;base64");
   });
 
   it("loads inline pixels through the image route too, so there is one way to show a screenshot", () => {

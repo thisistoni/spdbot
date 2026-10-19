@@ -275,7 +275,7 @@ export interface WireBot {
   /** App-owned attachment served as this bot's custom profile image;
    * always present on the wire, null when the bot has none. */
   avatarUrl: string | null;
-  /** Mascot, or the crop applied to avatarUrl. */
+  /** Generated default, or the crop applied to avatarUrl. */
   avatarCrop?: BotAvatarCrop;
   /** Zoom of a custom image. Absent means 1, the unzoomed cover crop. */
   avatarZoom?: number;

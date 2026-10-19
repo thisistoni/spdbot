@@ -4,12 +4,11 @@ import { ImagePlus, Loader2, Trash2 } from "lucide-react";
 import { cn } from "@/lib/cn";
 import { t } from "@/lib/i18n";
 import type { LocaleKey } from "@/locales";
-import { MAUS_COLORS, MAUS_COLOR_NAMES, PICKABLE_STATES, type MausState } from "@/lib/mascot";
+import type { MausState } from "@/lib/mascot";
 import type { Bot } from "@/state/store";
-import { MASCOT_BODIES, MASCOT_BODY_IDS } from "../../../shared/mascot-bodies";
-import { MausAvatar } from "../Avatar";
+import { BotAvatar } from "../Avatar";
 import { AvatarImageGenerator } from "../AvatarImageGenerator";
-import { AvatarFraming, OrganizationAvatarIcons, RESET_MASCOT_PATCH, useAvatarImage, type AvatarPatch } from "../avatar-editing";
+import { AvatarFraming, OrganizationAvatarIcons, RESET_DEFAULT_AVATAR_PATCH, useAvatarImage, type AvatarPatch } from "../avatar-editing";
 import { Segmented } from "./rows";
 
 export type AvatarEditorTab = "bot" | "generate" | "upload";
@@ -27,24 +26,6 @@ const CROP_KEY: Record<(typeof IMAGE_CROPS)[number], LocaleKey> = {
   square: "botPanel.avatar.square",
 };
 
-const FACE_KEY: Partial<Record<MausState, LocaleKey>> = {
-  idle: "botPanel.face.idle",
-  happy: "botPanel.face.happy",
-  curious: "botPanel.face.curious",
-  drowsy: "botPanel.face.drowsy",
-  working: "botPanel.face.working",
-  thinking: "botPanel.face.thinking",
-  listening: "botPanel.face.listening",
-  sleeping: "botPanel.face.sleeping",
-  suspicious: "botPanel.face.suspicious",
-  proud: "botPanel.face.proud",
-};
-
-const faceLabel = (state: MausState) => {
-  const key = FACE_KEY[state];
-  return key ? t(key) : state;
-};
-
 export function AvatarEditorCard({ bot, activeState, onPatch, onClose }: {
   bot: Bot;
   activeState: MausState;
@@ -60,8 +41,6 @@ export function AvatarEditorCard({ bot, activeState, onPatch, onClose }: {
   useEffect(() => {
     tabsRef.current?.querySelector<HTMLElement>('[aria-selected="true"]')?.focus();
   }, []);
-  const pickMascot = (patch: AvatarPatch) => onPatch(crop === "mascot" ? patch : { ...patch, avatarCrop: "mascot" });
-  const body = bot.mascotBody ?? "cursor";
 
   const onKeyDown = (event: KeyboardEvent<HTMLDivElement>) => {
     if (event.key !== "Escape") return;
@@ -99,7 +78,7 @@ export function AvatarEditorCard({ bot, activeState, onPatch, onClose }: {
           type="button"
           data-avatar-reset
           disabled={busy}
-          onClick={() => onPatch(RESET_MASCOT_PATCH)}
+          onClick={() => onPatch(RESET_DEFAULT_AVATAR_PATCH)}
           className="ml-auto rounded-lg px-[11px] py-[5px] text-[13px] text-ink-secondary hover:text-ink disabled:opacity-50"
         >
           {t("botPanel.avatar.reset")}
@@ -108,64 +87,9 @@ export function AvatarEditorCard({ bot, activeState, onPatch, onClose }: {
 
       <div className="p-3">
         {tab === "bot" && (
-          <>
-            <div className="grid grid-cols-5 gap-1.5">
-              {MASCOT_BODY_IDS.map((id) => (
-                <button
-                  key={id}
-                  type="button"
-                  disabled={busy}
-                  aria-pressed={!showsImage && body === id}
-                  aria-label={`Use the ${MASCOT_BODIES[id].name} body`}
-                  title={MASCOT_BODIES[id].name}
-                  onClick={() => pickMascot({ mascotBody: id })}
-                  className={cn(
-                    "flex h-[58px] items-center justify-center rounded-xl disabled:opacity-50",
-                    !showsImage && body === id ? "bg-ink/[0.08] ring-[1.5px] ring-inset ring-ink/25" : "hover:bg-ink/[0.05]",
-                  )}
-                >
-                  <MausAvatar color={bot.color} bodyId={id} size={40} animated={false} trackPointer={false} />
-                </button>
-              ))}
-            </div>
-            <div className="flex flex-wrap justify-center gap-2 px-1 pb-1 pt-3.5">
-              {MAUS_COLOR_NAMES.map((color) => (
-                <button
-                  key={color}
-                  type="button"
-                  disabled={busy}
-                  aria-pressed={bot.color === color}
-                  aria-label={`Use ${color} mascot color`}
-                  title={color}
-                  onClick={() => pickMascot({ color })}
-                  className={cn(
-                    "size-6 rounded-full disabled:opacity-50",
-                    bot.color === color && "ring-2 ring-ink/80 ring-offset-2 ring-offset-menu",
-                  )}
-                  style={{ backgroundColor: MAUS_COLORS[color] }}
-                />
-              ))}
-            </div>
-            <div className="flex flex-wrap items-center justify-center gap-1.5 pt-2.5" role="group" aria-label={t("botPanel.avatar.face")}>
-              <span className="mr-0.5 text-[12px] text-ink-tertiary">{t("botPanel.avatar.face")}</span>
-              {PICKABLE_STATES.map((expression) => (
-                <button
-                  key={expression}
-                  type="button"
-                  disabled={busy}
-                  data-avatar-face={expression}
-                  aria-pressed={activeState === expression}
-                  onClick={() => pickMascot({ mascotExpression: expression })}
-                  className={cn(
-                    "rounded-full px-2.5 py-1 text-[12px] disabled:opacity-50",
-                    activeState === expression ? "bg-ink/[0.15] text-ink" : "bg-ink/[0.04] text-ink-secondary hover:text-ink",
-                  )}
-                >
-                  {faceLabel(expression)}
-                </button>
-              ))}
-            </div>
-          </>
+          <div className="flex flex-col items-center gap-3 py-3">
+            <BotAvatar bot={{ ...bot, avatarCrop: "mascot" }} size={112} state={activeState} animated={false} />
+          </div>
         )}
 
         {tab === "generate" && (

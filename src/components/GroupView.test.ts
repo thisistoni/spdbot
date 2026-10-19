@@ -58,7 +58,7 @@ describe("RoomToolChip", () => {
     const markup = renderToStaticMarkup(createElement(StoreProvider, null,
       createElement(RoomToolChip, { message, roomId: "here" })));
     expect(markup).toContain("Sent to Eli");
-    expect(markup).toContain('aria-label="Eli"');
+    expect(markup).toContain('alt="Eli avatar"');
     expect(markup).not.toContain("<button");
   });
 });
