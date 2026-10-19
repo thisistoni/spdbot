@@ -1,4 +1,5 @@
 // @vitest-environment happy-dom
+import { setLocale } from "@/lib/i18n";
 import { createElement } from "react";
 import { flushSync } from "react-dom";
 import { createRoot, type Root } from "react-dom/client";
@@ -18,10 +19,10 @@ beforeEach(() => {
   document.body.append(host);
   root = createRoot(host);
 });
-afterEach(() => { flushSync(() => root.unmount()); host.remove(); });
+afterEach(() => { setLocale("en"); flushSync(() => root.unmount()); host.remove(); });
 async function render() {
   flushSync(() => root.render(createElement(TeamMemoryDialog, { section: "Editing", label: "Editing", onClose: () => undefined })));
-  await vi.waitFor(() => expect(document.querySelector('[aria-label="Colour detail"]')).not.toBeNull());
+  await vi.waitFor(() => expect(document.querySelector('[aria-label="Colour: Detail"]')).not.toBeNull());
 }
 
 it("keeps the user's unsaved text after a conflict and reloads the latest version", async () => {
@@ -32,7 +33,7 @@ it("keeps the user's unsaved text after a conflict and reloads the latest versio
     return { entries: [{ ...entry, ...(reads > 1 ? { detail: "Amber", revision: "revision-two" } : {}) }], loadedIds: [entry.id] };
   });
   await render();
-  const field = document.querySelector<HTMLInputElement>('[aria-label="Colour detail"]')!;
+  const field = document.querySelector<HTMLInputElement>('[aria-label="Colour: Detail"]')!;
   field.value = "My unsaved orange treatment";
   flushSync(() => field.dispatchEvent(new FocusEvent("focusout", { bubbles: true })));
   await vi.waitFor(() => expect(document.body.textContent).toContain("Your unsaved draft: My unsaved orange treatment"));
@@ -40,7 +41,7 @@ it("keeps the user's unsaved text after a conflict and reloads the latest versio
   expect(JSON.parse(sent[1].body)).toEqual({ detail: "My unsaved orange treatment", expectedRevision: "revision-one" });
   const reload = [...document.querySelectorAll("button")].find(button => button.textContent === "Reload latest")!;
   flushSync(() => reload.click());
-  await vi.waitFor(() => expect(document.querySelector<HTMLInputElement>('[aria-label="Colour detail"]')!.value).toBe("Amber"));
+  await vi.waitFor(() => expect(document.querySelector<HTMLInputElement>('[aria-label="Colour: Detail"]')!.value).toBe("Amber"));
   expect(document.body.textContent).toContain("Your unsaved draft: My unsaved orange treatment");
 });
 
@@ -74,11 +75,11 @@ it("retains one entry's failed draft when another entry saves successfully", asy
     return { entries: [entry, other], loadedIds: [entry.id, other.id] };
   });
   await render();
-  const field = document.querySelector<HTMLInputElement>('[aria-label="Colour detail"]')!;
+  const field = document.querySelector<HTMLInputElement>('[aria-label="Colour: Detail"]')!;
   field.value = "Keep my orange draft";
   flushSync(() => field.dispatchEvent(new FocusEvent("focusout", { bubbles: true })));
   await vi.waitFor(() => expect(document.body.textContent).toContain("Keep my orange draft"));
-  const audio = document.querySelector<HTMLInputElement>('[aria-label="Audio detail"]')!;
+  const audio = document.querySelector<HTMLInputElement>('[aria-label="Audio: Detail"]')!;
   audio.value = "Quiet soundtrack";
   flushSync(() => audio.dispatchEvent(new FocusEvent("focusout", { bubbles: true })));
   await vi.waitFor(() => expect(request.mock.calls.filter(([, init]) => init?.method === "PATCH")).toHaveLength(2));
@@ -94,4 +95,16 @@ it("restores a historical name even when its detail is unchanged", async () => {
   await vi.waitFor(() => expect(request.mock.calls.some(([, init]) => init?.method === "PATCH")).toBe(true));
   expect(JSON.parse(request.mock.calls.find(([, init]) => init?.method === "PATCH")![1].body))
     .toEqual({ name: "Earlier colour", detail: entry.detail, expectedRevision: entry.revision });
+});
+
+it("renders German memory controls and preserves the team and entry names", async () => {
+  setLocale("de");
+  request.mockResolvedValue({ entries: [entry], loadedIds: [] });
+  flushSync(() => root.render(createElement(TeamMemoryDialog, { section: "Editing", label: "Editing", onClose: () => undefined })));
+  await vi.waitFor(() => expect(document.querySelector('[aria-label="Colour: Details"]')).not.toBeNull());
+  expect(document.body.textContent).toContain("Teamwissen von Editing");
+  expect(document.body.textContent).toContain("0 von 1 bestätigten Notizen");
+  expect(document.querySelector('[aria-label="Colour anheften"]')).not.toBeNull();
+  flushSync(() => [...document.querySelectorAll("button")].find(button => button.textContent?.includes("Eintrag hinzufügen"))!.click());
+  expect(document.querySelector('[placeholder="Was jeder Bot darüber wissen sollte"]')).not.toBeNull();
 });

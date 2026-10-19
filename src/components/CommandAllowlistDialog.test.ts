@@ -1,3 +1,4 @@
+import { setLocale } from "@/lib/i18n";
 import { Children, createElement, isValidElement, type ReactElement, type ReactNode } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { afterEach, describe, expect, it, vi } from "vitest";
@@ -61,4 +62,17 @@ describe("CommandAllowlistDialog close button", () => {
     expect(view.html).toContain("pointer-events-none");
     expect(portal).toHaveBeenCalledWith(expect.anything(), body);
   });
+});
+
+it("renders German command scope, loading status and close label", () => {
+  vi.stubGlobal("document", { body: {} });
+  setLocale("de");
+  try {
+    const view = render(vi.fn());
+    expect(view.html).toContain("Erlaubte Befehle");
+    expect(view.html).toContain("Gespeicherte Befehle für Scout");
+    expect(view.html).toContain("Jede Regel erlaubt genau einen Befehl");
+    expect(view.html).toContain("Erlaubte Befehle werden geladen…");
+    expect(view.nodes.some(node => node.props["aria-label"] === "Erlaubte Befehle schließen")).toBe(true);
+  } finally { setLocale("en"); vi.unstubAllGlobals(); }
 });

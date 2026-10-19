@@ -1,3 +1,4 @@
+import { setLocale } from "@/lib/i18n";
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { createElement } from "react";
@@ -106,4 +107,18 @@ describe("importing a shared team", () => {
     expect(renderToStaticMarkup(createElement(TeamImportDetails, { pending, importedNames: ["Morgan", "Scout", "Quill"] })))
       .toContain('src="data:image/png;base64,iVBOR');
   });
+});
+
+it("renders German team contents, omitted parts and skill choices", () => {
+  setLocale("de");
+  try {
+    const document = parsePackageDocument(fixture());
+    const preview: ShareResponse = { document, filename: "team.json", summary: packageSummary(document), choices: { skills: [] }, redacted: ["agents[scout].soul"], skipped: [{ part: "connections[local-tool]", reason: "stdio_server" }] };
+    const words = text(renderToStaticMarkup(createElement(ShareTeamContents, { preview, includeMemory: false, localSkips: [] })));
+    expect(words).toContain("Skills · werden deaktiviert importiert");
+    expect(words).toContain("Startnotizen Keine");
+    expect(words).toContain("Scout · dauerhafte Anweisungen");
+    expect(words).toContain("führt einen Befehl auf diesem Computer aus und wird daher nicht geteilt");
+    expect(text(renderToStaticMarkup(createElement(ShareSkillChoices, { available: [], ticked: new Set<string>(), counted: true, onToggle: vi.fn() })))).toContain("Die Bots dieses Teams haben keine Skills.");
+  } finally { setLocale("en"); }
 });

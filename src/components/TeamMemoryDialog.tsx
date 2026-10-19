@@ -239,7 +239,7 @@ export function TeamMemoryDialog({ section, label, onClose }: { section: string;
                           onKeyDown={(event) => {
                             if (event.key === "Enter") (event.target as HTMLInputElement).blur();
                           }}
-                          aria-label={`${entry.name} detail`}
+                          aria-label={`${entry.name}: ${t("teamMemory.detailLabel")}`}
                           className="mt-0.5 block w-full rounded bg-transparent px-1 py-0.5 text-[12.5px] text-ink outline-none hover:bg-card focus:bg-card"
                         />
                         <span className="block px-1 text-[11px] text-ink-secondary">
