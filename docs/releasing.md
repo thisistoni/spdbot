@@ -1,12 +1,12 @@
 # Releasing
 
 For a normal release, run **Actions → Prepare next release → Run workflow** and
-choose a patch, minor, or custom version. It opens a tiny version-bump PR;
-merging that PR automatically starts **Release** and assembles a draft from the
-exact merge commit. Review and publish the draft when it is ready.
+choose a patch, minor, or custom version. It opens a tiny version-bump PR.
+After merging and checking CI, deliberately run **Actions → Release → Run
+workflow** on the intended commit to assemble a draft. Merging any PR,
+including a version bump, never starts a release or deployment.
 
-The existing **Actions → Release → Run workflow** button remains available for
-reruns and recovery. It
+The manual **Release** workflow also handles reruns and recovery. It
 builds macOS (arm64 + x64, signed, notarized, stapled), Windows, and Ubuntu
 from a single pinned commit, verifies every artifact the way a user would
 receive it, and assembles the canonical draft in
@@ -14,6 +14,19 @@ receive it, and assembles the canonical draft in
 The exact same assets are also staged in the public legacy releases repo so
 installed builds from 0.1.46 and earlier can update across the repository
 migration.
+
+Docker branch pushes retain their build and smoke checks without publishing.
+GHCR publishing requires a deliberate `v*` tag push or a manual Docker run on
+that tag; the Release workflow dispatches it only when publication is selected.
+Stable tags move `latest`; prerelease tags containing `-` do not.
+
+Cloudflare broker deployment is separate: deliberately run **Actions → CI**
+on `main` with **deploy_composio_broker** selected. It defaults to false and
+waits for the required CI gate and control-plane checks. Ordinary CI runs,
+PRs, merges and release-CI recovery runs do not deploy. The existing token
+requirement still applies. These instructions describe the mechanisms;
+inherited updater destinations, signing identities and release ownership
+still need to be settled for SPDBot before an actual release.
 
 Tick **publish** to publish and verify the canonical release first, then make
 the identical legacy updater bridge visible. Leave it unticked to review the
