@@ -11,7 +11,7 @@ import {
   updateLabel,
   updatePhase,
 } from "./SidebarProfileMenu";
-import { DOCS_URL, FEEDBACK_URL, HELP_CENTER_URL, platformLabel } from "@/lib/app-links";
+import { DOCS_URL, HELP_CENTER_URL, platformLabel } from "@/lib/app-links";
 import {
   cloudPhoneDestination,
   connectPhoneEntry,
@@ -163,9 +163,6 @@ describe("outward links", () => {
     expect(DOCS_URL).toBe("https://github.com/thisistoni/spdbot/tree/main/docs");
   });
 
-  it("sends feedback to this repository", () => {
-    expect(FEEDBACK_URL).toBe("https://github.com/thisistoni/spdbot/issues");
-  });
 });
 
 describe("the phone entries", () => {
@@ -288,7 +285,7 @@ describe("profileMenuItems", () => {
     usage: true,
     update: null,
     account: "OpenMausBot Cloud",
-    onUsage: noop, onSettings: noop, onShortcuts: noop, onAbout: noop, onHelp: noop, onFeedback: noop, onAccount: noop,
+    onUsage: noop, onSettings: noop, onShortcuts: noop, onAbout: noop, onHelp: noop, onAccount: noop,
     ...patch,
   });
 
@@ -296,7 +293,7 @@ describe("profileMenuItems", () => {
     const items = build();
     expect(items.map((item) => item.key)).toEqual(["usage", "connect-phone", "support", "settings", "account"]);
     expect(items.filter((item) => item.separatorBefore).map((item) => item.key)).toEqual(["account"]);
-    expect(items.find((item) => item.key === "support")!.submenu!.map((item) => item.key)).toEqual(["help", "feedback", "shortcuts", "about"]);
+    expect(items.find((item) => item.key === "support")!.submenu!.map((item) => item.key)).toEqual(["help", "shortcuts", "about"]);
     expect(items.find((item) => item.key === "account")!.label).toBe("OpenMausBot Cloud");
   });
 

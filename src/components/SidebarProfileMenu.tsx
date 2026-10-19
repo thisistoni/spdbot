@@ -4,7 +4,6 @@ import {
   Check,
   CircleUserRound,
   Gauge,
-  Github,
   Info,
   HelpCircle,
   Keyboard,
@@ -27,7 +26,7 @@ import { useUpdaterState, type UpdaterState } from "@/lib/updater";
 import { brand } from "../lib/brand";
 import { cn } from "@/lib/cn";
 import { t } from "@/lib/i18n";
-import { FEEDBACK_URL, HELP_CENTER_URL, openExternalLink } from "@/lib/app-links";
+import { HELP_CENTER_URL, openExternalLink } from "@/lib/app-links";
 import {
   cloudPhoneDestination,
   connectPhoneEntry,
@@ -287,7 +286,6 @@ export function profileMenuItems({
   onShortcuts,
   onAbout,
   onHelp,
-  onFeedback,
   onAccount,
 }: {
   phone: SidebarMenuItem[];
@@ -299,12 +297,10 @@ export function profileMenuItems({
   onShortcuts: () => void;
   onAbout: () => void;
   onHelp: () => void;
-  onFeedback: () => void;
   onAccount: () => void;
 }): SidebarMenuItem[] {
   const help: SidebarMenuItem[] = [
     { key: "help", label: t("sidebar.menu.help"), icon: <HelpCircle size={18} />, onSelect: onHelp },
-    { key: "feedback", label: t("sidebar.menu.feedback"), icon: <Github size={17} />, onSelect: onFeedback },
     {
       key: "shortcuts",
       label: t("sidebar.menu.shortcuts"),
@@ -361,7 +357,6 @@ export function SidebarProfileMenu({ iconOnly = false, rail = false }: { iconOnl
     },
     onAbout: () => setAboutOpen(true),
     onHelp: () => void openExternalLink(HELP_CENTER_URL),
-    onFeedback: () => void openExternalLink(FEEDBACK_URL),
     onAccount: () => dispatch({ type: "toggleAppSettings", open: true, section: "cloudAccount" }),
   });
   const noteworthy = update && updateNoteworthy(update.phase, update.pending) && !updateHasButton(update.phase);
