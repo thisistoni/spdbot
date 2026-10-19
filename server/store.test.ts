@@ -536,6 +536,10 @@ describe("Store", () => {
 
     const bot = store.createBot();
     expect(store.messagesFor(bot.threadId)[0]?.text).toBe(`Oi, eu sou ${bot.name}. O que você gostaria que eu fizesse?`);
+    language = "de-DE";
+    const germanBot = store.createBot();
+    expect(store.messagesFor(germanBot.threadId)[0]?.text).toBe(`Hallo, ich bin ${germanBot.name}. Wobei kann ich dir helfen?`);
+    expect(store.messagesFor(bot.threadId)[0]?.text).toBe(`Oi, eu sou ${bot.name}. O que você gostaria que eu fizesse?`);
   });
 
   it("clears provider-owned voice ids as one durable mutation", () => {

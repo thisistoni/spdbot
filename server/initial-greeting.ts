@@ -1,6 +1,7 @@
 /** The first bot's seeded line is created by the server before the UI exists. */
 const GREETINGS: Record<string, (name: string) => string> = {
   en: (name) => `Hi, I'm ${name}. What would you like me to do?`,
+  de: (name) => `Hallo, ich bin ${name}. Wobei kann ich dir helfen?`,
   es: (name) => `Hola, soy ${name}. ¿Qué te gustaría que hiciera?`,
   "pt-br": (name) => `Oi, eu sou ${name}. O que você gostaria que eu fizesse?`,
 };
