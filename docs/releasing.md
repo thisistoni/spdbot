@@ -1,155 +1,104 @@
-# Releasing
+# Releasing SPDBot
 
-For a normal release, run **Actions → Prepare next release → Run workflow** and
-choose a patch, minor, or custom version. It opens a tiny version-bump PR.
-After merging and checking CI, deliberately run **Actions → Release → Run
-workflow** on the intended commit to assemble a draft. Merging any PR,
-including a version bump, never starts a release or deployment.
+Ordinary PRs and merges never create a release or deployment. Run **Actions →
+Prepare next release** to open a version-bump PR, then deliberately run
+**Actions → Release** on the intended, tested commit to assemble a draft.
+Leave **publish** unticked unless publication was explicitly requested.
+No release, tag, signing credential, or account change is part of the installer
+configuration update.
 
-The manual **Release** workflow also handles reruns and recovery. It
-builds macOS (arm64 + x64, signed, notarized, stapled), Windows, and Ubuntu
-from a single pinned commit, verifies every artifact the way a user would
-receive it, and assembles the canonical draft in
-[OpenMausBot releases](https://github.com/milind-soni/OpenMausBot/releases).
-The exact same assets are also staged in the public legacy releases repo so
-installed builds from 0.1.46 and earlier can update across the repository
-migration.
+## Owned downloads and update feed
 
-Docker branch pushes retain their build and smoke checks without publishing.
-GHCR publishing requires a deliberate `v*` tag push or a manual Docker run on
-that tag; the Release workflow dispatches it only when publication is selected.
-Stable tags move `latest`; prerelease tags containing `-` do not.
+Desktop downloads and `app-update.yml` target only the public
+[SPDBot releases](https://github.com/thisistoni/spdbot/releases) in
+`thisistoni/spdbot`. Clients need no GitHub token. Keep that destination public;
+a private repository cannot serve this unauthenticated updater.
 
-Cloudflare broker deployment is separate: deliberately run **Actions → CI**
-on `main` with **deploy_composio_broker** selected. It defaults to false and
-waits for the required CI gate and control-plane checks. Ordinary CI runs,
-PRs, merges and release-CI recovery runs do not deploy. The existing token
-requirement still applies. These instructions describe the mechanisms;
-inherited updater destinations, signing identities and release ownership
-still need to be settled for SPDBot before an actual release.
+Download names start with `SPDBot-`, including the versioned DMG, ZIP, NSIS,
+DEB and AppImage files. Stable aliases are `SPDBot.dmg` (Apple silicon),
+`SPDBot-intel.dmg`, `SPDBot-setup.exe`, `SPDBot-amd64.deb`, and
+`SPDBot.AppImage`. All updater manifests and blockmaps accompany their artifacts.
 
-Tick **publish** to publish and verify the canonical release first, then make
-the identical legacy updater bridge visible. Leave it unticked to review the
-canonical draft; when you publish that draft in GitHub's UI, the **Sync
-published release** workflow
-verifies and publishes its legacy mirror automatically. Never publish only the
-legacy draft.
+There is no mirror to an upstream repository and no `RELEASES_PAT` requirement.
+The release workflow uses its scoped `GITHUB_TOKEN` only for this repository.
+Publishing a reviewed draft in GitHub's UI has no upstream mirror or docs-hook
+side effect. Desktop publication no longer dispatches npm or Docker publishing;
+those workflows are separate and are not a SPDBot desktop release requirement.
+The inherited npm publishing jobs are restricted to their upstream repository;
+they cannot publish the upstream package from this fork. Creating an owned
+SPDBot npm distribution is a separate task.
 
-The release commit must have passed CI: the **CI passed on the release commit**
-job waits (while the platforms build) for ci.yml's `CI` check on the pinned
-commit and stops the release before any draft if it failed. If that commit
-has no CI run, or a newer merge replaced it, the job runs CI on the commit
-itself on a temporary `release-ci/v<version>` branch. After a flaky failure,
-re-run the failed CI jobs; a release still waiting picks up the new attempt,
-and a release that already stopped needs only `gh run rerun <id> --failed`.
-`ship_without_ci` skips the wait, for emergencies only.
+An existing upstream installation still reads its baked-in upstream feed. This
+change does not migrate those installations or publish a bridge for them. The
+SPDBot feed becomes active only in a build packaged with this configuration.
+Until SPDBot has a published release, there is no real update to download; do
+not describe an unavailable feed as a successful end-to-end update test.
 
-The workflow refuses to overwrite an already-published version. Manual Release
-runs still require `package.json`'s version to be bumped on the selected ref.
-A release is rejected if any installer, stable download
-name, updater feed, blockmap, size, or digest is absent or inconsistent.
+## Compatibility and remaining branding
 
-GitHub generates the release body from pull requests since the previous
-canonical tag. The docs changelog combines published canonical releases with
-the legacy archive into one complete history and caches it for five minutes.
-Configure the optional Vercel hook below to rebuild the docs immediately after
-publication; otherwise the live cache or the next normal docs deployment
-refreshes it.
+This step changes safe display labels (Windows shortcut, Linux launcher and
+macOS permission text) and download names. It intentionally preserves
+`package.json`'s `openmausbot` name, `productName: OpenMausBot`,
+`com.openmausbot.app`, the executable and install directories, the speech-helper
+bundle identity, `openmausbot://` links, `OMB_*` variables and existing data paths.
+These names participate in OS integration, saved credentials and helper lookup;
+renaming them is not a cosmetic search-and-replace.
 
-## Updater migration invariant
+Consequently the `.app`/executable names, some native installer/product labels,
+speech-helper prompts and current icon assets can still show the inherited
+branding. They need a separately tested follow-up, not an invented replacement
+icon or an untested credential migration. The required LICENSE, NOTICE and
+third-party credits remain unchanged.
 
-`app-update.yml` is baked into every packaged desktop app. Builds through
-0.1.46 point to `milind-soni/openmausbot-releases`; newer builds point to
-`milind-soni/OpenMausBot`. For that reason:
+Desktop packaging excludes the separately licensed `dist-server/enterprise/`
+layer using the existing resource filter. It distributes the permitted core
+edition without changing core runtime behavior or licensing checks.
 
-1. Every new release is published byte-for-byte to both repositories during
-   the bridge period.
-2. `openmausbot-releases` must stay public. Do not delete its final bridge
-   release, feeds, or assets.
-3. README and docs downloads point at the canonical repo, while the legacy
-   mirror exists only for installed updater clients and historical releases.
+## Verification retained
 
-The npm package is published separately and its versioned `.tgz` is attached
-only to the canonical release. It is not a desktop updater artifact; the
-mirror checks permit that one extra file while still verifying the complete,
-byte-identical desktop asset set.
+The manual release builds macOS arm64 + x64, Windows x64 and Ubuntu x64 from one
+pinned commit. Existing checks still cover:
 
-## Why the gates exist
+- Passing CI for the exact release tree, including the release-CI recovery lane.
+- Complete native resources, packaged-server startup and helper/module paths.
+- macOS signature verification before notarization, stapling, regenerated
+  blockmaps and hashes after the final bytes change.
+- Windows updater configuration without a fictitious signing publisher.
+- Linux package metadata, sandbox resources, installation/upgrade and launch.
+- A complete artifact set, feed file names, sizes and hashes, and uploaded asset
+  digests before optional publication.
 
-Each verification step in `release.yml` maps to a real incident from the
-hand-cut releases (0.1.15–0.1.25): stale build output breaking the code
-signature, a bare import killing the packaged server on launch while every
-check stayed green, helper paths resolving outside the app after bundling,
-stapling silently invalidating every published hash, and a finished release
-sitting invisible as a draft. Don't remove a gate without reading the comment
-above it.
+The workflow refuses to replace an already published version. A new release
+requires a version bump; ordinary merging alone does not publish it.
+`ship_without_ci` remains the existing explicit emergency override, not a normal
+release path. See [browser packaging](browser-packaging.md) for native resource
+provenance and [verification](verification/README.md) for runtime recipes.
 
-## Bundled browser gates
+The artifact-only **Package Windows** and **Package Ubuntu** workflows do not
+publish a release. The optional real-feed Linux update smoke needs an existing
+published SPDBot release, unlike the ordinary package/launch checks.
 
-Desktop builds also stage a pinned engine and Chromium Headless Shell before
-packaging. Pre-signing checks validate complete resources and upstream hashes;
-native browser smoke tests and macOS signature checks run on the packaged
-output. See [browser packaging](browser-packaging.md) for update ownership,
-license provenance and Linux sandbox constraints. Missing browser resources
-must fail the build, not ship an installer that downloads them on first use.
+## Signing setup before an actual release
 
-## One-time setup: release secrets
+The SPDBot repository needs its own authorized Developer ID certificate and
+notarization account. No upstream credentials or signing identity are assumed.
+The existing secret names are:
 
-Set these in **OpenMausBot → Settings → Secrets and variables → Actions**.
+- `MAC_CERT_P12_BASE64` and `MAC_CERT_PASSWORD`: the authorized Developer ID
+  Application certificate export and its password.
+- `APPLE_API_KEY_P8_BASE64`, `APPLE_API_KEY_ID` and `APPLE_API_ISSUER_ID`: the
+  authorized App Store Connect notarization key and its identifiers.
 
-The **Prepare next release** workflow also needs
-**Settings → Actions → General → Workflow permissions → Allow GitHub Actions
-to create and approve pull requests** enabled. The workflow only creates the
-version PR; it never approves or merges it.
+Configuring those credentials is a separate, explicit action. This change does
+not create or copy secrets. Windows remains unsigned; do not set `publisherName`
+until installers are genuinely signed, because it would reject updates.
 
-### 1. `MAC_CERT_P12_BASE64` + `MAC_CERT_PASSWORD`
+For a local fallback, use the existing `package:mac`, `package:win` or
+`package:linux` commands, then perform the same native verification as the
+workflow. A macOS package must be signed, notarized, stapled and re-zipped before
+regenerating its blockmaps and feed. Upload the complete verified desktop asset
+set only to `thisistoni/spdbot` after a concrete publication request.
 
-The Developer ID Application certificate, exported from the Mac that
-currently signs releases:
-
-```sh
-# Keychain Access → My Certificates → "Developer ID Application: Milind Soni
-# (993D98NH4J)" → right-click → Export… → .p12 with a strong password, then:
-base64 -i DeveloperID.p12 | pbcopy   # → MAC_CERT_P12_BASE64
-# the export password             → MAC_CERT_PASSWORD
-```
-
-### 2. `APPLE_API_KEY_P8_BASE64` + `APPLE_API_KEY_ID` + `APPLE_API_ISSUER_ID`
-
-An App Store Connect API key for notarization (better than an app-specific
-password for CI — revocable, scoped, no 2FA dance):
-
-1. [App Store Connect → Users and Access → Integrations → App Store Connect API](https://appstoreconnect.apple.com/access/integrations/api)
-2. Generate a **Team Key** with the **Developer** role
-3. Download the `.p8` (one chance only), note the Key ID and Issuer ID
-
-```sh
-base64 -i AuthKey_XXXXXXXX.p8 | pbcopy   # → APPLE_API_KEY_P8_BASE64
-```
-
-### 3. `RELEASES_PAT`
-
-A fine-grained personal access token that lets the workflow write to the
-legacy updater mirror: **GitHub → Settings → Developer settings →
-Fine-grained tokens** → repository access: only `openmausbot-releases` →
-permissions: **Contents: Read and write**. Set a long expiry and a calendar
-reminder. The canonical release uses the workflow's scoped `GITHUB_TOKEN` and
-does not need a PAT.
-
-### 4. Optional `DOCS_DEPLOY_HOOK_URL`
-
-In Vercel, open the docs project and create a **Deploy Hook** for its production
-branch. Store that private URL as the `DOCS_DEPLOY_HOOK_URL` repository secret.
-Publishing a release then requests a fresh docs deployment so the generated
-changelog appears immediately. Do not put the hook URL in source control.
-
-### Local fallback
-
-The hand-cut path still works when Actions is down or a release needs
-surgery: `pnpm package:mac`, gate with `codesign --verify --deep --strict`,
-notarize with the local keychain profile (`xcrun notarytool submit …
---keychain-profile AC_PASSWORD`), staple, re-zip, regenerate blockmaps and
-`node scripts/regenerate-mac-feed.mjs`, upload the identical complete asset set
-to both repositories, publish and verify the canonical release before the
-legacy mirror, and always verify the published bytes against the published feed
-by downloading them back.
+Cloudflare deployment remains separate: a deliberate **Actions → CI** run on
+`main` with **deploy_composio_broker** selected, after the existing CI gate and
+control-plane checks. PRs, merges and release-CI recovery do not deploy it.

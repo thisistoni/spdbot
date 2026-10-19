@@ -4,7 +4,7 @@
 # partial release. That keeps release credentials and publication authority
 # in the unified release workflow while making every release candidate
 # reproducible from an exact ref. Attach the resulting files to the matching
-# canonical OpenMausBot release after the smoke test passes.
+# canonical SPDBot release after the smoke test passes.
 name: Package Ubuntu
 
 on:
@@ -14,6 +14,11 @@ on:
         description: "Commit/tag/branch to build (defaults to the branch this is run from)"
         required: false
         type: string
+      verify_update:
+        description: "Also download/install the current published SPDBot AppImage (requires an existing release)"
+        required: false
+        type: boolean
+        default: false
 
 permissions:
   contents: read
@@ -73,6 +78,7 @@ jobs:
           test "${#deb[@]}" -eq 1
           pnpm smoke:deb-command "${deb[0]}"
       - name: Prove an AppImage update lands on the launched path
+        if: inputs.verify_update
         # Installs the current published release over a copy named after a
         # version, which is the shape that used to orphan the launcher. Runs
         # against the real feed, so it also covers the differential download.
@@ -98,20 +104,20 @@ jobs:
         run: |
           set -euo pipefail
           version="$(node -p "require('./package.json').version")"
-          appimage="release/OpenMausBot-${version}-x86_64.AppImage"
-          deb="release/OpenMausBot-${version}-amd64.deb"
+          appimage="release/SPDBot-${version}-x86_64.AppImage"
+          deb="release/SPDBot-${version}-amd64.deb"
           test -f "$appimage"
           test -f "$deb"
-          cp "$appimage" release/OpenMausBot.AppImage
-          cp "$deb" release/OpenMausBot-amd64.deb
-          chmod 0755 release/OpenMausBot.AppImage
+          cp "$appimage" release/SPDBot.AppImage
+          cp "$deb" release/SPDBot-amd64.deb
+          chmod 0755 release/SPDBot.AppImage
           (
             cd release
             sha256sum \
               "$(basename "$appimage")" \
               "$(basename "$deb")" \
-              OpenMausBot.AppImage \
-              OpenMausBot-amd64.deb > SHA256SUMS-ubuntu-x64.txt
+              SPDBot.AppImage \
+              SPDBot-amd64.deb > SHA256SUMS-ubuntu-x64.txt
           )
           echo "artifact-name=openmausbot-ubuntu-${version}-x64" >> "$GITHUB_OUTPUT"
           echo "version: $version"
@@ -132,10 +138,10 @@ jobs:
         with:
           name: ${{ steps.release.outputs.artifact-name }}
           path: |
-            release/OpenMausBot-*-amd64.deb
-            release/OpenMausBot-*-x86_64.AppImage
-            release/OpenMausBot-amd64.deb
-            release/OpenMausBot.AppImage
+            release/SPDBot-*-amd64.deb
+            release/SPDBot-*-x86_64.AppImage
+            release/SPDBot-amd64.deb
+            release/SPDBot.AppImage
             release/SHA256SUMS-ubuntu-x64.txt
           if-no-files-found: error
           retention-days: 14
