@@ -1,7 +1,7 @@
 {
   "id": "/",
-  "name": "OpenMausBot",
-  "short_name": "OpenMausBot",
+  "name": "SPDBot",
+  "short_name": "SPDBot",
   "start_url": "/",
   "scope": "/",
   "display": "standalone",
