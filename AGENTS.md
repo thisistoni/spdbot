@@ -4,6 +4,11 @@ Antonio and Ermin are turning this app into SPDBot. Keep it simple: rebrand
 the app, fix the remaining German text, replace the default avatars, and ship.
 Use the existing architecture. Avoid speculative refactors and extra process.
 
+Keep the fork thin: branding/themes and, when requested, bundled team templates,
+skills, and instructions should reuse existing extension points. Change core
+agent, permission, storage, or orchestration behavior only when explicitly
+requested. Upstream synchronization is a separate task.
+
 ## Shared context
 
 - Linear: [SPDBot / SPD](https://linear.app/devtones/project/spdbot-596e7a889aac).
@@ -15,7 +20,8 @@ Use the existing architecture. Avoid speculative refactors and extra process.
 
 Explain the next step briefly in German so Ermin understands what is happening.
 Handle routine Git work yourself; do not wait for him to ask when to commit,
-push, open a PR, or merge. Respect explicit local-only instructions.
+push, open a PR, or merge. Explicit task limits such as local-only, keep draft,
+or no merge override this workflow; green CI does not remove them.
 
 1. Read the issue, repo instructions, `git status`, and relevant code. Preserve
    existing work. Use an existing matching Linear issue or create a small one.
@@ -59,6 +65,10 @@ a concrete instruction. Keep unrelated cleanup and future ideas in the backlog.
 - Default avatars: **DiceBear Bottts Neutral**. Reuse a shared renderer and a
   stable bot seed; preserve custom uploaded/generated avatars. Keep the
   implementation small and verify small/large sizes and existing status cues.
+- For theme/default changes, preserve explicit saved selections and unrelated
+  preferences. Cover fresh and existing installs plus reload; derive coverage
+  from the theme registry, not hardcoded counts. Check affected shared styles
+  and contrast when relevant.
 - Preserve required `LICENSE`, `NOTICE`, and third-party credits. The
   `enterprise/` folder has separate terms; do not redistribute its code or
   bypass its licensing without the required rights. Use the permitted core
@@ -74,6 +84,14 @@ Use Node 24+ and the pnpm version in `package.json` (currently 10.33.0).
 Use targeted tests plus applicable `pnpm lint`, `pnpm typecheck`,
 `pnpm i18n:check`, and `pnpm check:electron`; honor existing hooks and CI.
 For documentation alone, check links and `git diff --check`; no new runtime tests.
+
+Verify the remote head SHA before reporting a push and check CI for that exact
+commit. Distinguish passed, failed, pending, and not-run checks; recheck affected
+checks after later edits or conflict resolution.
+
+For UI work, name the tested runtime/platform. Browser runs and simulated
+desktop bridges do not prove native/package behavior; use the relevant recipes
+in [verification](docs/verification/README.md) and state coverage limits.
 
 Verify server/conversation changes with an isolated fixture following
 [docs/verification/README.md](docs/verification/README.md), never live user data.
