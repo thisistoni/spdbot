@@ -16,6 +16,7 @@ const config = parse(read("electron-builder.yml"));
 const release = parse(read(".github/workflows/release.yml"));
 const packageJson = JSON.parse(read("package.json"));
 const temporary = [];
+const nsisTemplateDir = path.join(path.dirname(builderRequire.resolve("app-builder-lib/package.json")), "templates/nsis");
 afterEach(() => temporary.splice(0).forEach((dir) => rmSync(dir, { recursive: true, force: true })));
 
 const workflowText = ["release", "prepare-release", "package-linux", "package-win"]
@@ -45,6 +46,78 @@ describe("SPDBot desktop distribution", () => {
     for (const target of config.mac.target) expect(target.arch).toEqual(["arm64", "x64"]);
     for (const description of Object.values(config.mac.extendInfo)) expect(description).toMatch(/^SPDBot /);
   });
+
+  it("brands NSIS captions after the default name without renaming installed files", () => {
+    expect(config.nsis.include).toBe("build/installer.nsh");
+    expect(config.nsis.uninstallDisplayName).toBe("SPDBot ${version}");
+    const include = read(config.nsis.include);
+    expect(include).toMatch(/!macro customHeader[\s\S]*Name "SPDBot" "SPDBot"[\s\S]*BrandingText "SPDBot \$\{VERSION\}"\s+!macroend/);
+    expect(include).not.toMatch(/^\s*!(?:define|undef)\b/m);
+
+    const template = readFileSync(path.join(nsisTemplateDir, "installer.nsi"), "utf8");
+    const common = readFileSync(path.join(nsisTemplateDir, "common.nsh"), "utf8");
+    expect(template.indexOf('!include "common.nsh"')).toBeLessThan(template.indexOf("!insertmacro customHeader"));
+    expect(template.indexOf("!insertmacro addLangs")).toBeLessThan(template.indexOf("!insertmacro customHeader"));
+    expect(common).toContain('Name "${PRODUCT_NAME}" "${DoubleAmpersand}"');
+    expect(common).toContain('!define APP_EXECUTABLE_FILENAME "${PRODUCT_FILENAME}.exe"');
+    expect(common).toContain('!define UNINSTALL_FILENAME "Uninstall ${PRODUCT_FILENAME}.exe"');
+  });
+
+  // Package Windows already downloads this pinned compiler. Opt in locally
+  // rather than making ordinary unit tests download executable build tools.
+  it.runIf(process.env.OMB_NSIS_TEST === "1").each([false, true])(
+    "compiles localized SPDBot NSIS captions with warnings as errors (uninstaller: %s)",
+    async (uninstaller) => {
+      const { getMakeNsisPath } = builderRequire("app-builder-lib/out/toolsets/windows.js");
+      const compiler = await getMakeNsisPath(config.toolsets?.nsis, config.nsis.customNsisBinary);
+      const dir = mkdtempSync(path.join(tmpdir(), "spdbot-nsis-"));
+      temporary.push(dir);
+      const nsisPath = (value) => value.replaceAll("\\", "/");
+      const script = path.join(dir, "caption.nsi");
+      const output = path.join(dir, "caption.exe");
+      writeFileSync(script, `Unicode true
+!define PRODUCT_NAME "${config.productName}"
+!define PRODUCT_FILENAME "OpenMausBot"
+!define VERSION "${packageJson.version}"
+${uninstaller ? "!define BUILD_UNINSTALLER" : ""}
+!include "${nsisPath(path.resolve(config.nsis.include))}"
+!include "${nsisPath(path.join(nsisTemplateDir, "common.nsh"))}"
+!include "MUI2.nsh"
+!insertmacro MUI_PAGE_INSTFILES
+${uninstaller ? "!insertmacro MUI_UNPAGE_INSTFILES" : ""}
+!insertmacro MUI_LANGUAGE "English"
+!insertmacro MUI_LANGUAGE "German"
+!insertmacro customHeader
+OutFile "${nsisPath(output)}"
+Section
+  DetailPrint "\${APP_EXECUTABLE_FILENAME}"
+  DetailPrint "\${UNINSTALL_FILENAME}"
+  ${uninstaller ? 'WriteUninstaller "$TEMP/caption-uninstall.exe"' : ""}
+SectionEnd
+${uninstaller ? 'Section "Uninstall"\n  DetailPrint "uninstall fixture"\nSectionEnd' : ""}
+`);
+      const run = (...args) => spawnSync(compiler.path, args, {
+        encoding: "utf8", env: { ...process.env, ...compiler.env }, timeout: 30_000,
+      });
+      const preprocessed = run("-PPO", script);
+      expect(preprocessed.status, preprocessed.stderr).toBe(0);
+      expect([...preprocessed.stdout.matchAll(/^Name .+$/gm)].at(-1)?.[0]).toBe('Name "SPDBot" "SPDBot"');
+      expect([...preprocessed.stdout.matchAll(/^BrandingText .+$/gm)].at(-1)?.[0]).toBe(`BrandingText "SPDBot ${packageJson.version}"`);
+      expect(preprocessed.stdout).toContain('DetailPrint "OpenMausBot.exe"');
+      expect(preprocessed.stdout).toContain('DetailPrint "Uninstall OpenMausBot.exe"');
+      for (const [language, setup, uninstall] of [
+        ["English", "$(^Name) Setup", "$(^Name) Uninstall"],
+        ["German", "Installation von $(^Name)", "Deinstallation von $(^Name)"],
+      ]) {
+        const nlf = readFileSync(path.join(compiler.env.NSISDIR, "Contrib/Language files", `${language}.nlf`), "utf8").replaceAll("\r\n", "\n");
+        expect(nlf).toContain(`# ^SetupCaption\n${setup}`);
+        expect(nlf).toContain(`# ^UninstallCaption\n${uninstall}`);
+      }
+      const compiled = run("-WX", "-V3", script);
+      expect(compiled.status, compiled.stdout + compiled.stderr).toBe(0);
+      expect(existsSync(output)).toBe(true);
+    }, 120_000,
+  );
 
   it("excludes only enterprise payloads using electron-builder's real resource filter", () => {
     const resource = config.extraResources.find((entry) => entry.from === "dist-server");

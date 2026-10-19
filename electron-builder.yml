@@ -189,6 +189,9 @@ nsis:
   oneClick: true
   perMachine: false
   shortcutName: SPDBot
+  # Brand NSIS's visible name separately from the installed runtime identity.
+  include: build/installer.nsh
+  uninstallDisplayName: SPDBot ${version}
   # Versioned, like the .dmg. The README's /latest/download/ button needs a
   # STABLE filename, so ship a second copy named SPDBot-setup.exe on the
   # release — the same trick as SPDBot.dmg beside SPDBot-${version}.dmg.

@@ -36,19 +36,27 @@ not describe an unavailable feed as a successful end-to-end update test.
 
 ## Compatibility and remaining branding
 
-This step changes safe display labels (Windows shortcut, Linux launcher and
-macOS permission text) and download names. It intentionally preserves
+Safe display labels include the Windows installer/uninstaller captions,
+Windows shortcut and Apps & Features entry, Linux launcher, macOS permission
+text and download names. The NSIS `customHeader` sets `Name` and `BrandingText`
+after the standard template; it does not rename installed files. We preserve
 `package.json`'s `openmausbot` name, `productName: OpenMausBot`,
 `com.openmausbot.app`, the executable and install directories, the speech-helper
 bundle identity, `openmausbot://` links, `OMB_*` variables and existing data paths.
 These names participate in OS integration, saved credentials and helper lookup;
 renaming them is not a cosmetic search-and-replace.
 
-Consequently the `.app`/executable names, some native installer/product labels,
-speech-helper prompts and current icon assets can still show the inherited
-branding. They need a separately tested follow-up, not an invented replacement
+Consequently the `.app`/executable names, some secondary native dialogs and file
+properties, speech-helper prompts and current icon assets can still show the
+inherited branding. They need a separately tested follow-up, not an invented replacement
 icon or an untested credential migration. The required LICENSE, NOTICE and
 third-party credits remain unchanged.
+
+`OMB_NSIS_TEST=1 pnpm exec vitest run scripts/installer-config.test.mjs` compiles
+small installer/uninstaller fixtures with electron-builder's pinned NSIS, checks
+English/German captions and unchanged file names, and retains warnings-as-errors.
+The Windows packaging workflow runs this too. These compiler checks do not
+replace installing and viewing the actual packaged app on Windows.
 
 Desktop packaging excludes the separately licensed `dist-server/enterprise/`
 layer using the existing resource filter. It distributes the permitted core

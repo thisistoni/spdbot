@@ -42,6 +42,10 @@ jobs:
         shell: bash
         run: rm -rf dist dist-server release
       - run: pnpm package:win
+      - name: Verify installer display labels
+        env:
+          OMB_NSIS_TEST: "1"
+        run: pnpm exec vitest run scripts/installer-config.test.mjs
       - name: Verify the bundled browser with an empty home
         run: node scripts/smoke-browser-bundle.mjs --resources "${{ github.workspace }}/release/win-unpacked/resources"
       - name: Verify the packaged server discovers its browser
