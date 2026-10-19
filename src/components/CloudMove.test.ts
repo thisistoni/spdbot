@@ -445,3 +445,23 @@ it("This computer's page says in one line that its bots live on My Cloud once co
     expect(render(note).html).toBe("");
   }
 });
+
+it("renders the German Backup import offer, progress and safe failure guidance", async () => {
+  setLocale("de");
+  await ready(backups, overview({ destination: VPS }));
+  for (const line of ["Von diesem Computer importieren", "ohne Datei oder Passwort", "bots.example.test ist leer", "4 Bots und 37 Chats"]) expect(render(backups).html).toContain(line);
+  button(backups, "Kopieren")!.props.onClick!(); await flush();
+  expect(bridge.start).toHaveBeenCalledWith(undefined);
+  push({ phase: "uploading", action: "move", destination: VPS, progress: { bytesTransferred: 1, totalBytes: 2 } });
+  expect(render(backups).html).toContain("Wird auf bots.example.test hochgeladen…");
+  push({ phase: "failed", action: "move", destination: VPS, error: { code: "cancelled", message: "" } });
+  expect(render(backups).html).toContain("Auf bots.example.test wurde nichts ersetzt");
+});
+
+it("renders German copy replacement and credential warnings with server placeholders", async () => {
+  setLocale("de");
+  await ready(settings("vps"), overview({ destination: VPS, cloud: { ...emptyCloud, empty: false } }));
+  const html = render(settings("vps")).html;
+  for (const line of ["API-Schlüssel und Anmeldungen bleiben auf diesem Computer", "Routinen werden pausiert übernommen", "Das Kopieren ersetzt sie", "Sie werden zuvor auf bots.example.test gesichert", "Auf bots.example.test wird nichts ersetzt oder entfernt"]) expect(html).toContain(line);
+  expect(html).not.toMatch(/\{(?:server|bots|chats)\}/);
+});

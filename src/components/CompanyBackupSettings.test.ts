@@ -130,6 +130,28 @@ async function validateRestore() {
 }
 
 describe("optional Company cloud backup settings", () => {
+  it("renders German company backup consent, encryption and deletion warnings", async () => {
+    await ready();
+    setLocale("de");
+    expect(render().html).toContain("Firmen-Backups in der Cloud");
+    expect(render().html).toContain("Andere Mitglieder können sie nicht wiederherstellen");
+    button("Diese Installation sichern").props.onClick!();
+    for (const text of ["DIESER Installation", "Fixture Company", "employee@example.test", "keine Ende-zu-Ende-Verschlüsselung", "persönliche Gespräche und Dateien", "nicht automatisch um sensible Inhalte bereinigt"]) expect(render().html).toContain(text);
+    button("Abbrechen").props.onClick!();
+    button("Cloud-Backup löschen").props.onClick!();
+    expect(render().html).toContain("Gib zur Bestätigung DELETE ein");
+    expect(render().html).toContain("Diese Cloud-Kopie kann nicht wiederhergestellt werden");
+    expect(button("Cloud-Backup löschen").props.disabled).toBe(false);
+    const deleteButtons = buttons("Cloud-Backup löschen");
+    expect(deleteButtons.at(-1)!.props.disabled).toBe(true);
+    change(confirmation(), "DELETE");
+    expect(buttons("Cloud-Backup löschen").at(-1)!.props.disabled).toBe(false);
+    button("Abbrechen").props.onClick!();
+    pushBackup({ busy: false, schedule: { enabled: false, status: "off" } });
+    render().nodes.find(node => node.props["aria-label"] === "Tägliche Backups")!.props.onClick!();
+    for (const text of ["24 Stunden", "künftige Änderungen", "keine separate Installation für die Arbeit", "täglich in diesem Firmenkonto gesichert", "keine Ende-zu-Ende-Verschlüsselung"]) expect(render().html).toContain(text);
+  });
+
   it.each(["browser", "remote", "missing organization", "missing backups"])("is absent on a %s surface without requesting cloud data", surface => {
     if (surface === "browser") vi.stubGlobal("window", {});
     if (surface === "remote") vi.stubGlobal("window", { ogb: { organization, companyBackups: bridge, remoteClient: { active: true } } });

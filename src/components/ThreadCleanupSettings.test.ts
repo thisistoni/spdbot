@@ -1,6 +1,7 @@
 import { createElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
-import { describe, expect, it, vi } from "vitest";
+import { setLocale } from "@/lib/i18n";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import { ThreadCleanupSettings, parseCapMib } from "./ThreadCleanupSettings";
 
 const fixture = vi.hoisted(() => ({
@@ -11,7 +12,21 @@ vi.mock("@/state/store", () => ({
   useStore: () => ({ state: { config: fixture.threads === undefined ? {} : { threads: fixture.threads } }, dispatch: vi.fn() }),
 }));
 
+afterEach(() => setLocale("en"));
+
 describe("ThreadCleanupSettings", () => {
+  it("renders German cleanup limits without implying deletion of conversations", () => {
+    setLocale("de");
+    fixture.threads = undefined;
+    const markup = renderToStaticMarkup(createElement(ThreadCleanupSettings));
+    expect(markup).toContain("Ereignisprotokolle bereinigen");
+    expect(markup.match(/Standardmäßig deaktiviert\./g)).toHaveLength(2);
+    expect(markup.match(/niemals Threads oder Gesprächsprotokolle\./g)).toHaveLength(2);
+    expect(markup).toContain("täglich");
+    expect(markup).toContain('value="30"');
+    expect(markup).toContain('value="50"');
+  });
+
   it("rejects cap values that are not exact 0.25 MiB steps", () => {
     expect(parseCapMib("0.25")).toBe(256 * 1024);
     expect(parseCapMib("1.5")).toBe(1536 * 1024);
