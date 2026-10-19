@@ -72,8 +72,9 @@ try {
   await page.goto(url.href);
   await page.getByRole("button", { name: "Du", exact: true }).waitFor();
   // The skipped email gate marks this as a prior install with no chosen skin.
-  assert.equal(await page.locator("html").getAttribute("data-skin"), "midnight");
-  check("Prior install without a saved skin still defaults to Midnight");
+  assert.equal(await page.locator("html").getAttribute("data-skin"), "spd");
+  assert.equal(await page.evaluate(() => localStorage.getItem("omb-skin")), "spd");
+  check("Prior install without a saved skin defaults to SPD and persists it");
 
   const openAppearance = async () => {
     await page.getByRole("button", { name: "Du", exact: true }).click();
@@ -92,6 +93,19 @@ try {
     })), { active: id, saved: id, desktop: id });
   };
   await openAppearance();
+  assert.deepEqual(await page.locator('button[aria-pressed] [data-skin]').evaluateAll((items) => items.map((item) => item.dataset.skin)), [
+    "spd", "midnight", "atelier", "foundry", "lagoon", "graphite", "linen", "dusk", "daylight", "meadow",
+  ]);
+  assert.equal(await page.getByRole("button", { name: /^SPD / }).getAttribute("aria-pressed"), "true");
+  check("SPD is the first theme option and selected by default; all previous themes retain their relative order");
+  await choose("Meadow", "meadow");
+  await page.reload();
+  await page.getByRole("button", { name: "Du", exact: true }).waitFor();
+  assert.equal(await page.locator("html").getAttribute("data-skin"), "meadow");
+  assert.equal(await page.evaluate(() => localStorage.getItem("omb-skin")), "meadow");
+  await openAppearance();
+  assert.equal(await page.getByRole("button", { name: /^Meadow / }).getAttribute("aria-pressed"), "true");
+  check("An explicitly selected non-default theme survives a real reload");
   await choose("SPD", "spd");
   const description = page.getByText("Dunkle Pflaume, sanftes Lavendel. SPD Studio.", { exact: true });
   await description.waitFor();

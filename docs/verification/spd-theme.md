@@ -1,9 +1,11 @@
 # SPD theme
 
-SPD is an additional choice in Settings → Appearance → Skin. Existing choices
-and storage keys are unchanged: fresh installations still use Meadow, prior
-installations without a valid saved choice still use Midnight, and explicit
-font, chat width, interface mode and message-color preferences take precedence.
+SPD is the first choice in Settings → Appearance → Skin and the default when
+there is no valid saved theme, on both fresh and prior installations. Every
+valid saved theme still takes precedence; all previous themes remain available
+in their relative order. Storage keys and explicit font, chat width, interface
+mode and message-color preferences are unchanged. The native desktop window
+also starts with SPD's background until the renderer synchronizes its selection.
 
 ## Design source
 
@@ -109,3 +111,28 @@ pnpm exec vitest run "${spd_css_tests[@]}" src/lib/skins.default.test.ts \
   src/components/SettingsModal.simple.test.ts
 pnpm check:contrast
 ```
+
+## SPD default and picker order — 2026-10-19
+
+SPD now starts first in the picker and is used whenever the saved theme is
+missing, invalid or unreadable. The prior-install fallback was removed; a valid
+saved choice, including Meadow or Midnight, is still restored unchanged.
+Simple/Advanced mode, custom fonts and other preferences keep their existing
+behavior. The main desktop window starts with the same SPD background before
+the renderer reports the selected theme.
+
+- 217 targeted tests passed across defaults/persistence, skin registration,
+  interface mode, glass surfaces, identity colors, native skin mapping and
+  Appearance/Simple settings. Coverage includes two launches with each of the
+  ten saved themes, fresh and prior installations without a usable choice,
+  blocked storage and the rendered picker order.
+- 10 additional documentation and window-chrome tests passed.
+- The browser fixture passed all 11 checks, including SPD's default and first
+  position, a saved Meadow selection surviving reload, all ten theme switches,
+  preserved font/preferences and the Windows renderer bridge. Seven screenshots
+  were refreshed; desktop and mobile picker views were visually inspected.
+- `pnpm check:electron` syntax-checked all 203 modules. Native Windows execution
+  remains outside this environment; the renderer test uses a stubbed bridge.
+- `pnpm lint`, `pnpm typecheck`, `pnpm i18n:check`, `pnpm exec vite build`
+  and `git diff --check` passed. The build retains the existing `::highlight`
+  and chunk-size warnings.

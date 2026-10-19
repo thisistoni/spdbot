@@ -39,12 +39,14 @@ describe("skin overlay chrome", () => {
   });
 
   it("falls back to the default skin for anything unknown, never throwing", () => {
+    expect(DEFAULT_SKIN).toBe("spd");
     expect(isKnownSkin("midnight")).toBe(true);
     expect(isKnownSkin("does-not-exist")).toBe(false);
     expect(isKnownSkin(undefined)).toBe(false);
     expect(isKnownSkin(42)).toBe(false);
     expect(skinChrome("does-not-exist")).toEqual(SKIN_CHROME[DEFAULT_SKIN]);
     expect(skinChrome(null)).toEqual(SKIN_CHROME[DEFAULT_SKIN]);
+    expect(skinChrome()).toEqual({ color: "#08070e", symbolColor: "#b6a9c8" });
   });
 
   it("paints Meadow's white page behind the caption buttons", () => {

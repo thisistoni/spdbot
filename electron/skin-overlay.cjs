@@ -16,7 +16,7 @@ const SKIN_CHROME = Object.freeze({
   spd: Object.freeze({ color: "#08070e", symbolColor: "#b6a9c8" }),
 });
 
-const DEFAULT_SKIN = "midnight";
+const DEFAULT_SKIN = "spd";
 
 function skinChrome(skin) {
   return Object.hasOwn(SKIN_CHROME, skin) ? SKIN_CHROME[skin] : SKIN_CHROME[DEFAULT_SKIN];

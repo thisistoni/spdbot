@@ -12,7 +12,8 @@ See [reproduction and limits](../../spd-theme.md) and [machine-readable results]
 - [Touch chat](chat-mobile.png)
 - [Touch theme picker](appearance-mobile.png)
 
-The checks exercise all ten themes, persistence after real page reloads, custom
+The checks exercise SPD as the default and first picker option, all ten themes,
+preservation of an explicitly saved non-default theme after reload, custom
 font preservation, Outfit loading, message-color preferences, narrow layouts,
 and the Windows renderer bridge. No page errors or external requests occurred.
 Native Windows itself was not available for testing.

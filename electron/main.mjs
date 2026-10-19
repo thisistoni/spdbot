@@ -2104,7 +2104,7 @@ function createWindow({ deferNavigation = false } = {}) {
     minHeight: MIN_BOUNDS.height,
     show: !waitsForSkinSync && !startupScreen,
     icon: APP_ICON,
-    backgroundColor: "#070707",
+    backgroundColor: skinChrome().color,
     autoHideMenuBar: process.platform !== "darwin",
     ...windowChromeOptions(process.platform),
     webPreferences: {

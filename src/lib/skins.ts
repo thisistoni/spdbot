@@ -1,7 +1,7 @@
-import { hasPriorRun } from "./prior-run";
 import type { LocaleKey } from "@/locales";
 
 export const SKIN_IDS = [
+  "spd",
   "midnight",
   "atelier",
   "foundry",
@@ -11,7 +11,6 @@ export const SKIN_IDS = [
   "dusk",
   "daylight",
   "meadow",
-  "spd",
 ] as const;
 export type SkinId = (typeof SKIN_IDS)[number];
 
@@ -23,6 +22,7 @@ export type Skin = {
 };
 
 export const SKINS: readonly Skin[] = [
+  { id: "spd", name: "SPD", tagline: "Deep plum, soft lavender. SPD Studio.", taglineKey: "settings.skin.spd.tagline" },
   { id: "midnight", name: "Midnight", tagline: "The original. Cool and dark." },
   { id: "atelier", name: "Atelier", tagline: "Daylight on paper, warm and quiet." },
   { id: "foundry", name: "Foundry", tagline: "Night shift. Dark, warm, lit in brass." },
@@ -32,11 +32,9 @@ export const SKINS: readonly Skin[] = [
   { id: "dusk", name: "Dusk", tagline: "Muted plum after dark, calm and low-key." },
   { id: "daylight", name: "Daylight", tagline: "Midnight in reverse. Near-white, ink-black bubbles." },
   { id: "meadow", name: "Meadow", tagline: "Fresh white with a calm green. The MausBot look." },
-  { id: "spd", name: "SPD", tagline: "Deep plum, soft lavender. SPD Studio.", taglineKey: "settings.skin.spd.tagline" },
 ];
 
-export const DEFAULT_SKIN: SkinId = "meadow";
-export const PRIOR_INSTALL_SKIN: SkinId = "midnight";
+export const DEFAULT_SKIN: SkinId = "spd";
 
 const KEY = "omb-skin";
 
@@ -58,10 +56,9 @@ export function readSkin(): SkinId {
     const store = getStore();
     const stored = store?.getItem(KEY);
     if (isSkinId(stored)) return stored;
-    return hasPriorRun(store) ? PRIOR_INSTALL_SKIN : DEFAULT_SKIN;
   } catch {
-    return PRIOR_INSTALL_SKIN;
   }
+  return DEFAULT_SKIN;
 }
 
 export function applySkin(id: SkinId): void {

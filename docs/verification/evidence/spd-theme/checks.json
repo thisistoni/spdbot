@@ -1,6 +1,8 @@
 {
   "checks": [
-    "Prior install without a saved skin still defaults to Midnight",
+    "Prior install without a saved skin defaults to SPD and persists it",
+    "SPD is the first theme option and selected by default; all previous themes retain their relative order",
+    "An explicitly selected non-default theme survives a real reload",
     "All ten themes selectable; CSS backgrounds and desktop notifications match; custom font preserved",
     "Reload restores SPD and the custom font while preserving chat width and interface mode",
     "Bundled Outfit loads; skin default restores it; SPD option has keyboard focus outline",

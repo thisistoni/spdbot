@@ -27,31 +27,34 @@ beforeEach(() => {
 afterEach(() => { vi.unstubAllGlobals(); });
 
 describe("default skin", () => {
-  it("opens a fresh install in Meadow, in Simple mode, and keeps it on the next launch", async () => {
-    expect(await boot()).toEqual({ skin: "meadow", advanced: false, stored: "meadow" });
+  it("opens a fresh install in SPD, in Simple mode, and keeps it on the next launch", async () => {
+    expect(await boot()).toEqual({ skin: "spd", advanced: false, stored: "spd" });
     values.set("omb-installed", "2026-10-17T00:00:00.000Z");
-    expect(await boot()).toEqual({ skin: "meadow", advanced: false, stored: "meadow" });
+    expect(await boot()).toEqual({ skin: "spd", advanced: false, stored: "spd" });
   });
 
-  it("keeps an install that ran before in Midnight when nobody picked a skin", async () => {
-    values.set("omb-skin", "midnight");
-    expect(await boot()).toMatchObject({ skin: "midnight", stored: "midnight" });
-  });
-
-  it("keeps Midnight for an earlier install whose saved skin is missing or no longer exists", async () => {
+  it.each([null, "", "retired-skin"])("uses SPD for an earlier install whose saved skin is %s", async (saved) => {
     values.set("omb-installed", "2026-01-01T00:00:00.000Z");
-    expect(await boot()).toEqual({ skin: "midnight", advanced: true, stored: "midnight" });
-    values.set("omb-skin", "retired-skin");
-    expect(await boot()).toMatchObject({ skin: "midnight", stored: "midnight" });
+    if (saved !== null) values.set("omb-skin", saved);
+    expect(await boot()).toEqual({ skin: "spd", advanced: true, stored: "spd" });
+    expect(await boot()).toEqual({ skin: "spd", advanced: true, stored: "spd" });
   });
 
-  it("always honours a skin someone chose", async () => {
-    values.set("omb-skin", "lagoon");
-    expect(await boot()).toMatchObject({ skin: "lagoon" });
-    values.clear();
-    values.set("omb-skin", "midnight");
+  it.each(SKIN_IDS)("preserves the saved %s choice on every launch", async (id) => {
+    values.set("omb-skin", id);
     values.set("omb-advanced-mode", "0");
-    expect(await boot()).toMatchObject({ skin: "midnight", advanced: false });
+    expect(await boot()).toEqual({ skin: id, stored: id, advanced: false });
+    expect(await boot()).toEqual({ skin: id, stored: id, advanced: false });
+  });
+
+  it("uses SPD when storage is unavailable or cannot be read", async () => {
+    const { readSkin } = await import("./skins");
+    vi.stubGlobal("localStorage", undefined);
+    expect(readSkin()).toBe("spd");
+    vi.stubGlobal("localStorage", { getItem: () => { throw new Error("storage blocked"); } });
+    expect(readSkin()).toBe("spd");
+    Object.defineProperty(globalThis, "localStorage", { configurable: true, get: () => { throw new Error("storage getter blocked"); } });
+    expect(readSkin()).toBe("spd");
   });
 
   it.each(SKIN_IDS)("switches from %s to SPD and back across launches without changing preferences", async (id) => {
@@ -99,11 +102,13 @@ describe("default skin", () => {
     expect(markup).toContain("Dunkle Pflaume, sanftes Lavendel. SPD Studio.");
   });
 
-  it("shows Meadow as the selected skin in Appearance on a fresh install", async () => {
+  it("shows SPD first and selected in Appearance on a fresh install", async () => {
     await boot();
     const { SkinPicker } = await import("@/components/SkinPicker");
     const markup = renderToStaticMarkup(createElement(SkinPicker));
     const pressed = [...markup.matchAll(/aria-pressed="true"[\s\S]*?<div class="text-\[13px\] font-medium text-ink">([^<]+)</g)].map(([, name]) => name);
-    expect(pressed).toEqual(["Meadow"]);
+    expect(pressed).toEqual(["SPD"]);
+    const choices = [...markup.matchAll(/<div class="text-\[13px\] font-medium text-ink">([^<]+)</g)].map(([, name]) => name);
+    expect(choices).toEqual(["SPD", "Midnight", "Atelier", "Foundry", "Lagoon", "Graphite", "Linen", "Dusk", "Daylight", "Meadow"]);
   });
 });
