@@ -53,6 +53,14 @@ describe("skins", () => {
     expect(PRIOR_INSTALL_SKIN).toBe("midnight");
   });
 
+  it("appends SPD while preserving every existing choice and default", () => {
+    expect(SKIN_IDS).toEqual([
+      "midnight", "atelier", "foundry", "lagoon", "graphite", "linen", "dusk", "daylight", "meadow", "spd",
+    ]);
+    expect(DEFAULT_SKIN).toBe("meadow");
+    expect(PRIOR_INSTALL_SKIN).toBe("midnight");
+  });
+
   it("gives Meadow's dark bubble its own inverted context", () => {
     expect(css).toMatch(/@scope \(\[data-skin="meadow"\]\) to \(\[data-skin\]\)\s*\{\s*\.bg-bubble-user\s*\{/);
   });

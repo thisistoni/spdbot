@@ -51,4 +51,9 @@ describe("skin overlay chrome", () => {
     expect(skinChrome("meadow")).toEqual({ color: "#ffffff", symbolColor: "#4d5a52" });
     expect(isKnownSkin("meadow")).toBe(true);
   });
+
+  it("accepts SPD and matches its plum window background and lavender-grey captions", () => {
+    expect(isKnownSkin("spd")).toBe(true);
+    expect(skinChrome("spd")).toEqual({ color: "#08070e", symbolColor: "#b6a9c8" });
+  });
 });

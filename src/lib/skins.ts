@@ -1,4 +1,5 @@
 import { hasPriorRun } from "./prior-run";
+import type { LocaleKey } from "@/locales";
 
 export const SKIN_IDS = [
   "midnight",
@@ -10,6 +11,7 @@ export const SKIN_IDS = [
   "dusk",
   "daylight",
   "meadow",
+  "spd",
 ] as const;
 export type SkinId = (typeof SKIN_IDS)[number];
 
@@ -17,6 +19,7 @@ export type Skin = {
   id: SkinId;
   name: string;
   tagline: string;
+  taglineKey?: LocaleKey;
 };
 
 export const SKINS: readonly Skin[] = [
@@ -29,6 +32,7 @@ export const SKINS: readonly Skin[] = [
   { id: "dusk", name: "Dusk", tagline: "Muted plum after dark, calm and low-key." },
   { id: "daylight", name: "Daylight", tagline: "Midnight in reverse. Near-white, ink-black bubbles." },
   { id: "meadow", name: "Meadow", tagline: "Fresh white with a calm green. The MausBot look." },
+  { id: "spd", name: "SPD", tagline: "Deep plum, soft lavender. SPD Studio.", taglineKey: "settings.skin.spd.tagline" },
 ];
 
 export const DEFAULT_SKIN: SkinId = "meadow";
@@ -66,7 +70,7 @@ export function applySkin(id: SkinId): void {
     getStore()?.setItem(KEY, id);
   } catch {
   }
-  // On Windows the caption buttons sit in a native overlay the main process paints, out of CSS's reach.
+  // Keep the native window background in sync; Windows caption buttons use the CSS tokens.
   try {
     void window.ogb?.applySkin?.(id)?.catch(() => undefined);
   } catch {
