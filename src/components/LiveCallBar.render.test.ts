@@ -4,6 +4,7 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 
 import { BotEditorStore, initialState, StoreProvider, type AppState, type Bot } from "@/state/store";
 import { endCall } from "@/lib/call";
+import { setLocale } from "@/lib/i18n";
 import { configureLiveMedia, resetLiveMedia, startLiveCall } from "@/lib/live-call-media";
 import { LiveCallBar } from "./LiveCallBar";
 import { LiveCallSettings } from "./LiveCallSettings";
@@ -33,6 +34,7 @@ const renderOnCloud = (element: ReturnType<typeof createElement>) => {
 const CLOUD_DISCLOSURE = `A Live call sends your voice to OpenAI, along with the chat&#x27;s recent messages, the bot&#x27;s answers and the details of any approval it asks for. The OpenAI key stays on My Cloud.`;
 
 afterEach(() => {
+  setLocale("en");
   resetLiveMedia();
   endCall();
   vi.unstubAllGlobals();
@@ -117,6 +119,16 @@ describe("LiveCallBar", () => {
 });
 
 describe("LiveCallSettings", () => {
+  it("shows the call controls and data disclosure in German", () => {
+    setLocale("de");
+    const markup = render(createElement(LiveCallSettings, { onClose: vi.fn() }));
+    expect(markup).toContain('aria-label="Anrufeinstellungen"');
+    expect(markup).toContain("Antworten auf getippte Nachrichten vorlesen");
+    expect(markup).toContain("nicht an OpenAI gesendet");
+    expect(markup).toContain("Der OpenAI-Schlüssel bleibt auf deinem Computer.");
+    expect(markup).toContain("etwa 0,05 $ pro Minute");
+  });
+
   it("offers voice, typed replies, idle minutes and the key, defaulting to 5 minutes", () => {
     const markup = render(createElement(LiveCallSettings, { onClose: vi.fn() }));
     expect(markup).toContain('aria-label="Call settings"');

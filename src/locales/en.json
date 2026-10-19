@@ -5959,5 +5959,7 @@
   "onboarding.reel.demo.terminal.ready": "SPDBot ready → http://127.0.0.1:8799",
   "onboarding.reel.demo.terminal.name": "Your name",
   "onboarding.reel.demo.continue": "Continue",
-  "onboarding.reel.demo.hour": "{hour} AM"
+  "onboarding.reel.demo.hour": "{hour} AM",
+  "voice.agentVoice": "{name}'s voice",
+  "voice.sample": "Morning. Overnight the tests went green, and I left two notes for you in the thread."
 }

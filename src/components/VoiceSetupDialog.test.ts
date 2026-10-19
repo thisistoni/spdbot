@@ -248,6 +248,12 @@ describe("voice set-up pop-up", () => {
     expect(tag).toContain('aria-label="Pepper&#x27;s voice"');
     expect(needsVoice.indexOf(key)).toBeGreaterThan(-1);
     expect(needsVoice.indexOf(key)).toBeLessThan(needsVoice.indexOf(tag!));
+
+    setLocale("de");
+    const german = card();
+    expect(german).toContain('aria-label="ElevenLabs-Schlüssel"');
+    expect(pickerTag(german)).toContain('aria-label="Stimme von Pepper"');
+    expect(german).toContain("Antworten vorlesen");
   });
 
   it("keeps Tab inside, and brings focus back when it has fallen out", () => {

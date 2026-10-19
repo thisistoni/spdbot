@@ -1,6 +1,6 @@
 import { Children, createElement, isValidElement, type ReactElement, type ReactNode } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
-import { beforeEach, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, expect, it, vi } from "vitest";
 import type { InstanceInfo } from "@/state/store";
 import { setLocale } from "@/lib/i18n";
 
@@ -56,6 +56,17 @@ beforeEach(() => {
   store.refreshInstances.mockReset().mockResolvedValue(undefined);
   vi.stubGlobal("window", {});
   setLocale("en");
+});
+afterEach(() => setLocale("en"));
+
+it("shows the AI sign-in choices and account disclosure in German", () => {
+  setLocale("de");
+  const { html } = render();
+  expect(html).toContain("Eine KI mit My Cloud verbinden");
+  expect(html).toContain("Dein Claude-Abonnement verwenden.");
+  expect(html).toContain("Deinen ChatGPT-Tarif mit Codex verwenden.");
+  expect(html).toContain("API-Schlüssel verwenden");
+  expect(html).toContain("die Anmeldung bleibt auf My Cloud");
 });
 
 it("offers the three ways in and says plainly whose plan limits apply", () => {
