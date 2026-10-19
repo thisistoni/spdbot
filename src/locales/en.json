@@ -1,4 +1,8 @@
 {
+  "about.description": "An open-source desktop home for your agents. Apache 2.0 licensed.",
+  "about.docs": "Docs",
+  "about.releases": "Releases",
+  "about.license": "License",
   "whop.description": "Products, checkout links, memberships and payments through Whop’s official integration.",
   "whop.otherAppsSetup": "Whop is connected. Set up or restore the connection service to use the other apps.",
   "whop.connect": "Connect Whop",

@@ -1,4 +1,9 @@
 {
+  "about.description": "Ein quelloffenes Desktop-Programm für deine Bots. Lizenziert unter Apache 2.0.",
+  "about.docs": "Dokumentation",
+  "about.releases": "Versionen",
+  "about.license": "Lizenz",
+  "common.close": "Schließen",
   "pro.fromPrice": "MausBot Cloud-Tarife ab {price}/Monat zzgl. Steuern.",
   "pro.seePlans": "Tarife vergleichen",
   "pro.reauthShort": "Melde dich erneut an, um My Cloud auf diesem Computer zu nutzen. Dein Tarif ist davon nicht betroffen.",
