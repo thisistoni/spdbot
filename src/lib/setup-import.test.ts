@@ -77,6 +77,37 @@ describe("looking for another AI tool's setup without holding up the welcome flo
 });
 
 describe("what the step says", () => {
+  it("explains every German import outcome while preserving names and plural counts", () => {
+    setLocale("de");
+    expect(skillsSummary(FOUND)).toBe("2 aus Claude Code und Codex");
+    expect(toolsSummary(FOUND)).toBe("1 MCP-Server aus Cursor");
+    expect(toolsSummary({ ...FOUND, tools: [...FOUND.tools, { name: "github", source: "codex" }] }))
+      .toBe("2 MCP-Server aus Cursor und Codex");
+    expect(importOutcome({ skills: { added: ["pdf"], present: [], skipped: [], filesLeftOut: 0, review: [] } }).line)
+      .toBe("Hinzugefügt: 1 Skill.");
+    expect(importOutcome({ tools: { added: [], present: ["notion"], skipped: [] } }).line)
+      .toBe("Alles war bereits vorhanden.");
+    expect(importOutcome({
+      skills: { added: [], present: [], skipped: [{ name: "review", reason: "conflict" }, { name: "lint", reason: "failed" }], filesLeftOut: 2, review: ["deploy"] },
+      tools: { added: [], present: [], skipped: [
+        { name: "a", reason: "limit" }, { name: "b", reason: "limit" }, { name: "g", reason: "policy" },
+        { name: "h", reason: "busy" }, { name: "github", reason: "conflict" }, { name: "sentry", reason: "failed" },
+      ] },
+    })).toEqual({
+      line: "Es wurde nichts Neues hinzugefügt.", done: false,
+      notes: [
+        "deploy: deaktiviert, bis du die Prüfergebnisse in den Skill-Einstellungen eines Bots geprüft hast.",
+        "review übersprungen: Ein anderer Skill mit diesem Namen ist bereits vorhanden.",
+        "github übersprungen: Ein anderer MCP-Server mit diesem Namen ist bereits vorhanden.",
+        "Nicht übernommen: lint und sentry. Öffne später Einstellungen → Einführung erneut ansehen und versuche es noch einmal.",
+        "Große Dateien und Dateien ohne Textinhalt in Skill-Ordnern wurden ausgelassen.",
+        "Nicht hinzugefügt: a und b. Deine Liste der MCP-Server ist voll.",
+        "Deine Organisation erlaubt g nicht.",
+        "Deine MCP-Server wurden gerade geändert. Füge h später unter Plugins → MCP-Server hinzu.",
+      ],
+    });
+  });
+
   it("counts each kind and names where it came from", () => {
     expect(skillsSummary(FOUND)).toBe("2 from Claude Code and Codex");
     expect(toolsSummary(FOUND)).toBe("1 MCP server from Cursor");
