@@ -168,6 +168,9 @@ describe("spend cap and prices through real turns", () => {
     expect(refused.status).toBe(409);
     expect(await refused.json()).toMatchObject({ code: "spend_cap", error: expect.stringContaining("$0.015") });
 
+    // Turn settlement and spend notices can precede the queued usage row.
+    await expect.poll(async () => ((await (await api("/api/usage?groupBy=bot")).json()) as any).groups[0]?.turns,
+      { timeout: 10_000 }).toBe(2);
     const usage = (await (await api("/api/usage?groupBy=bot")).json()) as any;
     expect(usage.budget).toMatchObject({ monthlyUsd: 0.015, exceeded: true, warn: true });
     expect(usage.budget.spentUsd).toBeCloseTo(0.02, 6);
