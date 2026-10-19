@@ -35,6 +35,14 @@ const bot = (messages: Message[]): Bot => ({
 const render = (b: Bot) => renderToStaticMarkup(createElement(ChatView, { bot: b }));
 
 describe("ChatView screenshot", () => {
+  it("keeps the active turn's work ring while the header remains stable", () => {
+    const candidate = { ...bot([greeting, { id: "u", role: "user", kind: "text", text: "Work", at: 2, parentId: greeting.id }]), busy: true, activity: "working" as const };
+    const markup = render(candidate);
+    expect(markup.match(/ring-inset/g)).toHaveLength(1);
+    expect(markup).toContain('width="36" height="36"');
+    expect(render({ ...candidate, busy: false })).not.toContain("ring-inset");
+  });
+
   it("loads a screenshot from a paged transcript through the image route", () => {
     const markup = render(bot([greeting,
       { id: "shot", role: "bot", kind: "screen", hasImage: true, mime: "image/png", at: 2, parentId: "hi" } as Message]));

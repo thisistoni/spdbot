@@ -1,7 +1,8 @@
 import { createElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
-import { afterAll, describe, expect, it, vi } from "vitest";
+import { afterAll, afterEach, describe, expect, it, vi } from "vitest";
 import type { Bot, Group } from "@/state/store";
+import { endCall, startCall } from "@/lib/call";
 
 const fixture = vi.hoisted(() => {
   vi.stubGlobal("window", { ogb: { speechStart: () => {} } });
@@ -17,7 +18,8 @@ vi.mock("./DesktopCapabilities", async (importOriginal) => ({
 }));
 vi.mock("@/lib/interface-mode", () => ({ useAdvancedMode: () => fixture.advanced, setAdvancedMode: vi.fn() }));
 
-const { GroupCallButton, RoomHeaderCallButton } = await import("./GroupCallView");
+const { GroupCallButton, GroupCallOverlay, RoomHeaderCallButton } = await import("./GroupCallView");
+afterEach(() => endCall());
 afterAll(() => vi.unstubAllGlobals());
 
 const ada: Bot = {
@@ -30,6 +32,17 @@ const room: Group = {
 };
 
 describe("a room's call button", () => {
+  it("keeps the live working member's ring without copying an idle member's saved expression", () => {
+    startCall(room.id);
+    const idle = { ...ada, id: "idle", name: "Idle", mascotExpression: "working" };
+    const markup = renderToStaticMarkup(createElement(GroupCallOverlay, {
+      group: { ...room, working: true, busyBotId: ada.id }, members: [ada, idle],
+    }));
+    expect(markup.match(/ring-inset/g)).toHaveLength(1);
+    expect(markup).toContain('alt="Ada avatar"');
+    expect(markup).toContain('alt="Idle avatar"');
+  });
+
   it("stays in the room header in Advanced mode", () => {
     fixture.advanced = true;
     expect(renderToStaticMarkup(createElement(RoomHeaderCallButton, { group: room, members: [ada] }))).toContain('data-call-button="header"');

@@ -4,7 +4,7 @@ import { ImagePlus, Loader2, Trash2 } from "lucide-react";
 import { cn } from "@/lib/cn";
 import { t } from "@/lib/i18n";
 import type { LocaleKey } from "@/locales";
-import type { MausState } from "@/lib/mascot";
+import { botAvatarBusy, type MausState } from "@/lib/mascot";
 import type { Bot } from "@/state/store";
 import { BotAvatar } from "../Avatar";
 import { AvatarImageGenerator } from "../AvatarImageGenerator";
@@ -88,7 +88,7 @@ export function AvatarEditorCard({ bot, activeState, onPatch, onClose }: {
       <div className="p-3">
         {tab === "bot" && (
           <div className="flex flex-col items-center gap-3 py-3">
-            <BotAvatar bot={{ ...bot, avatarCrop: "mascot" }} size={112} state={activeState} animated={false} />
+            <BotAvatar bot={{ ...bot, avatarCrop: "mascot" }} size={112} state={activeState} busy={botAvatarBusy(bot)} animated={false} />
           </div>
         )}
 

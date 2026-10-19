@@ -79,4 +79,12 @@ describe("uploaded bot identity portraits", () => {
     expect(html).toContain('<img src="/api/attachments/fixture-0.png"');
     expect(html).toContain('role="dialog"');
   });
+  it("keeps a saved working expression from adding a work ring to an identity label", () => {
+    const html = render(createElement(BotInstructionsDialog, {
+      bot: { ...avatarBots[0]!, avatarUrl: undefined, busy: false, mascotExpression: "working" }, onClose: vi.fn(),
+    }));
+    expect(html).toContain('data-avatar-state="working"');
+    expect(html).not.toContain("ring-inset");
+    expect(html).toContain('role="dialog"');
+  });
 });

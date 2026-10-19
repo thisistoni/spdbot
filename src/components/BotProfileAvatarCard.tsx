@@ -3,6 +3,7 @@ import { ImagePlus, Loader2, Trash2 } from "lucide-react";
 import type { Bot } from "@/state/store";
 import { cn } from "@/lib/cn";
 import {
+  botAvatarBusy,
   type MausMotion,
   type MausState,
 } from "@/lib/mascot";
@@ -46,6 +47,7 @@ export function BotProfileAvatarCard({
           <div className="flex justify-center py-3">
             <BotAvatar
               bot={bot}
+              busy={botAvatarBusy(bot)}
               state={activeState}
               size={112}
               motion={mascotMotion?.kind ?? "none"}

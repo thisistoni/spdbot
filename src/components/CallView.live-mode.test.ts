@@ -38,6 +38,13 @@ afterEach(() => {
 });
 
 describe("call modes", () => {
+  it.each([false, true])("keeps the existing call avatar work cue for busy=%s", (busy) => {
+    vi.stubGlobal("window", { ogb: { speechStop: vi.fn(async () => {}) } });
+    startCall(bot.id);
+    const markup = render(createElement(CallOverlay, { bot: { ...bot, busy, mascotExpression: "working" } }));
+    expect(markup.match(/ring-inset/g)?.length ?? 0).toBe(busy ? 1 : 0);
+  });
+
   it("offers a Live call to one bot without on-device dictation or a configured voice", () => {
     setCallMode("turns");
     expect(render(createElement(CallButton, { bot }))).toContain('aria-label="Checking call availability"');

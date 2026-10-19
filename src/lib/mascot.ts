@@ -131,6 +131,10 @@ export type MascotBotProfile = {
   messages?: MascotMessage[];
 };
 
+export function botAvatarBusy(bot: { busy?: boolean; activity?: string }): boolean {
+  return bot.busy === true && bot.activity !== "waiting-on-you";
+}
+
 export function stateForBot(bot: MascotBotProfile): MausState {
   const pinned = normalizeState(bot.mascotExpression);
   if (pinned) return pinned;

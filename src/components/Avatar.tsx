@@ -169,7 +169,7 @@ function MausAvatarComponent(
 export const MausAvatar = memo(forwardRef(MausAvatarComponent));
 
 export type BotAvatarProps = Omit<MausAvatarProps, "color" | "gradient"> & {
-  /** Live activity takes precedence over profile expressions for the status ring. */
+  /** Only live activity controls the status ring; expressions are appearance settings. */
   busy?: boolean;
   bot: {
     id?: string;
@@ -197,7 +197,7 @@ export function resolveBotAvatarOutcome(params: {
   return "flatImage";
 }
 
-export function BotAvatar({ bot, size = 44, label, state = "idle", busy }: BotAvatarProps) {
+export function BotAvatar({ bot, size = 44, label, state = "idle", busy = false }: BotAvatarProps) {
   const profile = botAvatarProfile(bot);
   const [imageFailed, setImageFailed] = useState(false);
 
@@ -211,7 +211,6 @@ export function BotAvatar({ bot, size = 44, label, state = "idle", busy }: BotAv
 
   if (outcome !== "flatImage") {
     const seed = bot.id || bot.name || "bot";
-    const showBusy = busy ?? ["working", "thinking", "searching", "loading", "writing", "sending", "receiving", "uploading", "dictating", "alerting"].includes(state);
     return (
       <span
         className="relative block shrink-0 overflow-hidden rounded-[22%] bg-raised"
@@ -226,7 +225,7 @@ export function BotAvatar({ bot, size = 44, label, state = "idle", busy }: BotAv
           draggable={false}
           className={`block size-full ${state === "sleeping" ? "opacity-55" : ""}`}
         />
-        {showBusy && <span className="pointer-events-none absolute inset-0 rounded-[22%] ring-2 ring-inset ring-accent" aria-hidden="true" />}
+        {busy && <span className="pointer-events-none absolute inset-0 rounded-[22%] ring-2 ring-inset ring-accent" aria-hidden="true" />}
       </span>
     );
   }

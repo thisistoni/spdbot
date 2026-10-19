@@ -106,8 +106,12 @@ describe("BotAvatar's two avatar outcomes", () => {
 
   it("keeps a visible busy cue and a distinct sleeping state", () => {
     const bot = { id: "bot-1", color: "green" as const };
-    expect(renderToStaticMarkup(createElement(BotAvatar, { bot, state: "working" }))).toContain("ring-accent");
+    expect(renderToStaticMarkup(createElement(BotAvatar, { bot, state: "working", busy: true }))).toContain("ring-accent");
     expect(renderToStaticMarkup(createElement(BotAvatar, { bot, state: "sleeping" }))).toContain("opacity-55");
+  });
+
+  it.each(["working", "thinking", "searching", "alerting"] as const)("does not infer live work from a %s expression", (state) => {
+    expect(renderToStaticMarkup(createElement(BotAvatar, { bot: { id: "bot-1", color: "green" }, state }))).not.toContain("ring-inset");
   });
 });
 

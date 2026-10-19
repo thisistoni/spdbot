@@ -1398,7 +1398,7 @@ export function ChatView({ bot: profile }: { bot: Bot }) {
           <TurnPresence
             avatar={
               <BotAvatar
-                bot={bot}
+                bot={bot} busy
                 state={toolInFlight ? "working" : "thinking"}
                 size={36}
                 forward={false}

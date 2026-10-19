@@ -1551,7 +1551,7 @@ export function GroupView({ group }: { group: Group }) {
             <TurnPresence
               avatar={
                 <BotAvatar
-                  bot={presenceSpeaker ?? { color: "green" }}
+                  bot={presenceSpeaker ?? { color: "green" }} busy
                   state={toolInFlight && !awaited ? "working" : "thinking"}
                   size={36}
                   forward={false}

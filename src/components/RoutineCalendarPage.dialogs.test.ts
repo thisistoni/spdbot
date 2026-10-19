@@ -2,7 +2,7 @@ import { Children, createElement, isValidElement, type ReactElement, type ReactN
 import { renderToStaticMarkup } from "react-dom/server";
 import { afterAll, beforeEach, describe, expect, it, vi } from "vitest";
 import type { Bot } from "@/state/store";
-import type { Routine } from "../../shared/routines";
+import type { Routine, RoutineRun } from "../../shared/routines";
 
 const fixture = vi.hoisted(() => {
   vi.stubGlobal("window", {});
@@ -78,6 +78,16 @@ describe.each([
 });
 
 describe("calendar event details drawer", () => {
+  it.each(["running", "waiting", "completed"] as const)("preserves the run status ring for %s", (status) => {
+    const run: RoutineRun = { id: "run-1", routineId: routine.id, routineName: routine.name, target: "bot", botId: bot.id,
+      runOn: "maus", scheduledFor: 1, createdAt: 1, status, manual: false };
+    const markup = renderToStaticMarkup(createElement(EventDetails, {
+      item: { kind: "routine", id: routine.id, at: 1, durationMinutes: 30, routine, run },
+      bots: [bot], onClose: vi.fn(), onEdit: vi.fn(), onCallChanged: vi.fn(), onOpenRoom: vi.fn(),
+    }));
+    expect(markup.match(/ring-inset/g)?.length ?? 0).toBe(status === "running" ? 1 : 0);
+  });
+
   const drawer = (onClose: () => void) => EventDetails({
     item: { kind: "routine", id: routine.id, at: 1, durationMinutes: 30, routine, run: null },
     bots: [bot], onClose, onEdit: vi.fn(), onCallChanged: vi.fn(), onOpenRoom: vi.fn(),
