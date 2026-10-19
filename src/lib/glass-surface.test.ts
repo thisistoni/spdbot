@@ -3,6 +3,7 @@ import { fileURLToPath } from "node:url";
 import { dirname, join } from "node:path";
 import { describe, expect, it } from "vitest";
 import { glassPopupTopInset } from "./glass-popup";
+import { SKIN_IDS } from "./skins";
 
 const src = join(dirname(fileURLToPath(import.meta.url)), "..");
 const css = readFileSync(join(src, "styles.css"), "utf8");
@@ -13,8 +14,9 @@ function rule(selector: string, from = 0): string {
   return css.slice(css.indexOf("{", start) + 1, css.indexOf("}", start));
 }
 
-function skinBlocks(): string[] {
-  return [...css.matchAll(/\[data-skin="[a-z]+"\] \{[\s\S]*?\n\}/g)].map((match) => match[0]);
+function skinBlocks(): { id: string; body: string }[] {
+  return [...css.matchAll(/\[data-skin="([a-z-]+)"\]\s*\{([\s\S]*?)\n\}/g)]
+    .map(([, id, body]) => ({ id, body }));
 }
 
 describe("glass surface", () => {
@@ -45,10 +47,11 @@ describe("glass surface", () => {
 
   it("lives outside every skin block, and every skin still defines the tokens it reads", () => {
     const blocks = skinBlocks();
-    expect(blocks).toHaveLength(9);
-    for (const block of blocks) {
-      expect(block).not.toContain("glass");
-      for (const token of ["--color-menu", "--color-card", "--color-ink"]) expect(block).toContain(`${token}:`);
+    // Compare IDs, not only a count: missing, unknown and duplicate blocks must fail too.
+    expect(blocks.map(({ id }) => id).sort()).toEqual([...SKIN_IDS].sort());
+    for (const { id, body } of blocks) {
+      expect(body, id).not.toContain("glass");
+      for (const token of ["--color-menu", "--color-card", "--color-ink"]) expect(body, `${id} ${token}`).toContain(`${token}:`);
     }
   });
 

@@ -83,3 +83,29 @@ The full cross-platform suite and desktop packaging were not run locally.
 German is selected and the new description is translated; existing incomplete
 German translations elsewhere remain unchanged. No release, deployment or
 merge is part of this change.
+
+## CI follow-up — 2026-10-19
+
+The first CI run exposed a hardcoded count of nine skins in
+`src/lib/glass-surface.test.ts`. The test now compares the sorted CSS skin IDs
+against `SKIN_IDS`, retaining duplicate detection and the existing required-token
+and shared-glass-rule assertions. Five temporary mutations confirmed that a
+missing skin, an unknown or duplicate ID at the same count, a missing menu token
+and a glass rule inside a skin are all rejected. The stylesheet was restored
+byte-for-byte after those probes.
+
+Running every test that reads `src/styles.css` also caught the SPD purple bot
+identity token copied from Dusk. It now matches `toneForSurface` for SPD's
+background: `#8963cc`, with 4.51:1 name contrast (6.16:1 highlight, 3.27:1 shadow).
+The existing identity assertions were retained unchanged.
+
+All 512 tests across the 21 CSS, skin, persistence, desktop mapping and settings
+test files passed, as did the contrast gate. Reproduce that expanded selection:
+
+```sh
+mapfile -t spd_css_tests < <(rg -l 'styles\.css' src --glob '*.test.ts')
+pnpm exec vitest run "${spd_css_tests[@]}" src/lib/skins.default.test.ts \
+  electron/skin-overlay.test.mjs src/components/SettingsModal.appearance.test.ts \
+  src/components/SettingsModal.simple.test.ts
+pnpm check:contrast
+```

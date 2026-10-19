@@ -822,7 +822,7 @@
   --identity-blue: #377FE6;
   --identity-red: #D94B52;
   --identity-orange: #E78531;
-  --identity-purple: #8d68ce;
+  --identity-purple: #8963cc;
   --identity-cyan: #0EA5C6;
   --identity-pink: #D84F8B;
   --identity-yellow: #D8A729;
@@ -1084,9 +1084,9 @@ body {
 }
 
 /* Liquid glass: the surface for centred pop-ups (Settings, Apps, Triggers).
-   Every value is derived from the active skin's own tokens, so each of the
-   nine skins gets a glass of its own colour and no skin block changes. The
-   app behind stays visible, blurred, through a light scrim. Unlayered so a
+   Every value is derived from the active skin's own tokens, so every skin
+   gets a glass of its own colour and no skin block changes. The app behind
+   stays visible, blurred, through a light scrim. Unlayered so a
    leftover `bg-panel` on the same element cannot win. */
 .glass-surface {
   background: color-mix(in srgb, var(--color-menu) 62%, transparent);
