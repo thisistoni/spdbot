@@ -131,6 +131,7 @@ export function memberFromAgent(agent: PackageAgent): TeamManifestMember {
       color: agent.appearance.color,
       ...(agent.appearance.mascotExpression ? { mascotExpression: agent.appearance.mascotExpression } : {}),
       ...(agent.appearance.mascotBody ? { mascotBody: agent.appearance.mascotBody } : {}),
+      ...(agent.appearance.botttsAvatar !== undefined ? { botttsAvatar: agent.appearance.botttsAvatar } : {}),
     },
   };
 }

@@ -97,6 +97,18 @@ describe("BotAvatar's two avatar outcomes", () => {
     expect(renderToStaticMarkup(createElement(BotAvatar, { bot: { id: "bot-1", color: "green" }, size: 220 }))).toContain('width="220"');
   });
 
+  it("uses saved Bottts options and applies the chosen shape to its busy ring", () => {
+    const bot = { id: "bot-1", color: "green" as const, botttsAvatar: { eyes: "hearts" as const, radius: 50 } };
+    const markup = renderToStaticMarkup(createElement(BotAvatar, { bot, busy: true, size: 18 }));
+    expect(markup).toContain("border-radius:50%");
+    expect(markup).toContain(botttsAvatarUri("bot-1", bot.botttsAvatar).replaceAll("&", "&amp;"));
+    expect(markup).toContain("ring-accent");
+    const custom = renderBot({ ...bot, avatarUrl: "/api/attachments/cat.webp", avatarCrop: "square", avatarZoom: 2 });
+    expect(custom).toContain("/api/attachments/cat.webp");
+    expect(custom).toContain("border-radius:0");
+    expect(custom).toContain("scale(2)");
+  });
+
   it("keeps the same face after the renderer module is reloaded", async () => {
     const before = botttsAvatarUri("bot-1");
     vi.resetModules();

@@ -6,6 +6,7 @@ import { t } from "@/lib/i18n";
 import type { LocaleKey } from "@/locales";
 import { botAvatarBusy, type MausState } from "@/lib/mascot";
 import type { Bot } from "@/state/store";
+import { BotttsAvatarEditor } from "../BotttsAvatarEditor";
 import { BotAvatar } from "../Avatar";
 import { AvatarImageGenerator } from "../AvatarImageGenerator";
 import { AvatarFraming, OrganizationAvatarIcons, RESET_DEFAULT_AVATAR_PATCH, useAvatarImage, type AvatarPatch } from "../avatar-editing";
@@ -85,10 +86,11 @@ export function AvatarEditorCard({ bot, activeState, onPatch, onClose }: {
         </button>
       </div>
 
-      <div className="p-3">
+      <div className="max-h-[min(65dvh,620px)] overflow-y-auto p-3">
         {tab === "bot" && (
-          <div className="flex flex-col items-center gap-3 py-3">
-            <BotAvatar bot={{ ...bot, avatarCrop: "mascot" }} size={112} state={activeState} busy={botAvatarBusy(bot)} animated={false} />
+          <div className="space-y-4">
+            <div className="flex justify-center py-3"><BotAvatar bot={{ ...bot, avatarCrop: "mascot" }} size={112} state={activeState} busy={botAvatarBusy(bot)} animated={false} /></div>
+            <BotttsAvatarEditor bot={bot} disabled={busy} onPatch={onPatch} />
           </div>
         )}
 
@@ -145,7 +147,7 @@ export function AvatarEditorCard({ bot, activeState, onPatch, onClose }: {
                   type="button"
                   onClick={removeImage}
                   disabled={busy}
-                  aria-label="Remove custom avatar image"
+                  aria-label={t("botIdentity.removeAvatar")}
                   title={t("botPanel.avatar.remove")}
                   className="flex size-8 shrink-0 items-center justify-center rounded-lg text-ink-secondary hover:bg-control hover:text-danger disabled:opacity-50"
                 >

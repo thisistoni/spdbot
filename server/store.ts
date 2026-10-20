@@ -9,6 +9,7 @@ import type { TeamComputers } from "./team-computers.ts";
 import { removeBotFolder, soulFile, soulHash, writeSoulMirror } from "./bot-folder.ts";
 import type { BotProfilePatch } from "./bot-profile.ts";
 import { peerAllowKey, type PeerAction } from "./peer-approval-key.ts";
+import { initialBotAppearance } from "./bot-appearance.ts";
 import { DATA_DIR, EVENTS_DIR, NATIVE_DIR, loadBrowserProfileIdAliases } from "./config.ts";
 import * as mdb from "./message-db.ts";
 import { forgetBotMemoryJournal, journalFile } from "./memory-journal.ts";
@@ -1483,7 +1484,7 @@ export class Store {
     profile: Partial<
       Pick<
         BotRecord,
-        "name" | "title" | "description" | "soul" | "color" | "mascotExpression" | "mascotBody" | "modelSelection" | "section" | "cwd" | "visibility" | "toolScope"
+        "name" | "title" | "description" | "soul" | "color" | "mascotExpression" | "mascotBody" | "botttsAvatar" | "modelSelection" | "section" | "cwd" | "visibility" | "toolScope"
       >
     > = {},
     opts: {
@@ -1504,9 +1505,7 @@ export class Store {
       soul: profile.soul ?? "",
       soulHash: soulHash(profile.soul ?? ""),
       notifications: true,
-      color: profile.color ?? COLORS[this.bots.length % COLORS.length],
-      ...(profile.mascotExpression ? { mascotExpression: profile.mascotExpression } : {}),
-      ...(profile.mascotBody ? { mascotBody: profile.mascotBody } : {}),
+      ...initialBotAppearance(profile, COLORS[this.bots.length % COLORS.length]),
       // Restricted from its first frame: no one else is ever told it exists.
       ...(profile.visibility && profile.visibility !== "everyone" ? { visibility: structuredClone(profile.visibility) } : {}),
       ...(toolScope.scope ? { toolScope: toolScope.scope } : {}),

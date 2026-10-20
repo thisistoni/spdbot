@@ -420,7 +420,7 @@ describe("the hero", () => {
 describe("the avatar editor", () => {
   const editor = (bot: Bot) => capture(() => AvatarEditorCard({ bot, activeState: "idle", onPatch: patch, onClose }));
 
-  it("shows the generated bot instead of the obsolete body, color and face controls", () => {
+  it("shows the generated bot with shared Bottts controls instead of obsolete mascot controls", () => {
     const rendered = editor(makeBot());
     expect(ofType(rendered, BotAvatar)?.props.bot).toMatchObject({ id: "scout", avatarCrop: "mascot" });
     expect(rendered.html).not.toContain('aria-label="Use the Cursor body"');
@@ -433,12 +433,12 @@ describe("the avatar editor", () => {
     click(find(editor(bot), "data-avatar-tab", "bot"));
     expect(ofType(editor(bot), BotAvatar)?.props.bot).toMatchObject({ avatarUrl: "/api/attachments/cat.webp", avatarCrop: "mascot" });
     click(find(editor(bot), "data-avatar-reset"));
-    expect(patch).toHaveBeenLastCalledWith({ avatarCrop: "mascot" });
+    expect(patch).toHaveBeenLastCalledWith({ avatarCrop: "mascot", botttsAvatar: null });
   });
 
   it("resets the mascot as the Advanced card does", () => {
     click(find(editor(makeBot()), "data-avatar-reset"));
-    expect(patch).toHaveBeenLastCalledWith({ avatarCrop: "mascot" });
+    expect(patch).toHaveBeenLastCalledWith({ avatarCrop: "mascot", botttsAvatar: null });
   });
 
   it("generates with the shared generator, and uploads with shape and framing", () => {

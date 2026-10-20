@@ -7,6 +7,7 @@ import type { ToolScope } from "./tool-scope.ts";
 import type { CommandAllowlistCandidate } from "./command-allowlist.ts";
 import type { TurnDigest } from "./digest.ts";
 import type { BotAvatarCrop } from "./bot-avatar.ts";
+import type { BotttsAvatarOptions } from "./bottts-avatar.ts";
 import type { MascotBodyId } from "./mascot-bodies.ts";
 import type { ReplyStyle } from "./reply-style.ts";
 import type { CredentialTargetId } from "./credential-request.ts";
@@ -277,6 +278,8 @@ export interface WireBot {
   avatarUrl: string | null;
   /** Generated default, or the crop applied to avatarUrl. */
   avatarCrop?: BotAvatarCrop;
+  /** Optional Bottts Neutral appearance overrides. Null restores the seeded default. */
+  botttsAvatar?: BotttsAvatarOptions | null;
   /** Zoom of a custom image. Absent means 1, the unzoomed cover crop. */
   avatarZoom?: number;
   /** Horizontal point of the image kept in the crop, 0–1. Absent means center. */
