@@ -99,16 +99,12 @@ describe("organisation sign-in in the engines beat", () => {
     expect(render({ hosted: true }).row).toBeUndefined();
   });
 
-  it("is the first row on the local desktop and opens Settings → Organisation for other addresses", () => {
+  it("does not promote unsupported organization sign-in even with a desktop bridge", () => {
     vi.stubGlobal("window", { ogb: { organization: bridge } });
-    const { html, row } = render();
-    expect(row?.props.bridge).toBe(bridge);
+    const { html, row } = render({ onOpenOrganisation: vi.fn() });
+    expect(row).toBeUndefined();
     expect(html).toContain("2 to set up");
-    row!.props.onOpenSettings!();
-    expect(store.dispatch).toHaveBeenCalledWith({ type: "toggleAppSettings", open: true, section: "organization" });
-    const resume = vi.fn();
-    render({ onOpenOrganisation: resume }).row!.props.onOpenSettings!();
-    expect(resume).toHaveBeenCalledOnce();
+    expect(store.dispatch).not.toHaveBeenCalled();
   });
 
   it("reads everything as ready when a signed-in Company engine is all there is", () => {

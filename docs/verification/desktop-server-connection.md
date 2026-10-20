@@ -73,7 +73,11 @@ sidebar search → **Connect to a server…**, or open **Settings →
 Servers**. Enter the server's HTTPS address or full pairing link and an
 optional name. Confirm the host in the native dialog, then complete pairing or
 email sign-in on that server. To generate an owner link without the CLI's
-phone wizard, run `npx openmausbot pair --label "My desktop"` on the server.
+phone wizard, run `pnpm pair --label "SPDBot Desktop"` from the SPDBot repository
+folder on the server after completing its source-install setup. Use the same
+port and data directory as the running server; pass `--port` and `--data-dir`
+if they are not the defaults. Alternatively, create a link in the server’s
+Settings → Remote access.
 Treat this link as a secret. Existing limited-access links retain their limits.
 
 Select **This computer** or a saved hosted workspace to switch. Each origin
@@ -224,3 +228,33 @@ style Cua MCP handshake/image transport using a stand-in. They do not operate
 the user's screen or prove real Cua actions on each supported OS. No live VPS,
 public HTTPS, Windows desktop, or macOS screen permission was exercised by this
 recipe. Run those release smoke checks separately before claiming coverage.
+
+
+## SPDBot settings branding check
+
+`node scripts/testing/run-spd-settings-ci.mjs` reuses the isolated fake-engine
+workspace from `verify-spd-theme.ts`, without changing or testing theme defaults.
+Set `OMB_VERIFY_PLAYWRIGHT` to an installed Playwright module and, if needed,
+`OMB_VERIFY_BROWSER_CHROME` to the Chrome executable. The **SPDBot settings visual
+check (Chromium)** CI job installs its pinned test client outside the app.
+
+The real renderer is checked in German with synthetic desktop bridges: old
+Cloud/Organization settings requests fall back to General, unsupported upstream
+accounts and plan cards stay hidden in Simple and Advanced mode, and self-hosted
+pairing uses the existing source-install script. Invalid links never reach the
+fixture bridge; a rejected connection keeps its input and allows retry. The
+check also closes/reopens Settings and captures the 390px layout.
+
+Screenshots cover General, Advanced navigation, Appearance, model providers,
+API keys, servers and pairing. CI uploads them with `checks.json` and the fixture
+log as `spd-settings-renderer-evidence`. These are Linux Chromium renders with a
+simulated Windows bridge, not proof of a native Windows/macOS package or a live
+remote connection. No theme, provider account, relay, billing or external service
+is changed or contacted.
+
+### Supported-product boundary
+
+- Cloud account and Organization tabs, profile-menu account/hosted-phone shortcuts, saved-server Cloud lending links, inherited plan/enterprise-backup cards, and Cloud Files navigation are not SPDBot products and stay hidden, including when old preload bridges exist. Stale account links open General; a stale Files view states that the service is not offered, without signup or plan links.
+- Local backups, self-hosted server links, browser pairing QR, LAN/Tailscale desktop pairing, existing-device revoke/access controls, and active-client disconnect remain available.
+- The local companion card uses the existing direct-pairing controller with no hosted-account bridge. It displays a temporary desktop code, not an upstream native-mobile QR or an invented SPDBot mobile-app offer. No relay signup is presented.
+- `pnpm pair` is an existing script in this SPDBot checkout, not a claim that a public `spdbot` npm package exists. No package publication, account, billing, release, or deployment is part of this change.

@@ -267,7 +267,7 @@ describe("Settings → Logins with My Cloud", () => {
     fixture.config = { cloudHome: true };
     fixture.api.mockResolvedValueOnce({ logins: [SHARED_LOGIN], onePassword: OFF });
     await render();
-    expect(host.querySelector("[data-logins-cloud-own]")!.textContent).toContain("open Settings → Logins in OpenMausBot on that computer and choose Also use on My Cloud");
+    expect(host.querySelector("[data-logins-cloud-own]")!.textContent).toContain("open Settings → Logins in SPDBot on that computer and choose Also use on My Cloud");
     expect(host.querySelector("[data-also-cloud]")).toBeNull();
   });
 });

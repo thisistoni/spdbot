@@ -8,6 +8,8 @@ import { BotEditorStore, initialState, type useStore } from "@/state/store";
 import { FilesView } from "./FilesView";
 
 (globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
+const offers = vi.hoisted(() => ({ available: true }));
+vi.mock("@/lib/cloud-offers", () => ({ cloudOffersAvailable: () => offers.available }));
 const GB = 1024 ** 3;
 const folder = (status: SharedFolder["status"], extra: Partial<SharedFolder> = {}): SharedFolder =>
   ({ id: `f-${status}`, name: `Folder ${status}`, pcPath: `/Users/ada/${status}`, status, files: 1200, done: 400, waitingBytes: 0, pendingDeletes: 3, problem: null, ...extra });
@@ -39,6 +41,7 @@ const dialog = () => document.querySelector<HTMLElement>('[role="dialog"], [role
 
 beforeEach(() => {
   setLocale("en");
+  offers.available = true;
   dispatch.mockReset(); off.mockReset();
   bridge = {
     state: vi.fn(), onState: vi.fn((callback) => { emit = callback; return off; }),
@@ -152,7 +155,7 @@ describe("Add a folder", () => {
 
   it.each([
     ["too-broad", "That folder is too big to share. Choose a folder inside it, like one in Documents."],
-    ["app-data", "That's MausBot's own folder. Choose another one."],
+    ["app-data", "That's SPDBot's own folder. Choose another one."],
     ["already-shared", "This folder is already shared."],
     ["not-a-folder", "Choose a folder."],
     ["private", "That folder holds private keys or settings, so it isn't shared. Choose another one."],
@@ -212,7 +215,7 @@ describe("Your bots' work", () => {
     bridge.setOutputs.mockResolvedValue({ ...base, outputs: { ...base.outputs, enabled: true } });
     await mount();
     expect(page()).toContain("Save what bots on My Cloud make to this computer");
-    expect(page()).toContain("In Documents › MausBot, one folder for each bot.");
+    expect(page()).toContain("One output folder for each bot in the configured documents folder.");
     expect(button("Open folder")).toBeUndefined();
     const toggle = document.querySelector<HTMLButtonElement>('[role="switch"]')!;
     expect(toggle.getAttribute("aria-checked")).toBe("false");
@@ -240,7 +243,7 @@ describe("My Cloud's state", () => {
     await mount({ ...base, phase: "signed-out", shared: [folder("synced")] });
     expect(page()).toContain("Sign in to My Cloud again to keep sharing files.");
     expect(row("synced")).toBeTruthy();
-    await click("Open MausBot Cloud settings");
+    await click("Cloud file sharing unavailable");
     expect(dispatch).toHaveBeenCalledWith({ type: "toggleAppSettings", open: true, section: "cloudAccount" });
   });
 
@@ -248,10 +251,21 @@ describe("My Cloud's state", () => {
     await mount({ ...base, phase: "unavailable" });
     expect(page()).toContain("Files work with My Cloud.");
     expect(button("Add a folder")).toBeUndefined();
-    await click("Open MausBot Cloud settings");
+    await click("Cloud file sharing unavailable");
     expect(dispatch).toHaveBeenCalledWith({ type: "toggleAppSettings", open: true, section: "cloudAccount" });
     delete window.ogb;
     await mount();
     expect(page()).toContain("Files work with My Cloud.");
   });
+});
+
+
+it("SPDBot does not expose Cloud Files or call its bridge even when installed", async () => {
+  offers.available = false;
+  await mount();
+  expect(page()).toContain("Cloud file sharing is not offered in SPDBot");
+  expect(page()).not.toMatch(/My Cloud|MausBot|Get more space/);
+  expect(buttons()).toEqual([]);
+  expect(bridge.state).not.toHaveBeenCalled();
+  expect(bridge.onState).not.toHaveBeenCalled();
 });

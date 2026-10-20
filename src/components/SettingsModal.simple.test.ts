@@ -95,13 +95,13 @@ const markers = (html: string) => [...html.matchAll(/MARKER:([^;]+);/g)].map((ma
 describe("Settings in Simple mode", () => {
   it("draws at most five pages on the desktop, and none of the Advanced-only ones", () => {
     const html = render();
-    expect(pages(html)).toEqual(["general", "appearance", "ai", "computers", "account"]);
+    expect(pages(html)).toEqual(["general", "appearance", "ai", "computers"]);
     expect(SIMPLE_PAGES.length).toBeLessThanOrEqual(5);
     expect(html).not.toContain("data-settings-group=");
     expect(html).not.toContain("data-settings-section=");
     for (const hidden of ["usage", "backups", "experimental", "workspaces", "skills"]) expect(html).not.toContain(`value="${hidden}"`);
     const picker = html.match(/<select aria-label="Settings"[\s\S]*?<\/select>/)![0];
-    expect([...picker.matchAll(/<option value="([^"]+)"/g)].map((match) => match[1])).toEqual(["general", "appearance", "ai", "computers", "account"]);
+    expect([...picker.matchAll(/<option value="([^"]+)"/g)].map((match) => match[1])).toEqual(["general", "appearance", "ai", "computers"]);
   });
 
   it("files every Advanced page under one Simple page, or hides it", () => {
@@ -141,11 +141,13 @@ describe("Settings in Simple mode", () => {
     expect(html).toContain('aria-label="Enable the built-in browser"');
   });
 
-  it("stacks OMB Cloud and Organization on Account in the desktop app", () => {
+  it("does not offer upstream Cloud or Organization accounts on the desktop", () => {
     fixture.section = "cloudAccount";
     const html = render();
-    expect(currentPage(html)).toBe("account");
-    expect(blocks(html)).toEqual(["cloudAccount", "organization"]);
+    expect(currentPage(html)).toBe("general");
+    expect(blocks(html)).toEqual(["general"]);
+    expect(markers(html)).not.toContain("cloudAccount");
+    expect(markers(html)).not.toContain("organization");
   });
 
   it("adds People and Activity to Account for a hosted workspace's admins in a browser", () => {
@@ -183,13 +185,19 @@ describe("Settings in Simple mode", () => {
     ["remote", "computers"],
     ["desktopWorkspaces", "computers"],
     ["computer", "computers"],
-    ["cloudAccount", "account"],
-    ["organization", "account"],
   ])("lands a deep link to %s on %s", (section, page) => {
     fixture.section = section;
     const html = render();
     expect(currentPage(html)).toBe(page);
     expect(blocks(html)).toContain(section === "remote" ? "companion" : section);
+  });
+
+  it.each(["cloudAccount", "organization"] as const)("routes a stale %s deep link to General", (section) => {
+    fixture.section = section;
+    const html = render();
+    expect(currentPage(html)).toBe("general");
+    expect(blocks(html)).toEqual(["general"]);
+    expect(html).not.toContain(`data-settings-block="${section}"`);
   });
 
   it.each<[AppSettingsSection, string]>([
@@ -199,7 +207,7 @@ describe("Settings in Simple mode", () => {
   ])("opens a hidden page (%s) for as long as it is the open one", (section, content) => {
     fixture.section = section;
     const html = render();
-    expect(pages(html)).toEqual(["general", "appearance", "ai", "computers", "account", section]);
+    expect(pages(html)).toEqual(["general", "appearance", "ai", "computers", section]);
     expect(currentPage(html)).toBe(section);
     if (content === "skillAuthoring") expect(html).toContain("Bots may write their own skills");
     else expect(markers(html)).toContain(content);

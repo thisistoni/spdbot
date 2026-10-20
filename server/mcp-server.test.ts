@@ -693,9 +693,14 @@ describe("connection security and discovery", () => {
     expect(validateBaseUrl("http://127.0.0.1:8799/")).toBe("http://127.0.0.1:8799");
     expect(validateBaseUrl("http://[::1]:8799")).toBe("http://[::1]:8799");
     expect(validateBaseUrl("https://maus.example.com")).toBe("https://maus.example.com");
-    expect(() => validateBaseUrl("ftp://maus.example.com")).toThrow("http:// or https://");
-    expect(() => validateBaseUrl("https://maus.example.com/api")).toThrow("origin without a path");
-    expect(() => validateBaseUrl("https://user:pass@maus.example.com")).toThrow("must not contain credentials");
+    expect(() => validateBaseUrl("keine-url")).toThrow("Ungültige SPDBot-URL: 'keine-url'");
+    expect(() => validateBaseUrl("ftp://maus.example.com")).toThrow("Die SPDBot-URL muss http:// oder https:// verwenden.");
+    for (const suffix of ["/api", "?key=value", "#fragment"]) {
+      expect(() => validateBaseUrl(`https://maus.example.com${suffix}`))
+        .toThrow("Die SPDBot-URL darf nur die Serveradresse enthalten, ohne Pfad, Suchparameter oder Fragment.");
+    }
+    expect(() => validateBaseUrl("https://user:pass@maus.example.com"))
+      .toThrow("Die SPDBot-URL darf keine Zugangsdaten enthalten. Übergebe das Token stattdessen als Umgebungsvariable.");
     expect(() => validateBaseUrl("http://0.0.0.0:8799")).toThrow("Insecure cleartext HTTP");
   });
 

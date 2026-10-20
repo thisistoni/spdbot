@@ -1,3 +1,4 @@
+import { t } from "@/lib/i18n";
 import { useEffect, useMemo, useRef, useState, type RefObject } from "react";
 import { track } from "@/lib/analytics";
 import { useStore, type Group } from "@/state/store";
@@ -80,7 +81,7 @@ export function ManageMembersPanel({
     const rosterChanged =
       opened.length !== group.memberIds.length || opened.some((id, index) => id !== group.memberIds[index]);
     if (rosterChanged) {
-      setSaveError("This group's members changed while the panel was open. Close it and try again.");
+      setSaveError(t("room.members.changed"));
       return;
     }
     if (changed) {
@@ -103,13 +104,13 @@ export function ManageMembersPanel({
         ref={dialogRef}
         role="dialog"
         aria-modal="true"
-        aria-label={`Manage members of ${group.name}`}
+        aria-label={t("room.members.named", { name: group.name })}
         className="w-[340px] rounded-2xl border border-hairline/50 bg-card p-4 shadow-2xl"
       >
-        <div className="mb-1 text-[15px] font-semibold text-ink">Manage Members</div>
+        <div className="mb-1 text-[15px] font-semibold text-ink">{t("room.members.manage")}</div>
         <div className="mb-3 truncate text-[13px] text-ink-secondary">{group.name}</div>
-        <BotPickerList bots={bots} picked={picked} onToggle={toggle} emptyHint="Create a bot first — groups are made of bots." />
-        {!memberIds.length && <div className="mt-2 text-[12px] text-ink-secondary">A group needs at least one bot.</div>}
+        <BotPickerList bots={bots} picked={picked} onToggle={toggle} emptyHint={t("room.members.createFirst")} />
+        {!memberIds.length && <div className="mt-2 text-[12px] text-ink-secondary">{t("room.members.needsBot")}</div>}
         {saveError && (
           <div role="alert" className="mt-2 text-[12px] text-danger">
             {saveError}
@@ -120,14 +121,14 @@ export function ManageMembersPanel({
             onClick={onClose}
             className="flex-1 rounded-lg bg-raised py-2 text-[14px] font-medium text-ink hover:brightness-110"
           >
-            Cancel
+            {t("room.members.cancel")}
           </button>
           <button
             onClick={save}
             disabled={!memberIds.length}
             className="flex-1 rounded-lg bg-accent py-2 text-[14px] font-medium text-white hover:brightness-110 disabled:opacity-40"
           >
-            Save{memberIds.length ? ` · ${memberIds.length} ${memberIds.length === 1 ? "bot" : "bots"}` : ""}
+            {t("common.save")}{memberIds.length ? ` · ${t("room.members.count", { count: memberIds.length })}` : ""}
           </button>
         </div>
       </div>

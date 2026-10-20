@@ -30,7 +30,7 @@ describe("the headless command line", () => {
     const { io, out, err } = capture();
     expect(await runHeadless(["wait", "--bot", "b1", "--timeout", "forever"], { io, env: {} })).toBe(2);
     expect(out).toEqual([]);
-    expect(err).toEqual(["error: --timeout must be a duration from 1s to 24h, such as 90, 90s, 5m or 2h"]);
+    expect(err).toEqual(["Fehler: --timeout muss eine Dauer zwischen 1s und 24h sein, zum Beispiel 90, 90s, 5m oder 2h."]);
   });
 
   it("redacts secrets in everything it prints", async () => {
@@ -48,23 +48,23 @@ describe("the headless command line", () => {
     for (const verb of HEADLESS_VERBS) expect(VERB_HELP[verb], verb).toBeTruthy();
     const { io, out } = capture();
     expect(await runHeadless(["help", "run"], { io })).toBe(0);
-    expect(out[0]).toContain("Give a bot or room one job and wait until it, and every teammate it asked, is done.");
+    expect(out[0]).toContain("Einem Bot oder einer Gruppe einen Auftrag geben und auf alle beteiligten Bots warten.");
     expect(await runHeadless(["team", "apply", "--help"], { io })).toBe(0);
-    expect(out[1]).toContain("a second apply prints \"No changes.\"");
-    expect(USAGE).toContain("openmausbot run BOT \"do this\"         give a bot one job and wait until it and every teammate it asked are done");
+    expect(out[1]).toContain("Vorhandene Schlüssel bleiben ohne --rotate-secrets erhalten.");
+    expect(USAGE).toContain('pnpm spdbot run BOT "Aufgabe"');
   });
 
   it("is reachable through the published entry, which keeps every other command as it was", () => {
     const entry = join(import.meta.dirname, "..", "openmausbot.ts");
     const help = spawnSync(process.execPath, ["--experimental-strip-types", entry, "help", "export"], { encoding: "utf8" });
     expect(help.status).toBe(0);
-    expect(help.stdout).toContain("openmausbot export TARGET --out DIR");
+    expect(help.stdout).toContain("pnpm spdbot export TARGET --out DIR");
     const refused = spawnSync(process.execPath, ["--experimental-strip-types", entry, "run", "--json"], { encoding: "utf8", env: { ...process.env, OPENMAUSBOT_URL: "" } });
     expect(refused.status).toBe(2);
     expect(JSON.parse(refused.stdout)).toMatchObject({ ok: false, exitCode: 2 });
     const usage = spawnSync(process.execPath, ["--experimental-strip-types", entry, "--help"], { encoding: "utf8" });
-    expect(usage.stdout).toContain("openmausbot serve [--port 8799]");
-    expect(usage.stdout).toContain("Drive a running workspace");
+    expect(usage.stdout).toContain("pnpm spdbot serve [--port 8899]");
+    expect(usage.stdout).toContain("Einen laufenden Arbeitsbereich steuern");
   });
 
   it("serves MCP through the published entry, and Ctrl-C ends it like any command", async () => {

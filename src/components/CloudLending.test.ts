@@ -97,7 +97,7 @@ it("an off switch says why and since when, keeps the choices, and lends the same
   const at = new Date(2026, 9, 7, 14, 2).getTime();
   const stopped: CloudLendingSnapshot = { available: true, screenAvailable: true, activity: [],
     state: { enabled: false, folders: [folder], screen: true, busy: false, stopped: { reason: "signed-out", at } } };
-  expect(lendingStoppedLine(stopped.state)).toBe("Off since Oct 7, 2026, 2:02 PM, when you signed out of MausBot Cloud.");
+  expect(lendingStoppedLine(stopped.state)).toBe("Off since Oct 7, 2026, 2:02 PM, when you signed out of the external cloud service.");
   expect(lendingStoppedLine({ ...stopped.state!, stopped: { reason: "you", at } })).toBe("Off since Oct 7, 2026, 2:02 PM: you turned it off.");
   expect(lendingStoppedLine({ ...stopped.state!, stopped: { reason: "something-new", at } })).toBe("Off since Oct 7, 2026, 2:02 PM.");
   expect(lendingStoppedLine(lent.state)).toBeNull();

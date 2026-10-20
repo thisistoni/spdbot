@@ -21,7 +21,7 @@ test("image and Finder file clipboards get an explicit enabled paste action", ()
 
 test("text paste keeps its native role without inspecting the clipboard", () => {
   const item = pasteMenuItem({ ...params, editFlags: { canPaste: true } }, null, null);
-  assert.deepEqual(item, { label: "Paste", enabled: true, role: "paste" });
+  assert.deepEqual(item, { label: "Einfügen", enabled: true, role: "paste" });
 });
 
 test("read-only targets, empty clipboards, and clipboard failures stay disabled", () => {

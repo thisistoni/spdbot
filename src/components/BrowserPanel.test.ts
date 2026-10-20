@@ -3,7 +3,7 @@ import { act, createElement } from "react";
 import { createRoot, type Root } from "react-dom/client";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
-import { t } from "@/lib/i18n";
+import { setLocale, t } from "@/lib/i18n";
 import type { Bot } from "@/state/store";
 import { BROWSER_HELD_ELSEWHERE } from "../../shared/browser-held";
 
@@ -237,6 +237,19 @@ describe("who holds the browser", () => {
     expect(pill().dataset.pill).toBe("yours");
   });
 
+  it("explains another viewer's hold in German without changing control ownership", async () => {
+    setLocale("de");
+    try {
+      const socket = await streaming("another-viewer");
+      expect(host.textContent).toContain(t("browser.panel.heldElsewhere"));
+      expect(host.textContent).not.toContain(BROWSER_HELD_ELSEWHERE);
+      expect(pill().disabled).toBe(true);
+      const canvas = host.querySelector("canvas")!;
+      await act(async () => { canvas.dispatchEvent(new PointerEvent("pointerdown", { clientX: 10, clientY: 10, button: 0, buttons: 1, pointerId: 1, pointerType: "mouse", bubbles: true })); });
+      expect(socket.sent).toEqual([]);
+    } finally { setLocale("en"); }
+  });
+
   it("says another device holds the browser, and sends nothing from this one", async () => {
     const socket = await streaming("another-viewer");
     expect(host.textContent).toContain(BROWSER_HELD_ELSEWHERE);
@@ -256,6 +269,20 @@ describe("who holds the browser", () => {
 });
 
 describe("what the person does in the panel", () => {
+  it("shows a fullscreen failure in German without changing browser control", async () => {
+    setLocale("de");
+    try {
+      const socket = await streaming("you");
+      const panel = host.querySelector<HTMLElement>("[data-browser-transport]")!;
+      panel.requestFullscreen = vi.fn().mockRejectedValue(new Error("platform detail"));
+      await act(async () => button(t("browser.chrome.fullscreen")).click());
+      await flush();
+      expect(host.querySelector("[role=alert]")?.textContent).toContain("Der Vollbildmodus ist in diesem Browser nicht verfügbar.");
+      expect(socket.sent.filter(message => message.type === "takeControl" || message.type === "releaseControl")).toEqual([]);
+      expect(pill().dataset.pill).toBe("yours");
+    } finally { setLocale("en"); }
+  });
+
   it("navigates from the address bar, taking the browser first", async () => {
     const socket = await streaming("agent");
     const address = host.querySelector<HTMLInputElement>('input[aria-label="Browser address"]')!;
@@ -342,18 +369,12 @@ describe("a sign-in that stops at a passkey", () => {
     expect(notice()).not.toBeNull();
   });
 
-  it("on My Cloud, offers the lent PC by name, or how to lend one", async () => {
+  it("does not offer unsupported hosted computer lending, even for an old cloud configuration", async () => {
     fixture.state.config.cloudHome = true;
-    fixture.api.mockImplementation(async (path: string) => path === "/api/shared-computers"
-      ? { computers: [{ name: "Office PC", online: true, scopes: { screen: true } }] } : { ok: true });
     const socket = await streaming("you");
     await go(socket, PASSKEY);
-    expect(notice()?.textContent).toContain(t("browser.passkey.lentPc", { computer: "Office PC", name: "Pepper" }));
-    act(() => root.unmount());
-    root = createRoot(host);
-    fixture.api.mockImplementation(async (path: string) => path === "/api/shared-computers" ? { computers: [{ name: "Office PC", online: false, scopes: { screen: true } }] } : { ok: true });
-    const again = await streaming("you");
-    await go(again, PASSKEY);
-    expect(notice()?.textContent).toContain(t("browser.passkey.lendPc", { name: "Pepper" }));
+    expect(notice()?.querySelectorAll("li")).toHaveLength(2);
+    expect(notice()?.textContent).not.toMatch(/MausBot|My Cloud|lend this computer/);
+    expect(fixture.api).not.toHaveBeenCalledWith("/api/shared-computers");
   });
 });

@@ -1,4 +1,7 @@
-import { describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it } from "vitest";
+import { setLocale } from "./i18n";
+
+afterEach(() => setLocale("en"));
 import type { Bot, InstanceInfo } from "@/state/store";
 import {
   autoSelectsLocalComputer,
@@ -268,5 +271,33 @@ describe("local computer UI eligibility", () => {
       ...expected,
       persistedBot: { computer: undefined, cloudBackend: "box" },
     })).toBe(false);
+  });
+});
+
+
+describe("German local computer availability copy", () => {
+  it.each([
+    ["win32", "Windows", false, undefined, "SPDBot neu"],
+    ["linux", "Ubuntu", false, "linux-wayland-seat-safety-blocked", "Melde dich ab"],
+    ["linux", "Ubuntu", false, "wayland-compositor-unsupported", "nur mit GNOME"],
+    ["linux", "Ubuntu", false, undefined, "Aktiviere zuerst"],
+    ["linux", "Ubuntu", true, undefined, "noch nicht"],
+    ["darwin", "Mac", false, undefined, "noch nicht"],
+    ["other", "Browser", false, undefined, "Desktop-App"],
+  ])("localizes the %s / %s unavailability reason", (platform, label, enabled, reasonCode, expected) => {
+    setLocale("de");
+    const capabilities = { host: { platform, label }, localComputer: { available: false, enabled, reasonCode } } as DesktopCapabilities;
+    const reason = localComputerDisabledReason({ capabilities, providerSupportsLocal: true });
+    expect(reason).toContain(expected);
+    expect(reason).not.toMatch(/OpenMaus|MausBot|could not|is not|requires/);
+  });
+
+  it("localizes provider restrictions but leaves external diagnostics and readiness intact", () => {
+    setLocale("de");
+    const capabilities = { host: { platform: "linux", label: "Ubuntu" }, localComputer: { available: false, enabled: true, message: "Raw driver detail" } } as DesktopCapabilities;
+    expect(localComputerDisabledReason({ capabilities, providerSupportsLocal: false })).toContain("keine Freigaben");
+    expect(localComputerDisabledReason({ capabilities, providerSupportsLocal: true })).toBe("Raw driver detail");
+    capabilities.localComputer.available = true;
+    expect(localComputerDisabledReason({ capabilities, providerSupportsLocal: true })).toBeNull();
   });
 });

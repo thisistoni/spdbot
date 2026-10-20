@@ -1,4 +1,5 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
+import { setLocale } from "./i18n";
 import { BROWSER_HAND_BACK_MS, BROWSER_TAKE_NOTICE_MS, createBrowserControl, streamTransport } from "./browser-control";
 import type { PreviewStreamControl, PreviewStreamInput } from "./browser-stream-client";
 
@@ -41,7 +42,7 @@ function harness() {
   return { control, options, transport, server, sent, interact };
 }
 
-afterEach(() => { vi.useRealTimers(); });
+afterEach(() => { vi.useRealTimers(); setLocale("en"); });
 
 describe("taking browser control implicitly", () => {
   it("takes control on the first click and sends that click exactly once after the take", async () => {
@@ -502,6 +503,23 @@ describe("the v2 stream as a control transport", () => {
     const failed = expect(taking).rejects.toThrow("Could not take control");
     vi.advanceTimersByTime(20_000);
     await failed;
+  });
+
+  it("reports disconnected and timed-out takes in German without sending page input", async () => {
+    setLocale("de");
+    await expect(stream(control("unclaimed"), false).transport.take()).rejects.toThrow("Die Browseransicht ist nicht verbunden.");
+    const dropped = stream(control("unclaimed"));
+    const lost = dropped.transport.take();
+    dropped.set(null);
+    await expect(lost).rejects.toThrow("Die Verbindung zur Browseransicht wurde getrennt.");
+    vi.useFakeTimers();
+    const waiting = stream(control("agent"));
+    const taking = waiting.transport.take();
+    const failure = expect(taking).rejects.toThrow("Die Browsersteuerung konnte nicht übernommen werden.");
+    vi.advanceTimersByTime(20_000);
+    await failure;
+    expect(waiting.client.send.mock.calls).toEqual([[{ type: "takeControl" }]]);
+    expect(waiting.listeners.size).toBe(0);
   });
 
   it("sends input at once and lets go with a release", async () => {

@@ -1,7 +1,7 @@
 import { describe, expect, it, vi } from "vitest";
 
 vi.mock("electron", () => ({
-  app: { name: "OpenMausBot" },
+  app: { name: "SPDBot" },
   Menu: { buildFromTemplate: (template) => template },
 }));
 
@@ -35,7 +35,7 @@ describe("buildApplicationMenu", () => {
   it("macOS app menu wires an explicit Preferences item to the settings callback", () => {
     const onOpenSettings = vi.fn();
     const template = build("darwin", { onOpenSettings });
-    const item = template[0].submenu.find((entry) => entry.label === "Preferences…");
+    const item = template[0].submenu.find((entry) => entry.label === "Einstellungen…");
     expect(item).toBeDefined();
     expect(item.accelerator).toBe("CmdOrCtrl+,");
     expect(item.click).toBeTypeOf("function");
@@ -51,25 +51,12 @@ describe("buildApplicationMenu", () => {
     }
   });
 
-  it.each(["darwin", "linux", "win32"])("offers native organisation sign-in while a hosted workspace is active on %s", platform => {
-    const onOrganizationSignIn = vi.fn();
-    const template = build(platform, { onOrganizationSignIn });
-    const item = template.find(entry => entry.label === "Server").submenu.find(entry => entry.id === "organization-sign-in");
-    expect(item.label).toBe("Sign in with your organization…");
-    item.click();
-    expect(onOrganizationSignIn).toHaveBeenCalledOnce();
-  });
-
-  it("mirrors Add a Cloud… under the saved servers only when main offers it, and names My Cloud's line", () => {
-    const servers = [{ id: "cloud", name: "My Cloud", origin: "https://omb-u-1.fly.dev" }];
-    const without = build("darwin", { environments: servers }).find(entry => entry.label === "Server").submenu;
-    expect(without.some(entry => entry.id === "add-cloud")).toBe(false);
-    expect(without.find(entry => entry.type === "radio" && entry.label.startsWith("My Cloud")).label).toBe("My Cloud — omb-u-1.fly.dev");
-    const onAddCloud = vi.fn();
-    const submenu = build("darwin", { environments: servers, onAddCloud, sublabels: { cloud: "Always on" } }).find(entry => entry.label === "Server").submenu;
-    expect(submenu.map(entry => entry.id ?? entry.label ?? entry.type).slice(0, 4)).toEqual(["This computer", "My Cloud — Always on", "add-cloud", "separator"]);
-    submenu.find(entry => entry.id === "add-cloud").click();
-    expect(onAddCloud).toHaveBeenCalledOnce();
-    expect(submenu.find(entry => entry.id === "add-cloud").label).toBe("Add a Cloud…");
+  it.each(["darwin", "linux", "win32"])("keeps unsupported organization and hosted-cloud offers out of the native menu on %s", platform => {
+    const submenu = build(platform, { onOrganizationSignIn: vi.fn(), onAddCloud: vi.fn() })
+      .find(entry => entry.label === "Server").submenu;
+    expect(submenu.some(entry => ["organization-sign-in", "add-cloud"].includes(entry.id))).toBe(false);
+    expect(submenu[0].label).toBe("Dieser Computer");
+    expect(submenu.some(entry => entry.label === "Mit einem Server verbinden…")).toBe(true);
+    expect(submenu.some(entry => entry.label?.startsWith("X —"))).toBe(true);
   });
 });

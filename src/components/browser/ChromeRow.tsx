@@ -37,12 +37,12 @@ export function controlPill(connected: boolean, control: PreviewStreamControl | 
 }
 
 const PILL_TEXT: Record<PillState, (bot: string) => string> = {
-  connecting: () => "Connecting…",
-  watching: () => "Watching",
-  bot: (bot) => `${bot} has control`,
-  yours: () => "You have control",
-  elsewhere: () => "Held on another device",
-  taking: () => "Taking control…",
+  connecting: () => t("browser.chrome.connecting"),
+  watching: () => t("browser.chrome.watching"),
+  bot: (bot) => t("browser.chrome.botControl", { name: bot }),
+  yours: () => t("browser.chrome.yours"),
+  elsewhere: () => t("browser.chrome.elsewhere"),
+  taking: () => t("browser.chrome.taking"),
   waiting: (bot) => t("browser.control.waiting", { name: bot }),
 };
 
@@ -74,15 +74,15 @@ export const ChromeRow = forwardRef<HTMLInputElement, {
   return (
     <div className="shrink-0 border-b border-hairline/40">
       <div className="flex min-h-10 items-center gap-1 px-2 pt-1">
-        <div className="flex min-w-0 flex-1 items-center gap-1 overflow-x-auto" role="tablist" aria-label="Browser tabs">
+        <div className="flex min-w-0 flex-1 items-center gap-1 overflow-x-auto" role="tablist" aria-label={t("browser.chrome.tabs")}>
           {tabs.length ? tabs.map((tab) => (
             <div key={tab.tabId} className={`flex max-w-52 shrink-0 items-center gap-1 rounded-xl px-1 text-[12px] ${tab.active ? "bg-inset text-ink" : "text-ink-secondary"}`}>
               <Globe size={13} className="ml-1.5 shrink-0 opacity-60" aria-hidden="true" />
-              <button role="tab" aria-selected={tab.active} className="truncate px-1 py-1.5 text-left disabled:cursor-default" disabled={!commandsReady} onClick={() => props.onCommand({ type: "tabSelect", tabId: tab.tabId })} title={tab.title || tab.url}>{tab.title || "New tab"}</button>
-              <button className={button} aria-label={`Close ${tab.title || "tab"}`} disabled={!commandsReady} onClick={() => props.onCommand({ type: "tabClose", tabId: tab.tabId })}><X size={13} /></button>
+              <button role="tab" aria-selected={tab.active} className="truncate px-1 py-1.5 text-left disabled:cursor-default" disabled={!commandsReady} onClick={() => props.onCommand({ type: "tabSelect", tabId: tab.tabId })} title={tab.title || tab.url}>{tab.title || t("browser.chrome.newTab")}</button>
+              <button className={button} aria-label={t("browser.chrome.closeTab", { name: tab.title || t("browser.chrome.newTab") })} disabled={!commandsReady} onClick={() => props.onCommand({ type: "tabClose", tabId: tab.tabId })}><X size={13} /></button>
             </div>
-          )) : <div className="flex items-center gap-2 rounded-xl bg-inset px-3 py-1.5 text-[12px] text-ink-secondary"><Globe size={13} aria-hidden="true" />New tab</div>}
-          <button className={`${button} shrink-0`} disabled={!commandsReady} aria-label="New tab" title="New tab" onClick={() => props.onCommand({ type: "tabNew" })}><Plus size={16} /></button>
+          )) : <div className="flex items-center gap-2 rounded-xl bg-inset px-3 py-1.5 text-[12px] text-ink-secondary"><Globe size={13} aria-hidden="true" />{t("browser.chrome.newTab")}</div>}
+          <button className={`${button} shrink-0`} disabled={!commandsReady} aria-label={t("browser.chrome.newTab")} title={t("browser.chrome.newTab")} onClick={() => props.onCommand({ type: "tabNew" })}><Plus size={16} /></button>
         </div>
         <button
           type="button"
@@ -98,8 +98,8 @@ export const ChromeRow = forwardRef<HTMLInputElement, {
           <span className="truncate">{PILL_TEXT[pill](botName)}</span>
           {pill === "bot" || pill === "watching" ? <span className="shrink-0 text-ink">· {t("browser.control.take")}</span> : yours ? <span className="shrink-0">· {t("browser.control.handBack")}</span> : null}
         </button>
-        <button className={button} title={props.fullscreen ? "Exit full screen" : "Full screen"} aria-label={props.fullscreen ? "Exit full screen" : "Full screen"} onClick={props.onFullscreen}>{props.fullscreen ? <Minimize2 size={15} /> : <Maximize2 size={15} />}</button>
-        <button className={`${button} rounded-xl bg-inset p-1.5`} title={`Browser profile: ${props.profileName}`} aria-label="Browser profiles" onClick={props.onProfiles}><UserRound size={15} /></button>
+        <button className={button} title={props.fullscreen ? t("browser.chrome.exitFullscreen") : t("browser.chrome.fullscreen")} aria-label={props.fullscreen ? t("browser.chrome.exitFullscreen") : t("browser.chrome.fullscreen")} onClick={props.onFullscreen}>{props.fullscreen ? <Minimize2 size={15} /> : <Maximize2 size={15} />}</button>
+        <button className={`${button} rounded-xl bg-inset p-1.5`} title={t("browser.chrome.profile", { name: props.profileName })} aria-label={t("browser.chrome.profiles")} onClick={props.onProfiles}><UserRound size={15} /></button>
       </div>
       <form
         className="relative flex h-10 items-center gap-1 px-2"
@@ -109,16 +109,16 @@ export const ChromeRow = forwardRef<HTMLInputElement, {
           (addressRef && typeof addressRef === "object" ? addressRef.current : null)?.blur();
         }}
       >
-        <div className="flex shrink-0 items-center" role="group" aria-label="Navigation">
-          <button type="button" className={button} disabled={!commandsReady || !nav.canGoBack} aria-label="Back" title="Back" onClick={() => props.onCommand({ type: "history", delta: -1 })}><ArrowLeft size={16} /></button>
-          <button type="button" className={button} disabled={!commandsReady || !nav.canGoForward} aria-label="Forward" title="Forward" onClick={() => props.onCommand({ type: "history", delta: 1 })}><ArrowRight size={16} /></button>
-          <button type="button" className={button} disabled={!commandsReady} aria-label={nav.loading ? "Loading, reload page" : "Reload page"} title="Reload" onClick={() => props.onCommand({ type: "reload" })}>
+        <div className="flex shrink-0 items-center" role="group" aria-label={t("browser.chrome.navigation")}>
+          <button type="button" className={button} disabled={!commandsReady || !nav.canGoBack} aria-label={t("browser.chrome.back")} title={t("browser.chrome.back")} onClick={() => props.onCommand({ type: "history", delta: -1 })}><ArrowLeft size={16} /></button>
+          <button type="button" className={button} disabled={!commandsReady || !nav.canGoForward} aria-label={t("browser.chrome.forward")} title={t("browser.chrome.forward")} onClick={() => props.onCommand({ type: "history", delta: 1 })}><ArrowRight size={16} /></button>
+          <button type="button" className={button} disabled={!commandsReady} aria-label={nav.loading ? t("browser.chrome.loadingReload") : t("browser.chrome.reloadPage")} title={t("browser.chrome.reload")} onClick={() => props.onCommand({ type: "reload" })}>
             {nav.loading ? <Loader2 size={16} className="animate-spin" /> : <RotateCw size={16} />}
           </button>
         </div>
         <input
           ref={addressRef}
-          aria-label="Browser address"
+          aria-label={t("browser.chrome.address")}
           readOnly={!commandsReady}
           value={editing ? draft : shown}
           onChange={(event) => setDraft(event.target.value)}
@@ -134,7 +134,7 @@ export const ChromeRow = forwardRef<HTMLInputElement, {
             setDraft(shown);
             event.currentTarget.blur();
           }}
-          placeholder={connected ? "Search or enter address" : "Connecting…"}
+          placeholder={connected ? t("browser.chrome.search") : t("browser.chrome.connecting")}
           spellCheck={false}
           className="mx-1 min-w-0 flex-1 rounded-lg bg-transparent px-2 py-1.5 text-center text-[12px] outline-none placeholder:text-ink-secondary focus:bg-inset focus:text-left"
         />

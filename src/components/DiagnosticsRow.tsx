@@ -50,7 +50,7 @@ export function DiagnosticsRow() {
         {result && <p role={result.kind === "error" ? "alert" : "status"} className={cn("break-all", result.kind === "error" ? "text-danger" : "text-success")}>
           {result.message}
         </p>}
-        <p data-logs-help className="text-ink-tertiary">{t(here ? "settings.diagnostics.logsHelp" : "settings.diagnostics.elsewhere")}</p>
+        <p data-logs-help className="text-ink-tertiary">{t(here ? "settings.diagnostics.logsHelp" : "settings.diagnostics.serverLogsHelp")}</p>
       </>}
     >
       {here && <div className="flex flex-wrap gap-2">

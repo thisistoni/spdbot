@@ -254,7 +254,7 @@ async function api(port: number, path: string, init: { method?: string; body?: s
   return { status: res.status, body };
 }
 
-export const SERVICE_TRUST_HELP = "This server does not treat commands on this computer as its owner (OMB_LOOPBACK_TRUST=service, or a hosted workspace), so it will not pair devices or list sessions for them. Sign in as an admin and use Settings → Remote access, let people sign in with their email (openmausbot access add you@example.com), or restart the server with OMB_LOOPBACK_TRUST=owner.";
+export const SERVICE_TRUST_HELP = "Dieser Server behandelt Befehle auf diesem Computer nicht als Eigentümerzugriff (SPDBOT_LOOPBACK_TRUST=service oder gehosteter Arbeitsbereich). Deshalb können sie keine Geräte koppeln oder Sitzungen auflisten. Melde dich als Admin an und verwende Einstellungen → Fernzugriff, erlaube die Anmeldung per E-Mail (pnpm spdbot access add du@example.com) oder starte den Server bewusst mit SPDBOT_LOOPBACK_TRUST=owner neu.";
 
 function refusedAsService(status: number, body: any): boolean {
   return status === 403 && typeof body?.error === "string" && /shared server|Sign in through the workspace portal/.test(body.error);
@@ -311,7 +311,7 @@ export function applyStartupPreferences(options: CliOptions, saved: AppConfig["c
   if (options.local) return { ...options, tunnel: false, tailscale: false, publicUrl: undefined, phone: undefined };
   if (!saved || options.tunnel || options.tailscale || options.publicUrl) return options;
   if (saved.access === "public-url" && (!saved.publicUrl || !normalizePhoneOrigin(saved.publicUrl))) {
-    throw new Error("The saved phone address is not a valid HTTPS origin. Run openmausbot setup to correct it, or openmausbot --local to start only on this computer.");
+    throw new Error("Die gespeicherte Telefonadresse ist kein gültiger HTTPS-Ursprung. Korrigiere sie mit pnpm spdbot setup oder starte mit pnpm spdbot --local nur auf diesem Computer.");
   }
   return {
     ...options,
@@ -324,7 +324,7 @@ export function applyStartupPreferences(options: CliOptions, saved: AppConfig["c
 function startupPreferences(options: CliOptions): NonNullable<AppConfig["cliStartup"]> {
   const access = options.local ? "local" : options.tunnel ? "tunnel" : options.tailscale ? "tailscale" : options.publicUrl ? "public-url" : "local";
   const publicUrl = access === "public-url" ? normalizePhoneOrigin(options.publicUrl!) : null;
-  if (access === "public-url" && !publicUrl) throw new Error("Use an HTTPS origin without a password, path or query for saved phone access. The address was not saved.");
+  if (access === "public-url" && !publicUrl) throw new Error("Verwende für gespeicherten Telefonzugriff einen HTTPS-Ursprung ohne Passwort, Pfad oder Suchparameter. Die Adresse wurde nicht gespeichert.");
   return {
     access,
     ...(publicUrl ? { publicUrl } : {}),
@@ -335,13 +335,13 @@ function startupPreferences(options: CliOptions): NonNullable<AppConfig["cliStar
 async function showPhonePairing(options: CliOptions, origin: string | undefined, log: (line: string) => void): Promise<boolean> {
   const ready = !!origin && await verifyPhoneEndpoint(options.port, origin);
   if (!ready) {
-    log("Phone access is not reachable yet. OpenMausBot is ready on this computer; no phone pairing code was created.");
-    log("Check the HTTPS connection, then run openmausbot pair again with the same --data-dir and --port.");
+    log("Der Telefonzugriff ist noch nicht erreichbar. SPDBot ist auf diesem Computer bereit; es wurde kein Kopplungscode für das Telefon erstellt.");
+    log("Prüfe die HTTPS-Verbindung und rufe dann pnpm pair erneut mit demselben --data-dir und --port auf.");
     return false;
   }
   for (const line of phonePairingInstructions(options.phone ?? "ios", { origin: origin!, ready })) log(line);
   log(await mintPairing(options.port, { client: true, label: options.label ?? (options.phone === "android" ? "Android" : "iPhone / iPad"), publicUrl: origin, phone: options.phone }));
-  log("Waiting for you to connect on the phone. Keep this terminal and the code private.");
+  log("Warte auf deine Verbindung vom Telefon. Halte dieses Terminal und den Code privat.");
   return true;
 }
 
@@ -351,7 +351,7 @@ async function mintPairing(port: number, options: { label?: string; client?: boo
   if (options.client) request.scopes = ["client"];
   const { status, body } = await api(port, "/api/auth/pairing", { method: "POST", body: JSON.stringify(request) });
   if (refusedAsService(status, body)) throw new Error(SERVICE_TRUST_HELP);
-  if (status !== 200) throw new Error(`server refused to mint a pairing code: ${typeof body?.error === "string" ? body.error : status}`);
+  if (status !== 200) throw new Error(`Der Server hat das Erstellen eines Kopplungscodes abgelehnt: ${typeof body?.error === "string" ? body.error : status}`);
   const url = options.publicUrl ? `${options.publicUrl}/pair#code=${body.code}` : typeof body.url === "string" ? body.url : null;
   const invite = (options.publicUrl && typeof body.credential === "string"
     ? phonePairingLink({ address: options.publicUrl, token: body.credential, name: typeof body.serverName === "string" ? body.serverName : undefined })
@@ -363,7 +363,7 @@ async function mintPairing(port: number, options: { label?: string; client?: boo
 
 export async function runPair(options: CliOptions): Promise<number> {
   if (!(await serverUp(options.port))) {
-    console.error(`no OpenMausBot server on http://127.0.0.1:${options.port}; start one with \`openmausbot serve\` or set OMB_PORT`);
+    console.error(`Kein SPDBot-Server unter http://127.0.0.1:${options.port}; starte einen mit pnpm spdbot serve oder setze SPDBOT_PORT.`);
     return 1;
   }
   if (process.stdin.isTTY && process.stdout.isTTY && !options.label && !options.client) {
@@ -381,30 +381,30 @@ export async function runPair(options: CliOptions): Promise<number> {
       }
     }
     if (!origin || !normalizePhoneOrigin(origin)) {
-      console.log("Your workspace is running only on this computer. A phone cannot use its localhost address.");
-      console.log("Stop the server, run openmausbot setup and choose phone access, then start openmausbot again.");
+      console.log("Dein Arbeitsbereich läuft nur auf diesem Computer. Ein Telefon kann dessen localhost-Adresse nicht verwenden.");
+      console.log("Stoppe den Server, rufe pnpm spdbot setup auf und wähle den Telefonzugriff. Starte SPDBot anschließend erneut.");
       return 1;
     }
     const ui = defaultSetupIo();
     try {
-      const selected = await ui.choose("Which phone are you connecting?", ["iPhone / iPad — app or Safari", "Android — app or browser", "Cancel"], 0);
+      const selected = await ui.choose("Welches Telefon möchtest du verbinden?", ["iPhone / iPad – Safari", "Android – Browser", "Abbrechen"], 0);
       if (selected === 2) return 0;
       launch = { ...launch, phone: selected === 0 ? "ios" : "android" };
       return await showPhonePairing(launch, origin, ui.log) ? 0 : 1;
     } catch (error) {
       if (!(error instanceof SetupCancelled)) throw error;
-      console.log("Pairing cancelled. Existing devices are unchanged.");
+      console.log("Kopplung abgebrochen. Vorhandene Geräte sind unverändert.");
       return 130;
     }
   }
   console.log(await mintPairing(options.port, { label: options.label, client: options.client, publicUrl: options.publicUrl, phone: options.phone }));
-  if (options.client) console.log("(client scope: chat and approvals only; cannot change settings or pair others)");
+  if (options.client) console.log("(client-Rechte: nur Chat und Freigaben; keine Einstellungsänderungen oder Kopplung weiterer Geräte)");
   return 0;
 }
 
 export async function runSessions(options: CliOptions): Promise<number> {
   if (!(await serverUp(options.port))) {
-    console.error(`no OpenMausBot server on http://127.0.0.1:${options.port}`);
+    console.error(`Kein SPDBot-Server unter http://127.0.0.1:${options.port}`);
     return 1;
   }
   if (options.revoke) {
@@ -414,10 +414,10 @@ export async function runSessions(options: CliOptions): Promise<number> {
       return 1;
     }
     if (status !== 200) {
-      console.error(`could not revoke: ${typeof body?.error === "string" ? body.error : status}`);
+      console.error(`Widerruf fehlgeschlagen: ${typeof body?.error === "string" ? body.error : status}`);
       return 1;
     }
-    console.log(`revoked ${options.revoke}: that device is signed out and its stream is closed`);
+    console.log(`${options.revoke} widerrufen: Das Gerät ist abgemeldet und sein Stream geschlossen.`);
     return 0;
   }
   const { status, body } = await api(options.port, "/api/auth/sessions");
@@ -426,7 +426,7 @@ export async function runSessions(options: CliOptions): Promise<number> {
     return 1;
   }
   if (status !== 200) {
-    console.error(`could not list sessions: ${typeof body?.error === "string" ? body.error : status}`);
+    console.error(`Sitzungen konnten nicht aufgelistet werden: ${typeof body?.error === "string" ? body.error : status}`);
     return 1;
   }
   const sessions: Array<{ id: string; label: string; scopes: string[]; lastSeenAt: number; expiresAt: number }> = Array.isArray(body?.sessions) ? body.sessions : [];
@@ -435,7 +435,7 @@ export async function runSessions(options: CliOptions): Promise<number> {
     return 0;
   }
   if (!sessions.length) {
-    console.log("no paired devices yet: run `openmausbot pair`");
+    console.log("Noch keine gekoppelten Geräte. Rufe pnpm pair auf.");
     return 0;
   }
   console.log(formatSessions(sessions));
@@ -445,13 +445,13 @@ export async function runSessions(options: CliOptions): Promise<number> {
 export function formatSessions(sessions: Array<{ id: string; label: string; scopes: string[]; lastSeenAt: number; expiresAt: number }>, now = Date.now()): string {
   const age = (ms: number) => {
     const m = Math.max(0, Math.floor((now - ms) / 60_000));
-    return m < 1 ? "just now" : m < 60 ? `${m} min ago` : m < 1440 ? `${Math.round(m / 60)} h ago` : `${Math.round(m / 1440)} d ago`;
+    return m < 1 ? "gerade eben" : m < 60 ? `vor ${m} Min.` : m < 1440 ? `vor ${Math.round(m / 60)} Std.` : `vor ${Math.round(m / 1440)} Tagen`;
   };
-  const rows = sessions.map((s) => [s.id, s.label || "(unnamed)", s.scopes.includes("admin") ? "admin" : "client", age(s.lastSeenAt), new Date(s.expiresAt).toISOString().slice(0, 10)]);
-  const head = ["id", "device", "scope", "last seen", "expires"];
+  const rows = sessions.map((s) => [s.id, s.label || "(unbenannt)", s.scopes.includes("admin") ? "admin" : "client", age(s.lastSeenAt), new Date(s.expiresAt).toISOString().slice(0, 10)]);
+  const head = ["ID", "Gerät", "Rechte", "Zuletzt gesehen", "Läuft ab"];
   const widths = head.map((h, i) => Math.max(h.length, ...rows.map((r) => r[i].length)));
   const line = (r: string[]) => r.map((c, i) => c.padEnd(widths[i])).join("  ");
-  return [line(head), ...rows.map(line), "", "revoke one with: openmausbot sessions revoke <id>"].join("\n");
+  return [line(head), ...rows.map(line), "", "Sitzung widerrufen: pnpm spdbot sessions revoke <id>"].join("\n");
 }
 
 export async function runStatus(options: CliOptions, io: CliIo = defaultIo()): Promise<number> {
@@ -459,15 +459,15 @@ export async function runStatus(options: CliOptions, io: CliIo = defaultIo()): P
   try {
     const res = await fetch(`http://127.0.0.1:${options.port}/.well-known/openmausbot/environment`);
     const body: any = await res.json();
-    io.log(options.json ? JSON.stringify(body, null, 2) : `${body.label} · OpenMausBot ${body.version} on ${body.platform} · id ${body.environmentId}`);
+    io.log(options.json ? JSON.stringify(body, null, 2) : `${body.label} · SPDBot ${body.version} auf ${body.platform} · ID ${body.environmentId}`);
   } catch {
-    io.error(`no OpenMausBot server on http://127.0.0.1:${options.port}`);
+    io.error(`Kein SPDBot-Server unter http://127.0.0.1:${options.port}`);
     code = 1;
   }
   if (!options.json) {
     const account = describeTunnelAccount(createTunnelAccount({ dataDir: options.dataDir, version: serverVersion() }).credentials.read());
-    if (fleetCredential()) io.log(`public address: managed by the fleet (${FLEET_CREDENTIAL_ENV} is set; the address is fetched when serve --tunnel starts)`);
-    else if (account.address) io.log(`public address: ${account.address} (signed in as ${account.email ?? "?"}; serve it with --tunnel)`);
+    if (fleetCredential()) io.log(`Öffentliche Adresse: von der Flotte verwaltet (${FLEET_CREDENTIAL_ENV} ist gesetzt; die Adresse wird beim Start von serve --tunnel abgerufen)`);
+    else if (account.address) io.log(`Öffentliche Adresse: ${account.address} (beim Tunnel-Dienst angemeldet als ${account.email ?? "?"})`);
   }
   return code;
 }
@@ -482,7 +482,7 @@ export async function runAccess(options: CliOptions, io: CliIo = defaultIo()): P
       if (typeof parsed !== "object" || parsed === null || Array.isArray(parsed)) throw new Error("not an object");
       raw = Object.fromEntries(Object.entries(parsed));
     } catch (error) {
-      io.error(`${file} could not be read (${message(error)}); fix it before changing who can sign in`);
+      io.error(`${file} konnte nicht gelesen werden (${message(error)}). Repariere die Datei, bevor du die Anmeldeberechtigungen änderst.`);
       return 1;
     }
   }
@@ -508,75 +508,75 @@ export async function runAccess(options: CliOptions, io: CliIo = defaultIo()): P
   };
   if (options.accessAction === "list") {
     if (!admins.length && !members.length) {
-      io.log("nobody can sign in with an email yet; pairing codes only. Add someone with: openmausbot access add you@example.com");
+      io.log("Noch niemand kann sich per E-Mail anmelden; nur Kopplungscodes sind verfügbar. Person hinzufügen: pnpm spdbot access add du@example.com");
       return 0;
     }
-    for (const entry of admins) io.log(`${entry.padEnd(40)} full access`);
-    for (const entry of members) io.log(`${entry.padEnd(40)} chat and approvals`);
-    if (overridden) io.log("(OMB_SIGNIN_EMAILS / OMB_SIGNIN_MEMBER_EMAILS are set in the environment and win over this list while the server runs)");
+    for (const entry of admins) io.log(`${entry.padEnd(40)} Vollzugriff`);
+    for (const entry of members) io.log(`${entry.padEnd(40)} Chat und Freigaben`);
+    if (overridden) io.log("(SPDBOT_SIGNIN_EMAILS / SPDBOT_SIGNIN_MEMBER_EMAILS sind in der Umgebung gesetzt und haben während des Serverbetriebs Vorrang vor dieser Liste)");
     return 0;
   }
   const entry = (options.email ?? "").trim().toLowerCase();
   if (!entry || (!entry.startsWith("@") && !entry.includes("@")) || /\s/.test(entry)) {
-    io.error("give an email address, or @domain for everyone at that domain");
+    io.error("Gib eine E-Mail-Adresse an oder @domain für alle mit dieser Domain.");
     return 2;
   }
   const without = (items: string[]) => items.filter((item) => item !== entry);
   if (options.accessAction === "remove") {
     if (!admins.includes(entry) && !members.includes(entry)) {
-      io.error(`${entry} is not on the list`);
+      io.error(`${entry} steht nicht auf der Liste.`);
       return 1;
     }
     await write({ admins: without(admins), members: without(members) });
-    io.log(`${entry} can no longer sign in (existing sessions stay until they expire or are revoked with \`openmausbot sessions revoke\`)`);
+    io.log(`${entry} kann sich nicht mehr anmelden (bestehende Sitzungen bleiben bis zu ihrem Ablauf oder dem Widerruf mit pnpm spdbot sessions revoke bestehen).`);
     return 0;
   }
   await write(options.chatOnly ? { admins: without(admins), members: [...without(members), entry] } : { admins: [...without(admins), entry], members: without(members) });
-  io.log(`${entry} can sign in at /pair with an emailed code (${options.chatOnly ? "chat and approvals" : "full access"})`);
-  if (overridden) io.log("note: OMB_SIGNIN_EMAILS / OMB_SIGNIN_MEMBER_EMAILS are set in the environment and win over this list while the server runs");
+  io.log(`${entry} kann sich unter /pair mit einem per E-Mail gesendeten Code anmelden (${options.chatOnly ? "Chat und Freigaben" : "Vollzugriff"}).`);
+  if (overridden) io.log("Hinweis: SPDBOT_SIGNIN_EMAILS / SPDBOT_SIGNIN_MEMBER_EMAILS sind in der Umgebung gesetzt und haben während des Serverbetriebs Vorrang vor dieser Liste.");
   return 0;
 }
 
 export async function runLogin(options: CliOptions, io: CliIo = defaultIo()): Promise<number> {
   const account = createTunnelAccount({ dataDir: options.dataDir, version: serverVersion() });
-  if (fleetCredential()) io.log(`note: ${FLEET_CREDENTIAL_ENV} is set, so serve --tunnel will use that credential rather than this account`);
+  if (fleetCredential()) io.log(`Hinweis: ${FLEET_CREDENTIAL_ENV} ist gesetzt. serve --tunnel verwendet deshalb diesen Zugangsnachweis statt dieses Kontos.`);
   if (account.credentials.status === "unavailable") {
-    io.error(`${account.credentials.file} exists but could not be read; fix or remove it, then try again`);
+    io.error(`${account.credentials.file} existiert, konnte aber nicht gelesen werden. Repariere oder entferne die Datei und versuche es erneut.`);
     return 1;
   }
   if (!account.controlPlane) {
-    io.error("OMB_CONTROL_PLANE_URL is set but is not an https address");
+    io.error("SPDBOT_CONTROL_PLANE_URL ist gesetzt, aber keine HTTPS-Adresse.");
     return 1;
   }
   const existing = describeTunnelAccount(account.credentials.read());
-  if (existing.address) io.log(`already signed in as ${existing.email ?? "?"} (${existing.address}); signing in again refreshes it`);
-  const email = (options.email ?? (await io.ask("Email for your OpenMausBot account: "))).trim();
+  if (existing.address) io.log(`Bereits als ${existing.email ?? "?"} angemeldet (${existing.address}); eine erneute Anmeldung aktualisiert den Zugang.`);
+  const email = (options.email ?? (await io.ask("E-Mail für den konfigurierten Tunnel-Dienst: "))).trim();
   if (!email) {
-    io.error("an email address is needed: openmausbot login --email you@example.com");
+    io.error("Eine E-Mail-Adresse ist erforderlich (--email).");
     return 1;
   }
   try {
     await account.service.requestCode(email);
   } catch (error) {
-    io.error(`could not send a sign-in code: ${message(error)}`);
+    io.error(`Anmeldecode konnte nicht gesendet werden: ${message(error)}`);
     return 1;
   }
-  const code = (await io.ask(`Enter the 8-digit code we emailed to ${email}: `)).trim();
+  const code = (await io.ask(`Gib den 8-stelligen Code ein, der an ${email} gesendet wurde: `)).trim();
   let state;
   try {
     state = await account.service.verifyCode(email, code);
   } catch (error) {
-    io.error(`sign-in failed: ${message(error)}`);
+    io.error(`Anmeldung fehlgeschlagen: ${message(error)}`);
     return 1;
   }
   const signedIn = describeTunnelAccount(account.credentials.read());
   if (!signedIn.address) {
-    io.error(`signed in, but no public address was issued${state.message ? `: ${state.message}` : ""}`);
+    io.error(`Angemeldet, aber es wurde keine öffentliche Adresse vergeben${state.message ? `: ${state.message}` : ""}`);
     return 1;
   }
-  io.log(`Signed in as ${signedIn.email ?? email}.`);
-  io.log(`This machine's public address: ${signedIn.address}`);
-  io.log("Serve there with:  openmausbot serve --tunnel");
+  io.log(`Angemeldet als ${signedIn.email ?? email}.`);
+  io.log(`Öffentliche Adresse dieses Computers: ${signedIn.address}`);
+  io.log("Diese Adresse stammt vom konfigurierten Tunnel-Dienst.");
   return 0;
 }
 
@@ -584,22 +584,22 @@ export async function runLogout(options: CliOptions, io: CliIo = defaultIo()): P
   const account = createTunnelAccount({ dataDir: options.dataDir, version: serverVersion() });
   const before = describeTunnelAccount(account.credentials.read());
   if (!before.email) {
-    io.log("this machine is not signed in");
+    io.log("Dieser Computer ist nicht angemeldet.");
     return 0;
   }
   let state;
   try {
     state = await account.service.signOut();
   } catch (error) {
-    io.error(`sign-out failed: ${message(error)}`);
+    io.error(`Abmeldung fehlgeschlagen: ${message(error)}`);
     return 1;
   }
   const after = describeTunnelAccount(account.credentials.read());
   if (after.email) {
-    io.error(`still signed in${state.message ? `: ${state.message}` : ""}`);
+    io.error(`Weiterhin angemeldet${state.message ? `: ${state.message}` : ""}`);
     return 1;
   }
-  io.log(`Signed out ${before.email}${before.address ? `; ${before.address} is released` : ""}.`);
+  io.log(`${before.email} abgemeldet${before.address ? `; ${before.address} wird freigegeben` : ""}.`);
   return 0;
 }
 
@@ -608,12 +608,12 @@ export async function runBrowser(options: CliOptions, io: CliIo = defaultIo()): 
   const status = browserEngineStatus({ dataDir: options.dataDir });
   if (options.browserAction === "status") {
     io.log(describeBrowserEngine(status, status.kind === "ready" ? new (await import("./browser/chrome/launcher.ts")).ChromeLauncher({ dataDir: options.dataDir }).describe() : undefined));
-    if (status.kind !== "ready" && status.installable) io.log("install it with:  openmausbot browser install");
+    if (status.kind !== "ready" && status.installable) io.log("Installieren mit: pnpm spdbot browser install");
     return status.kind === "ready" ? 0 : 1;
   }
   let binary = resolveAgentBrowserBinary({ dataDir: options.dataDir });
   if (binary) {
-    io.log(`agent-browser is already here: ${binary}`);
+    io.log(`agent-browser ist bereits vorhanden: ${binary}`);
   } else {
     if (status.kind !== "ready" && !status.installable) {
       io.error(status.reason);
@@ -622,20 +622,20 @@ export async function runBrowser(options: CliOptions, io: CliIo = defaultIo()): 
     try {
       binary = await installAgentBrowserBinary({ dataDir: options.dataDir, log: io.log });
     } catch (error) {
-      io.error(`could not install agent-browser: ${message(error)}`);
+      io.error(`agent-browser konnte nicht installiert werden: ${message(error)}`);
       return 1;
     }
-    io.log(`installed ${binary}`);
+    io.log(`Installiert: ${binary}`);
   }
   try {
     await ensureChrome(binary, { withDeps: options.withDeps === true, log: io.log });
   } catch (error) {
-    io.error(`Chrome is not ready: ${message(error)}`);
-    if (process.platform === "linux" && !options.withDeps) io.error("on Linux, install Chrome's system libraries with `sudo openmausbot browser install --with-deps`, then retry `openmausbot browser install` as the user running serve");
+    io.error(`Chrome ist nicht bereit: ${message(error)}`);
+    if (process.platform === "linux" && !options.withDeps) io.error("Installiere unter Linux die Chrome-Systembibliotheken mit sudo pnpm spdbot browser install --with-deps. Rufe danach pnpm spdbot browser install mit dem Benutzer auf, der serve ausführt.");
     return 1;
   }
-  io.log("browser installed for this user and data directory; run serve as the same user, then enable it under Settings → Computers and per bot");
-  if (process.platform === "linux" && options.withDeps) io.log("if serve runs as another user, run `openmausbot browser install` from that user's login shell too");
+  io.log("Browser für diesen Benutzer und dieses Datenverzeichnis installiert. Führe serve mit demselben Benutzer aus und aktiviere den Browser unter Einstellungen → Computer sowie für jeden gewünschten Bot.");
+  if (process.platform === "linux" && options.withDeps) io.log("Wenn serve mit einem anderen Benutzer läuft, führe pnpm spdbot browser install auch in dessen Login-Shell aus.");
   return 0;
 }
 
@@ -680,18 +680,18 @@ async function planTunnel(options: CliOptions, log: (line: string) => void, reco
     account = createTunnelAccount({ dataDir: options.dataDir, version: serverVersion(), recovery, log: (line) => log(`tunnel: ${line}`) });
     if (account.credentials.status === "unavailable") return fail(`${account.credentials.file} exists but could not be read; fix or remove it`);
     if (!describeTunnelAccount(account.credentials.read()).email) {
-      return fail("no account on this machine yet: run `openmausbot login` first, then `openmausbot serve --tunnel`");
+      return fail("Für diesen Tunnel ist auf diesem Computer kein Dienstkonto eingerichtet. Verwende für eigenen Fernzugriff --domain oder --tailscale.");
     }
     try {
       const state = await account.service.retry();
       const saved = tunnelAccess(account.credentials.read()) !== null;
-      if (state.status === "signed-out") log(`tunnel: the sign-in on this machine expired; run \`openmausbot login\` to renew it${saved ? " (serving the saved address until then)" : ""}`);
+      if (state.status === "signed-out") log(`tunnel: Die Anmeldung auf diesem Computer ist abgelaufen${saved ? "; die gespeicherte Adresse wird vorerst weiter bereitgestellt" : ""}. Prüfe den konfigurierten Tunnel-Dienst.`);
       else if (state.message) log(`tunnel: ${state.message}${saved ? " Serving the saved address for now." : ""}`);
     } catch (error) {
       log(`tunnel: control plane not reachable right now (${message(error)}); using the saved address`);
     }
     access = tunnelAccess(account.credentials.read());
-    if (!access) return fail("this machine has no public address; run `openmausbot login` again");
+    if (!access) return fail("Für diesen Computer ist keine öffentliche Adresse verfügbar. Prüfe den konfigurierten Tunnel-Dienst.");
   }
   let binary: string;
   try {
@@ -707,7 +707,7 @@ async function planTunnel(options: CliOptions, log: (line: string) => void, reco
 export async function runServe(options: CliOptions, log: (line: string) => void = console.log): Promise<number> {
   const { browserEngineStatus, describeBrowserEngine } = await import("./browser-engine.ts");
   if (await serverUp(options.port)) {
-    console.error(`something already answers on http://127.0.0.1:${options.port}; use \`openmausbot pair\` against it, or --port for a second server`);
+    console.error(`Unter http://127.0.0.1:${options.port} antwortet bereits ein Dienst. Verwende pnpm pair für ihn oder --port für einen zweiten Server.`);
     return 1;
   }
   let publicUrl = options.publicUrl;
@@ -729,7 +729,7 @@ export async function runServe(options: CliOptions, log: (line: string) => void 
       return 1;
     }
     plan = planned;
-    if (publicUrl && publicUrl !== plan.access.endpoint) log(`note: --public-url is ignored with --tunnel; the address is ${plan.access.endpoint}`);
+    if (publicUrl && publicUrl !== plan.access.endpoint) log(`Hinweis: --public-url wird bei --tunnel ignoriert; die Adresse lautet ${plan.access.endpoint}.`);
     publicUrl = plan.access.endpoint;
   }
   let caddyBinary: string | null = null;
@@ -743,7 +743,7 @@ export async function runServe(options: CliOptions, log: (line: string) => void 
     publicUrl = `https://${options.domain}`;
   }
   const entry = serverEntry();
-  if (!entry.staticDir) log("note: no built UI found next to the server; the API runs but browsers get no page (build with `pnpm exec vite build`)");
+  if (!entry.staticDir) log("Hinweis: Neben dem Server wurde keine gebaute Oberfläche gefunden. Die API läuft, aber Browser erhalten keine Seite (bauen mit pnpm exec vite build).");
   const env: NodeJS.ProcessEnv = {
     ...process.env,
     OMB_DATA_DIR: options.dataDir,
@@ -775,7 +775,7 @@ export async function runServe(options: CliOptions, log: (line: string) => void 
       mkdirSync(logsDir, { recursive: true, mode: 0o700 });
       logPath = join(logsDir, `server-${Date.now()}-${process.pid}.log`);
       logFd = openSync(logPath, "wx", 0o600);
-      log("\nStarting your workspace…");
+      log("\nDein Arbeitsbereich wird gestartet…");
     }
     if (tailscale) {
       tailscaleAttempted = true;
@@ -799,7 +799,7 @@ export async function runServe(options: CliOptions, log: (line: string) => void 
     plan?.account?.service.dispose();
     if (plan) cleanupTunnelOrigin(plan.origin);
     if (error instanceof SetupCancelled) {
-      log("Startup cancelled. No server was started; your saved work is unchanged.");
+      log("Start abgebrochen. Es wurde kein Server gestartet; deine gespeicherte Arbeit ist unverändert.");
       return 130;
     }
     throw error;
@@ -846,12 +846,12 @@ export async function runServe(options: CliOptions, log: (line: string) => void 
       await new Promise((r) => setTimeout(r, 250));
     }
     if (exited !== null) {
-      if (exited !== 0) log(`OpenMausBot could not start.${logPath ? ` Details: ${logPath}` : " See the output above."}`);
+      if (exited !== 0) log(`SPDBot konnte nicht gestartet werden.${logPath ? ` Details: ${logPath}` : " Sieh dir die Ausgabe oben an."}`);
       return exited;
     }
     if (stopping) return await childExit;
     if (!(await serverUp(options.port, child.pid))) {
-      console.error(`OpenMausBot did not become ready within a minute.${logPath ? ` Details: ${logPath}` : " See its output above."}`);
+      console.error(`SPDBot war nach einer Minute noch nicht bereit.${logPath ? ` Details: ${logPath}` : " Sieh dir die Serverausgabe oben an."}`);
       await stop();
       return 1;
     }
@@ -883,11 +883,11 @@ export async function runServe(options: CliOptions, log: (line: string) => void 
       void plan.account?.service.restore().catch(() => undefined);
     }
     log("");
-    log(`OpenMausBot is running on http://127.0.0.1:${options.port}${publicUrl ? `, reachable at ${publicUrl}` : ""}`);
+    log(`SPDBot läuft unter http://127.0.0.1:${options.port}${publicUrl ? `, erreichbar unter ${publicUrl}` : ""}`);
     if (options.guided) {
-      log("Your bots and conversations are saved automatically.");
-      log(`Details if you need help: ${logPath}`);
-      if (options.open !== false && !await openDashboard(options.port)) log("Open the local address above in a browser on this computer.");
+      log("Deine Bots und Gespräche werden automatisch gespeichert.");
+      log(`Details, falls du Hilfe benötigst: ${logPath}`);
+      if (options.open !== false && !await openDashboard(options.port)) log("Öffne die lokale Adresse oben in einem Browser auf diesem Computer.");
     } else {
       log(`data: ${options.dataDir}`);
       log(describeBrowserEngine(browserEngineStatus({ dataDir: options.dataDir })));
@@ -896,25 +896,25 @@ export async function runServe(options: CliOptions, log: (line: string) => void 
       log("");
       if (tunnel) {
         // No pairing secret is created or sent to the public address until its identity is verified.
-        log("Preparing the phone connection…");
+        log("Telefonverbindung wird vorbereitet…");
         let timer: ReturnType<typeof setTimeout> | undefined;
         await Promise.race([tunnel.started.catch(() => undefined), childExit,
           new Promise((done) => { timer = setTimeout(done, 15_000); })]);
         if (timer) clearTimeout(timer);
       }
-      if (!stopping && exited === null) await showPhonePairing(options, publicUrl, log).catch((error: unknown) => log(`no pairing code: ${message(error)}`));
+      if (!stopping && exited === null) await showPhonePairing(options, publicUrl, log).catch((error: unknown) => log(`Kein Kopplungscode: ${message(error)}`));
     } else if (options.pair) {
       log("");
       try {
         log(await mintPairing(options.port, { label: options.label ? `${options.label} owner` : undefined, client: options.client, publicUrl: publicUrl ?? undefined, guided: options.guided }));
-        if (!options.guided) log("\nanother device later:  openmausbot pair --label \"Kitchen iPad\"");
+        if (!options.guided) log("\nSpäter ein weiteres Gerät koppeln: pnpm pair --label \"Küchen-iPad\"");
       } catch (error) {
-        log(`no pairing code: ${message(error)}`);
-        log("start without one next time:  openmausbot serve --no-pair");
+        log(`Kein Kopplungscode: ${message(error)}`);
+        log("Nächstes Mal ohne Kopplungscode starten: pnpm spdbot serve --no-pair");
       }
     }
-    log(options.guided ? "\nKeep this terminal open while using your bots. Ctrl+C stops the server, not your saved work." : "stop with Ctrl+C");
-    if (options.guided) log("Next time: openmausbot · Change AI or phone setup: openmausbot setup · Pair another phone: openmausbot pair");
+    log(options.guided ? "\nLass dieses Terminal geöffnet, solange du deine Bots nutzt. Ctrl+C stoppt den Server; deine gespeicherte Arbeit bleibt erhalten." : "Mit Ctrl+C stoppen");
+    if (options.guided) log("Nächstes Mal: pnpm spdbot · KI- oder Telefoneinrichtung ändern: pnpm spdbot setup · Weiteres Telefon koppeln: pnpm pair");
     return await childExit;
   } finally {
     serveOwnerToken = undefined;
@@ -931,7 +931,7 @@ export async function serveUntilStopped(options: CliOptions, run: (options: CliO
   for (;;) {
     const code = await run(launch);
     if (!policy.again(code)) return code;
-    console.log("\nOpenMausBot is starting again to finish installing a copy from the desktop app…");
+    console.log("\nSPDBot startet neu, um die Installation einer Kopie aus der Desktop-App abzuschließen…");
     launch = { ...options, pair: false, open: false };
   }
 }
@@ -945,17 +945,17 @@ export async function runOnboardingCommand(
 ): Promise<number> {
   const interactive = process.stdin.isTTY === true && process.stdout.isTTY === true;
   if (options.command === "setup" && !interactive) {
-    io.error("Setup needs an interactive terminal. Run `npx openmausbot setup` in a terminal, then use `npx openmausbot serve` for unattended starts.");
+    io.error("Die Einrichtung benötigt ein interaktives Terminal. Rufe dort pnpm spdbot setup auf und verwende anschließend pnpm spdbot serve für unbeaufsichtigte Starts.");
     return 1;
   }
   process.env.OMB_DATA_DIR = options.dataDir;
   if (options.command !== "setup" && await (flow.running ?? isWorkspaceRunning)(options)) {
     if (options.local || options.tunnel || options.tailscale || options.publicUrl) {
-      io.error("This workspace is already running. Stop it before changing local or remote access; the current connection was not changed.");
+      io.error("Dieser Arbeitsbereich läuft bereits. Stoppe ihn, bevor du den lokalen Zugriff oder Fernzugriff änderst; die aktuelle Verbindung wurde nicht verändert.");
       return 1;
     }
-    io.log(`Your workspace is already running: http://127.0.0.1:${options.port}`);
-    io.log("No second server was started. Your existing bots and conversations are unchanged.");
+    io.log(`Dein Arbeitsbereich läuft bereits: http://127.0.0.1:${options.port}`);
+    io.log("Es wurde kein zweiter Server gestartet. Deine vorhandenen Bots und Gespräche sind unverändert.");
     if (interactive && options.open !== false) await (flow.open ?? openDashboard)(options.port);
     return 0;
   }
@@ -964,11 +964,11 @@ export async function runOnboardingCommand(
   try {
     if (options.command === "setup" || !(await isSetupComplete(options.dataDir))) {
       if (!interactive) {
-        io.error("No completed setup was found. Run `npx openmausbot setup` in an interactive terminal first, or use `npx openmausbot serve` with an existing configuration.");
+        io.error("Es wurde keine abgeschlossene Einrichtung gefunden. Rufe zuerst pnpm spdbot setup in einem interaktiven Terminal auf oder verwende pnpm spdbot serve mit einer vorhandenen Konfiguration.");
         return 1;
       }
       if (!(await runSetup({ dataDir: options.dataDir, port: options.port }))) {
-        io.log("Setup cancelled. Run openmausbot when you're ready.");
+        io.log("Einrichtung abgebrochen. Rufe pnpm spdbot auf, wenn du bereit bist.");
         return 130;
       }
     }
@@ -976,7 +976,7 @@ export async function runOnboardingCommand(
     // Only setup revisits the access choice; normal starts reuse consent and never turn a local session public.
     let launch = options.command === "setup" ? options : applyStartupPreferences(options, saved);
     if (interactive && options.pair && !options.local && (options.command === "setup" || !saved)) {
-      io.log("\nOne optional step: connect your phone. You can skip this and start chatting here.");
+      io.log("\nEin optionaler Schritt: Verbinde dein Telefon. Du kannst dies überspringen und direkt hier chatten.");
       const result = await (flow.phoneSetup ?? runPhoneSetup)(launch, prompts, {
         accountReady: (value) => !!describeTunnelAccount(createTunnelAccount({ dataDir: value.dataDir, version: serverVersion() }).credentials.read()).email,
         login: (value, ui) => runLogin(value, {
@@ -988,17 +988,17 @@ export async function runOnboardingCommand(
       saveCliStartup(options.dataDir, startupPreferences(launch));
     }
     if (options.command === "setup") {
-      io.log("\nAll set. Start with: openmausbot (or npx openmausbot without a global install).");
+      io.log("\nAlles bereit. Starte mit: pnpm spdbot.");
       if (options.dataDir !== join(homedir(), ".openmausbot") || options.port !== 8799) {
-        io.log(`Use the same --data-dir (${options.dataDir}) and --port (${options.port}) options when starting.`);
+        io.log(`Verwende beim Start dieselben Optionen --data-dir (${options.dataDir}) und --port (${options.port}).`);
       }
       return 0;
     }
-    if (saved) io.log("\nWelcome back. Using your saved AI connection.");
+    if (saved) io.log("\nWillkommen zurück. Deine gespeicherte KI-Verbindung wird verwendet.");
     return startServer({ ...launch, guided: interactive });
   } catch (error) {
     if (!(error instanceof SetupCancelled)) throw error;
-    io.log("\nSetup stopped. Any AI setup already saved is kept; no server was started. Run openmausbot setup to continue.");
+    io.log("\nEinrichtung gestoppt. Bereits gespeicherte KI-Einstellungen bleiben erhalten; es wurde kein Server gestartet. Setze die Einrichtung mit pnpm spdbot setup fort.");
     return 130;
   }
 }

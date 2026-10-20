@@ -26,7 +26,6 @@ import { HelloBeat } from "./beats/HelloBeat";
 import { ImportBeat } from "./beats/ImportBeat";
 import { MeetYourBotBeat } from "./beats/MeetYourBotBeat";
 import { PermissionsBeat } from "./beats/PermissionsBeat";
-import { PhoneBeat } from "./beats/PhoneBeat";
 import { QuietButton } from "./beats/shared";
 import { withViewTransition } from "./view-transition";
 import { ProgressDots } from "./ProgressDots";
@@ -105,7 +104,7 @@ export function WelcomeFlow({
   const [detection, setDetection] = useState<SetupDetection | null>(setupImport?.detection ?? null);
   const [importResult, setImportResult] = useState<SetupImportResult | null>(null);
   const [importBusy, setImportBusy] = useState(false);
-  const beats = beatsFor({ dictation: dictation ?? capabilities.dictation.available, reel, hosted, setupImport: detection !== null, cloud: offer !== null });
+  const beats = beatsFor({ dictation: dictation ?? capabilities.dictation.available, reel, hosted, setupImport: detection !== null, cloud: offer !== null }).filter((id): boolean => id !== "phone");
   const [beat, setBeat] = useState<BeatId>(() => (initialBeat && beats.includes(initialBeat) ? initialBeat : "hello"));
   const [mascot, setMascot] = useState<MausState>(MASCOT_FOR_BEAT[beat]);
   const [motion, setMotion] = useState<{ kind: Motion; key: number }>({ kind: "blink", key: 0 });
@@ -272,7 +271,6 @@ export function WelcomeFlow({
             />
           )}
           {beat === "permissions" && <PermissionsBeat {...beatProps} />}
-          {beat === "phone" && <PhoneBeat {...beatProps} />}
           {beat === "cloud" && offer && <CloudBeat {...beatProps} offer={offer} />}
           {beat === "bot" && (
             <MeetYourBotBeat

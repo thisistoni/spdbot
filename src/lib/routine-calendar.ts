@@ -1,3 +1,4 @@
+import { activeLocale, t } from "@/lib/i18n";
 import type { Routine, RoutineRun, RoutineSchedule } from "./routines";
 import { nextCronRuns } from "../../shared/routine-schedule";
 
@@ -156,7 +157,7 @@ export function slotAt(day: number, clientY: number, top: number, hourHeight: nu
 export function scheduleAt(schedule: Exclude<RoutineSchedule, { type: "interval" | "cron" }>, occurrenceAt: number, nextAt: number): Exclude<RoutineSchedule, { type: "interval" | "cron" }>;
 export function scheduleAt(schedule: RoutineSchedule, occurrenceAt: number, nextAt: number): RoutineSchedule;
 export function scheduleAt(schedule: RoutineSchedule, occurrenceAt: number, nextAt: number): RoutineSchedule {
-  if (schedule.type === "cron") throw new Error("Edit this routine's schedule to change its cron timing.");
+  if (schedule.type === "cron") throw new Error(t("routines.calendar.editCronTiming"));
   if (schedule.type === "once") return { type: "once", at: nextAt };
   if (schedule.type === "interval") {
     return {
@@ -273,10 +274,10 @@ export function calendarRangeLabel(from: number, days: number): string {
   const start = new Date(from);
   const end = new Date(to);
   if (days === 1) {
-    return start.toLocaleDateString([], { month: "long", day: "numeric", year: "numeric" });
+    return start.toLocaleDateString(activeLocale(), { month: "long", day: "numeric", year: "numeric" });
   }
   if (start.getMonth() === end.getMonth()) {
-    return `${start.toLocaleDateString([], { month: "long" })} ${start.getDate()} – ${end.getDate()}, ${end.getFullYear()}`;
+    return t("routines.calendar.range", { month: start.toLocaleDateString(activeLocale(), { month: "long" }), start: start.getDate(), end: end.getDate(), year: end.getFullYear() });
   }
-  return `${start.toLocaleDateString([], { month: "short", day: "numeric" })} – ${end.toLocaleDateString([], { month: "short", day: "numeric", year: "numeric" })}`;
+  return `${start.toLocaleDateString(activeLocale(), { month: "short", day: "numeric" })} – ${end.toLocaleDateString(activeLocale(), { month: "short", day: "numeric", year: "numeric" })}`;
 }

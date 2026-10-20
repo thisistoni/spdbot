@@ -27,8 +27,8 @@ test("the private ask takes its answer only from the process it asked, and gives
   const gone = refused.request(proc, { kind: "login", id: "x" });
   refused.receive(proc, { type: "openmausbot:login-handoff-result", requestId: "request-0002", ok: false, error: "This login is no longer saved on this computer." });
   await assert.rejects(gone, /no longer saved on this computer/);
-  await assert.rejects(createLoginHandoffClient({ timeoutMs: 20 }).request(proc, { kind: "1password" }), /did not answer/);
-  await assert.rejects(createLoginHandoffClient().request(null, { kind: "1password" }), /not running/);
+  await assert.rejects(createLoginHandoffClient({ timeoutMs: 20 }).request(proc, { kind: "1password" }), /nicht geantwortet/);
+  await assert.rejects(createLoginHandoffClient().request(null, { kind: "1password" }), /läuft auf diesem Computer nicht/);
 });
 
 test("a login kept to some bots keeps only those My Cloud has, and every bot stays every bot", () => {
@@ -70,7 +70,7 @@ test("a send pairs with the person's own Cloud only, says what My Cloud refused,
     home: () => ({ origin: "https://omb-u-1.fly.dev", grant: async () => ({ origin: "https://omb-u-1.fly.dev", code: "OMB-CODE" }) }),
     fetch: cloud.fetch, cookieFetch: cloud.fetch,
   });
-  await assert.rejects(logins.send({ kind: "1password" }), { message: "My Cloud said: 1Password could not start on this server, so your token was not checked." });
+  await assert.rejects(logins.send({ kind: "1password" }), { message: "Der externe Cloud-Dienst meldet: 1Password could not start on this server, so your token was not checked." });
   assert.deepEqual(cloud.calls.map((call) => `${call.method} ${call.route}`), ["POST /api/auth/pair", "GET /api/bots", "POST /api/logins/1password", "POST /api/auth/logout"]);
   assert.ok(cloud.calls.slice(1).every((call) => call.authorization === "Bearer omb_sess_fake" && call.credentials === "omit"));
 
@@ -80,7 +80,7 @@ test("a send pairs with the person's own Cloud only, says what My Cloud refused,
     fetch: cloud.fetch, cookieFetch: cloud.fetch,
   });
   const before = cloud.calls.length;
-  await assert.rejects(elsewhere.send({ kind: "1password" }), /My Cloud is not ready/);
+  await assert.rejects(elsewhere.send({ kind: "1password" }), /Der externe Cloud-Dienst ist nicht bereit/);
   assert.equal(cloud.calls.length, before, "nothing is sent to an origin the grant names instead");
 
   const signedOut = fakeCloud({ refuse: { route: "/api/logins", status: 403, error: "forbidden" } });
@@ -89,7 +89,7 @@ test("a send pairs with the person's own Cloud only, says what My Cloud refused,
     home: () => ({ origin: "https://omb-u-1.fly.dev", grant: async () => ({ origin: "https://omb-u-1.fly.dev", code: "OMB-CODE" }) }),
     fetch: signedOut.fetch, cookieFetch: async () => new Response("", { status: 401 }),
   });
-  await assert.rejects(login.send({ kind: "login", id: "l1" }), /did not let this app change its logins/);
+  await assert.rejects(login.send({ kind: "login", id: "l1" }), /erlaubt dieser App nicht, seine Zugänge zu ändern/);
   assert.deepEqual(await login.state(), { cloud: { reachable: false } });
   assert.deepEqual(await createCloudLogins({ handoff: async () => ({}), home: () => null, fetch: signedOut.fetch, cookieFetch: signedOut.fetch }).state(), { cloud: null });
 });

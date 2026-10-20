@@ -2,9 +2,10 @@ import { createElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { afterEach, expect, it, vi } from "vitest";
 
-import { DesktopWorkspaceSwitcher, openServerMenu } from "./DesktopWorkspaceSwitcher";
+import { DesktopWorkspaceSwitcher, openServerMenu, workspaceDisplayName } from "./DesktopWorkspaceSwitcher";
 
-afterEach(() => { vi.unstubAllGlobals(); });
+import { setLocale } from "../lib/i18n";
+afterEach(() => { vi.unstubAllGlobals(); setLocale("en"); });
 
 it("names the saved-server switcher with the product word, not workspace", () => {
   vi.stubGlobal("window", { ogb: { workspaces: { state: () => new Promise(() => {}), menu: () => Promise.resolve() } } });
@@ -82,4 +83,13 @@ it("draws Simple mode's switcher as a rounded pill that names the server in full
   const browser = renderToStaticMarkup(createElement(DesktopWorkspaceSwitcher, { inline: true, pill: true, cloudHome: true }));
   expect(visibleText(browser)).toBe("My Cloud");
   expect(browser).toMatch(/class="[^"]*\bh-8\b[^"]*\brounded-full\b/);
+});
+
+it("localizes only the built-in computer name, preserving custom and remote names", () => {
+  setLocale("de");
+  expect(workspaceDisplayName({ local: true, name: "This computer" })).toBe("Dieser Computer");
+  expect(workspaceDisplayName({ local: true, name: "My studio" })).toBe("My studio");
+  expect(workspaceDisplayName({ local: false, name: "This computer" })).toBe("This computer");
+  setLocale("en");
+  expect(workspaceDisplayName({ local: true, name: "This computer" })).toBe("This computer");
 });

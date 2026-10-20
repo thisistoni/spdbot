@@ -46,9 +46,10 @@ it("when the folder cannot be opened, says where it is instead", async () => {
   expect(host.querySelector("[role=alert]")!.textContent).toBe(`Could not open the logs folder. It is ${FOLDER}.`);
 });
 
-it("on My Cloud's page (no desktop bridge) offers no buttons that do nothing, and says where logs are kept", async () => {
+it("on a server page offers no unavailable buttons or upstream support claims", async () => {
   (window as { ogb?: unknown }).ogb = { platform: "win32" };
   await render();
   expect(host.querySelectorAll("button")).toHaveLength(0);
-  expect(host.querySelector("[data-logs-help]")!.textContent).toContain("MausBot Cloud support can read My Cloud's.");
+  expect(host.querySelector("[data-logs-help]")!.textContent).toContain("Logs stay on the computer running SPDBot");
+  expect(host.textContent).not.toMatch(/MausBot Cloud|OpenMausBot/);
 });

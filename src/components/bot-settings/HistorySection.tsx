@@ -1,5 +1,6 @@
 import { whenLabel } from "@/lib/schedule-label";
 import { t } from "@/lib/i18n";
+import type { LocaleKey } from "@/locales";
 
 export interface HistoryRow {
   id: string;
@@ -12,6 +13,27 @@ export interface HistoryRow {
   restoreUnavailableReason?: string;
   before?: string;
   after?: string;
+}
+
+const HISTORY_FIELDS: Record<string, LocaleKey> = {
+  name: "botSettings.identity.name", title: "botSettings.identity.title", description: "botSettings.identity.blurb",
+  cwd: "botAccess.folder.title", notifications: "notifications.title", speakReplies: "history.field.speakReplies",
+};
+const HISTORY_ACTORS: Record<string, LocaleKey> = {
+  user: "history.actor.user", bot: "history.actor.bot", file: "history.actor.file", import: "history.actor.import", system: "history.actor.system",
+};
+const HISTORY_VIA: Record<string, LocaleKey> = {
+  ui: "history.via.ui", api: "history.via.api", rollback: "history.via.rollback",
+};
+
+export function localizedHistorySummary(summary: string): string {
+  const soul = /^soul: (\d+) → (\d+) bytes$/.exec(summary);
+  if (soul) return t("history.soulChange", { before: soul[1]!, after: soul[2]! });
+  const field = /^(name|title|description|cwd|notifications|speakReplies): (.+)$/.exec(summary);
+  if (!field) return summary;
+  // Translate only the app-owned prefix; user-entered values remain unchanged.
+  const key = HISTORY_FIELDS[field[1]!];
+  return key ? `${t(key)}: ${field[2]}` : summary;
 }
 
 export function HistorySection({
@@ -48,10 +70,10 @@ export function HistorySection({
               <span className="text-ink-secondary">{whenLabel(row.at)}</span>
               {" · "}
               <span>
-                {row.actor} via {row.via}
+                {t("history.actorVia", { actor: HISTORY_ACTORS[row.actor] ? t(HISTORY_ACTORS[row.actor]!) : row.actor, via: HISTORY_VIA[row.via] ? t(HISTORY_VIA[row.via]!) : row.via })}
               </span>
               {" · "}
-              <span>{row.summary}</span>
+              <span>{localizedHistorySummary(row.summary)}</span>
             </div>
             {row.field === "soul" && row.canRestore === true && (
               <button
@@ -66,7 +88,7 @@ export function HistorySection({
           </div>
           {row.field === "soul" && row.canRestore !== true && (
             <p className="mt-2 text-[12px] leading-relaxed text-ink-secondary">
-              {row.restoreUnavailableReason ?? t("history.restoreUnavailable")}
+              {row.restoreUnavailableReason === "This version is missing exact text or contains redacted sensitive text and cannot be restored." ? t("history.restoreRedacted") : row.restoreUnavailableReason ?? t("history.restoreUnavailable")}
             </p>
           )}
         </div>

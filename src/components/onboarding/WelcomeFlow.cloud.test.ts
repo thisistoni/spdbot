@@ -23,27 +23,27 @@ beforeEach(() => { setLocale("en"); f.commerce = true; f.state = { config: {}, c
 afterEach(async () => { await act(async () => root.unmount()); host.remove(); });
 const flow = (extra: Record<string, unknown> = {}) => createElement(WelcomeFlow, { bot: null, onDone: vi.fn(), reel: false, dictation: false, initialBeat: "cloud", cloudOffer: OFFER, ...extra });
 
-it("the welcome offers MausBot Cloud between the phone and the first bot, and Not now goes on to the bot", async () => {
+it("the legacy offer fixture follows provider setup, and Not now goes on to the bot", async () => {
   await act(async () => { root.render(flow()); });
   expect(host.textContent).toContain("Keep your bots working while you sleep");
-  expect(host.textContent).toContain("4 of 5");
+  expect(host.textContent).toContain("3 of 4");
   const notNow = [...host.querySelectorAll("button")].find(button => button.textContent === "Not now")!;
   await act(async () => { notNow.click(); });
   expect(host.textContent).toContain("the first bot");
-  expect(host.textContent).toContain("5 of 5");
+  expect(host.textContent).toContain("4 of 4");
 });
 
 it("without an offer the welcome has no Cloud beat at all", async () => {
   await act(async () => { root.render(flow({ cloudOffer: null })); });
   expect(host.textContent).not.toContain("Keep your bots working while you sleep");
-  expect(host.textContent).toContain("1 of 4");
+  expect(host.textContent).toContain("1 of 3");
 });
 
 it("omits a supplied Cloud offer when this fork has no checkout", async () => {
   f.commerce = false;
   await act(async () => { root.render(flow()); });
   expect(host.textContent).not.toContain("Keep your bots working while you sleep");
-  expect(host.textContent).toContain("1 of 4");
+  expect(host.textContent).toContain("1 of 3");
 });
 
 it("marks itself on screen while it is shown (so a Cloud sheet over it never switches the window), not as an embedded preview", async () => {

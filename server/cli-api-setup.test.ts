@@ -36,7 +36,7 @@ describe("API setup endpoint validation", () => {
     `https://provider.example/v1?key=${key}`, "https://provider.example/v1?", "https://provider.example/v1#",
     "https://provider.example/v1#fragment", "https://provider.example\\v1", "https://provi\nder.example/v1",
   ])("rejects an unsafe URL without echoing it: case %#", (url) => {
-    expect(() => normalizeApiUrl(url)).toThrow(/HTTPS API base URL/u);
+    expect(() => normalizeApiUrl(url)).toThrow(/HTTPS-API-Basis-URL/u);
     try { normalizeApiUrl(url); } catch (error) { expect(String(error)).not.toContain(key); }
   });
 });
@@ -58,14 +58,14 @@ describe("API setup models", () => {
 
   it.each([{}, null, [], { models: ["wrong contract"] }, { data: [] }, { data: [{ id: "" }] }])("rejects unusable catalogs without persisting a fallback: case %#", async (body) => {
     mockFetch(json(body));
-    await expect(fetchSetupModels(base, key)).rejects.toThrow(/no usable models.*manually/u);
+    await expect(fetchSetupModels(base, key)).rejects.toThrow(/keine nutzbaren Modelle.*manuell/u);
   });
 
   it("does not expose malformed JSON or credentials", async () => {
     mockFetch(new Response(`provider echoed ${key}`));
     const failure = await fetchSetupModels(base, key).catch((error: Error) => error);
     expect(failure).toBeInstanceOf(Error);
-    expect(String(failure)).toContain("invalid JSON");
+    expect(String(failure)).toContain("ungültiges JSON");
     expect(String(failure)).not.toContain(key);
   });
 
@@ -73,7 +73,7 @@ describe("API setup models", () => {
     vi.useFakeTimers();
     const fetch = vi.fn<typeof globalThis.fetch>(() => new Promise(() => {}));
     vi.stubGlobal("fetch", fetch);
-    const failure = expect(fetchSetupModels(base, key)).rejects.toThrow(/timed out after 8 seconds/u);
+    const failure = expect(fetchSetupModels(base, key)).rejects.toThrow(/nach 8 Sekunden das Zeitlimit überschritten/u);
     await vi.advanceTimersByTimeAsync(8_000);
     await failure;
     expect(fetch.mock.calls[0][1]?.signal?.aborted).toBe(true);
@@ -85,7 +85,7 @@ describe("API setup models", () => {
     const response = json({});
     vi.spyOn(response, "json").mockImplementation(() => new Promise(() => {}));
     mockFetch(response);
-    const failure = expect(fetchSetupModels(base, key)).rejects.toThrow(/timed out after 8 seconds/u);
+    const failure = expect(fetchSetupModels(base, key)).rejects.toThrow(/nach 8 Sekunden das Zeitlimit überschritten/u);
     await vi.advanceTimersByTimeAsync(8_000);
     await failure;
   });
@@ -131,14 +131,14 @@ describe("consented API setup completion", () => {
     { choices: [{ message: { role: "assistant", content: [{ text: "wrong contract" }] } }] },
   ])("requires an actual nonempty assistant reply: case %#", async (body) => {
     mockFetch(json(body));
-    await expect(verifySetupCompletion(base, key, "model")).rejects.toThrow(/did not return an assistant text reply/u);
+    await expect(verifySetupCompletion(base, key, "model")).rejects.toThrow(/keine Textantwort des Assistenten geliefert/u);
   });
 
   it("aborts after thirty seconds without claiming the billable test succeeded", async () => {
     vi.useFakeTimers();
     const fetch = vi.fn<typeof globalThis.fetch>(() => new Promise(() => {}));
     vi.stubGlobal("fetch", fetch);
-    const failure = expect(verifySetupCompletion(base, key, "model")).rejects.toThrow(/timed out after 30 seconds/u);
+    const failure = expect(verifySetupCompletion(base, key, "model")).rejects.toThrow(/nach 30 Sekunden das Zeitlimit überschritten/u);
     await vi.advanceTimersByTimeAsync(30_000);
     await failure;
     expect(fetch.mock.calls[0][1]?.signal?.aborted).toBe(true);
@@ -148,10 +148,10 @@ describe("consented API setup completion", () => {
 
 describe("safe API setup failures", () => {
   it.each([
-    [401, /key.*permissions/u], [403, /key.*permissions/u], [402, /credits.*billing/u],
-    [429, /rate or quota limit/u], [400, /model ID.*Chat Completions/u],
-    [404, /model ID.*Chat Completions/u], [422, /model ID.*Chat Completions/u],
-    [503, /provider is unavailable/u], [302, /Redirects are not followed/u],
+    [401, /Schlüssel.*Zugriffsrechte/u], [403, /Schlüssel.*Zugriffsrechte/u], [402, /Guthaben.*Abrechnungseinstellungen/u],
+    [429, /Anfrage- oder Kontingentlimit/u], [400, /Modell-ID.*Chat Completions/u],
+    [404, /Modell-ID.*Chat Completions/u], [422, /Modell-ID.*Chat Completions/u],
+    [503, /Anbieter ist nicht verfügbar/u], [302, /Weiterleitungen werden nicht verfolgt/u],
   ])("distinguishes HTTP %i without reading the provider's error body", async (status, expected) => {
     const response = json({ error: { message: `raw-secret ${key}` } }, status);
     const text = vi.spyOn(response, "text");
@@ -167,14 +167,14 @@ describe("safe API setup failures", () => {
 
   it("explains a missing models route instead of suggesting a model change", async () => {
     mockFetch(json({ error: key }, 404));
-    await expect(fetchSetupModels(base, key)).rejects.toThrow(/HTTP 404.*\/models endpoint/u);
+    await expect(fetchSetupModels(base, key)).rejects.toThrow(/HTTP 404.*\/models-Endpunkt/u);
   });
 
   it.each(["network", "redirect"]) ("redacts raw %s fetch errors and their causes", async (kind) => {
     const fetch = vi.fn<typeof globalThis.fetch>().mockRejectedValue(new TypeError(`${kind}: ${key}`, { cause: new Error(`https://${key}@provider.example`) }));
     vi.stubGlobal("fetch", fetch);
     const failure = await fetchSetupModels(base, key).catch((error: Error) => error);
-    expect(String(failure)).toMatch(/network.*direct API URL.*redirects are not followed/u);
+    expect(String(failure)).toMatch(/Netzwerk.*direkte API-URL.*Weiterleitungen werden nicht verfolgt/u);
     expect(String(failure)).not.toContain(key);
     expect((failure as Error).cause).toBeUndefined();
     expect(fetch).toHaveBeenCalledOnce();
@@ -182,16 +182,16 @@ describe("safe API setup failures", () => {
 
   it("rejects missing or newline-containing inputs before any request", async () => {
     const fetch = vi.fn(); vi.stubGlobal("fetch", fetch);
-    await expect(fetchSetupModels(base, " ")).rejects.toThrow(/API key/u);
-    await expect(fetchSetupModels(base, `${key}\nInjected: value`)).rejects.toThrow(/API key/u);
-    await expect(verifySetupCompletion(base, key, " ")).rejects.toThrow(/model ID/u);
+    await expect(fetchSetupModels(base, " ")).rejects.toThrow(/API-Schlüssel/u);
+    await expect(fetchSetupModels(base, `${key}\nInjected: value`)).rejects.toThrow(/API-Schlüssel/u);
+    await expect(verifySetupCompletion(base, key, " ")).rejects.toThrow(/Modell-ID/u);
     expect(fetch).not.toHaveBeenCalled();
   });
 
   it("does not validate a trimmed replacement for an existing runtime credential", async () => {
     const fetch = vi.fn(); vi.stubGlobal("fetch", fetch);
-    await expect(fetchSetupModels(base, ` ${key} `)).rejects.toThrow(/API key/u);
-    await expect(verifySetupCompletion(base, `${key}\n`, "model")).rejects.toThrow(/API key/u);
+    await expect(fetchSetupModels(base, ` ${key} `)).rejects.toThrow(/API-Schlüssel/u);
+    await expect(verifySetupCompletion(base, `${key}\n`, "model")).rejects.toThrow(/API-Schlüssel/u);
     expect(fetch).not.toHaveBeenCalled();
   });
 });

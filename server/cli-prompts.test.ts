@@ -58,9 +58,9 @@ describe("Clack setup adapter", () => {
 
   it("rejects unavailable choices and invalid defaults before entering raw mode", async () => {
     const fixture = terminal();
-    await expect(fixture.io.choose("Model", [])).rejects.toThrow("no choices");
+    await expect(fixture.io.choose("Model", [])).rejects.toThrow("keine Optionen");
     for (const invalid of [-1, 2, 0.5, NaN]) {
-      await expect(fixture.io.choose("Model", ["First", "Second"], invalid)).rejects.toThrow("default choice");
+      await expect(fixture.io.choose("Model", ["First", "Second"], invalid)).rejects.toThrow("Standardauswahl");
     }
     expect(fixture.input.setRawMode).not.toHaveBeenCalled();
     expect(fixture.text()).toBe("");
@@ -90,6 +90,8 @@ describe("Clack setup adapter", () => {
   it("keeps confirmation default-negative and supports defaults, arrows and y/n", async () => {
     const fixture = terminal();
     const declined = fixture.io.confirm("Replace?");
+    expect(stripVTControlCharacters(fixture.text())).toContain("Ja");
+    expect(stripVTControlCharacters(fixture.text())).toContain("Nein");
     fixture.input.write("\r");
     expect(await declined).toBe(false);
     const accepted = fixture.io.confirm("Save?", true);
@@ -163,7 +165,7 @@ describe("Clack setup adapter", () => {
       const previous = new Set(process.listeners(kind));
       const before = signalCounts();
       const pending = fixture.io.secret("Key: ");
-      const rejected = expect(pending).rejects.toThrow(kind.includes("error") ? "disconnected" : "Setup cancelled");
+      const rejected = expect(pending).rejects.toThrow(kind.includes("error") ? "disconnected" : "Einrichtung abgebrochen");
       fixture.input.write("sk-do-not-print");
       if (kind === "end") fixture.input.end();
       else if (kind === "close") fixture.input.emit("close");
@@ -231,7 +233,7 @@ describe("Clack setup adapter", () => {
   it("refuses hidden input without a terminal before printing or changing raw mode", () => {
     const fixture = terminal();
     fixture.input.isTTY = false;
-    expect(() => fixture.io.secret("Key: ")).toThrow("interactive terminal");
+    expect(() => fixture.io.secret("Key: ")).toThrow("interaktives Terminal");
     expect(fixture.text()).toBe("");
     expect(fixture.input.setRawMode).not.toHaveBeenCalled();
   });
@@ -241,9 +243,9 @@ describe("Clack setup adapter", () => {
     if (mode === "NO_COLOR") vi.stubEnv("NO_COLOR", "");
     const fixture = terminal(false, { isTTY: mode !== "redirected", columns: mode === "narrow" ? 16 : 80, rows: mode === "short" ? 5 : 24 });
     const pending = fixture.io.choose("Provider", ["First", "Second"], 0);
-    expect(fixture.text()).toContain("1. First (default)");
+    expect(fixture.text()).toContain("1. First (Standard)");
     fixture.input.write("9\r");
-    await vi.waitFor(() => expect(fixture.text()).toContain("Enter a number from 1 to 2."));
+    await vi.waitFor(() => expect(fixture.text()).toContain("Gib eine Zahl von 1 bis 2 ein."));
     fixture.input.write("2\r");
     expect(await pending).toBe(1);
     expect(fixture.text()).not.toContain("\u001b");
@@ -274,7 +276,7 @@ describe("Clack setup adapter", () => {
     expect(await declined).toBe(false);
     const retried = fixture.io.confirm("Continue?");
     fixture.input.write("maybe\r");
-    await vi.waitFor(() => expect(fixture.text()).toContain("Enter yes or no."));
+    await vi.waitFor(() => expect(fixture.text()).toContain("Gib yes (ja) oder no (nein) ein."));
     fixture.input.write("yes\r");
     expect(await retried).toBe(true);
     expectClean(fixture);

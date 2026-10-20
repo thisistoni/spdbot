@@ -9,16 +9,16 @@ export function validateBaseUrl(url: string): string {
   try {
     parsed = new URL(trimmed);
   } catch {
-    throw new Error(`Invalid OpenMausBot URL: '${url}'`);
+    throw new Error(`Ungültige SPDBot-URL: '${url}'`);
   }
   if (parsed.protocol !== "http:" && parsed.protocol !== "https:") {
-    throw new Error("OpenMausBot URL must use http:// or https://");
+    throw new Error("Die SPDBot-URL muss http:// oder https:// verwenden.");
   }
   if (parsed.username || parsed.password) {
-    throw new Error("OpenMausBot URL must not contain credentials; use OPENMAUSBOT_TOKEN instead");
+    throw new Error("Die SPDBot-URL darf keine Zugangsdaten enthalten. Übergebe das Token stattdessen als Umgebungsvariable.");
   }
   if ((parsed.pathname !== "/" && parsed.pathname !== "") || parsed.search || parsed.hash) {
-    throw new Error("OpenMausBot URL must be an origin without a path, query, or fragment");
+    throw new Error("Die SPDBot-URL darf nur die Serveradresse enthalten, ohne Pfad, Suchparameter oder Fragment.");
   }
   const hostname = parsed.hostname.toLowerCase().replace(/^\[|\]$/g, "");
   const isLoopback = hostname === "127.0.0.1" || hostname === "localhost" || hostname === "::1";
@@ -1443,7 +1443,7 @@ export async function processMcpMessage(
 /** Serve MCP on this process's stdin and stdout until stdin closes (then
  * resolves): what `pnpm mcp`, dist-server/mcp-server.js and `openmausbot mcp` run. */
 export function runStdio(): Promise<void> {
-  log("OpenMausBot MCP server running on stdio");
+  log("SPDBot MCP-Server läuft über stdio");
   const rl = readline.createInterface({
     input: process.stdin,
     output: process.stdout,

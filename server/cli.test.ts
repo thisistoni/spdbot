@@ -76,25 +76,25 @@ describe("openmausbot command line", () => {
 
   it("prints a scannable block with the link, or says where to type the code", () => {
     const block = pairingBlock({ code: "ABCD-EFGH-JKLM", url: "https://mini.example/pair#code=ABCD-EFGH-JKLM", expiresAt: Date.now() + 60_000 });
-    expect(block).toContain("pairing code:  ABCD-EFGH-JKLM");
-    expect(block).toContain("open or scan:  https://mini.example/pair#code=ABCD-EFGH-JKLM");
+    expect(block).toContain("Kopplungscode: ABCD-EFGH-JKLM");
+    expect(block).toContain("Öffnen oder scannen: https://mini.example/pair#code=ABCD-EFGH-JKLM");
     expect(block).toMatch(/[▀▄█]/);
-    const noUrl = pairingBlock({ code: "ABCD-EFGH-JKLM", url: null, expiresAt: Date.now(), hint: "set OMB_PUBLIC_URL" });
-    expect(noUrl).toContain("/pair on the address you use");
-    expect(noUrl).toContain("set OMB_PUBLIC_URL");
+    const noUrl = pairingBlock({ code: "ABCD-EFGH-JKLM", url: null, expiresAt: Date.now(), hint: "SPDBOT_PUBLIC_URL" });
+    expect(noUrl).toContain("/pair unter der Adresse dieses Servers");
+    expect(noUrl).toContain("SPDBOT_PUBLIC_URL");
     expect(qrToString("https://example.com").length).toBeGreaterThan(200);
   });
 
   it("adds a link that signs in a browser on this computer, which is no longer the owner by being here", () => {
     const local = "http://127.0.0.1:8799/pair#code=ABCD-EFGH-JKLM";
-    const block = pairingBlock({ code: "ABCD-EFGH-JKLM", url: null, localUrl: local, expiresAt: Date.now() + 60_000, hint: "set OMB_PUBLIC_URL" });
-    expect(block).toContain(`this computer: ${local}`);
-    expect(block).toContain("/pair on the address you use");
+    const block = pairingBlock({ code: "ABCD-EFGH-JKLM", url: null, localUrl: local, expiresAt: Date.now() + 60_000, hint: "SPDBOT_PUBLIC_URL" });
+    expect(block).toContain(`Dieser Computer: ${local}`);
+    expect(block).toContain("/pair unter der Adresse dieses Servers");
     expect(block).not.toContain(qrToString(local));
     const guided = browserSignInLines(local, "ABCD-EFGH-JKLM", Date.now() + 60_000);
     expect(guided).toContain(local);
     expect(guided).toContain("ABCD-EFGH-JKLM");
-    expect(guided).toContain("openmausbot pair");
+    expect(guided).toContain("pnpm pair");
   });
 
   describe("the two links one pairing window has", () => {
@@ -103,29 +103,29 @@ describe("openmausbot command line", () => {
     const block = (over: Record<string, unknown> = {}) =>
       pairingBlock({ code: "ABCD-EFGH-JKLM", url, inviteUrl: invite, expiresAt: Date.now() + 60_000, ...over });
 
-    it("gives an Android phone the app-scheme QR, because its scanner rejects https", () => {
-      const out = block({ phone: "android" });
-      expect(out).toContain(qrToString(invite));
-      expect(out).not.toContain(qrToString(url));
-      expect(out).toContain("Scan that in the OpenMausBot app");
-      expect(out).toContain(`web browser:   ${url}`);
-      expect(out).not.toContain("open or scan:");
-    });
-
-    it("gives everyone else the web QR, and still prints the app link rather than only naming it", () => {
-      const out = block({ phone: "ios" });
+    it.each(["android", "ios"])("prints only the existing browser URL for %s", (phone) => {
+      const out = block({ phone });
       expect(out).toContain(qrToString(url));
       expect(out).not.toContain(qrToString(invite));
-      expect(out).toContain(`phone app:     ${invite}`);
-      expect(out).toContain(`open or scan:  ${url}`);
+      expect(out).toContain(`Öffnen oder scannen: ${url}`);
+      expect(out).toContain("öffne die Adresse im Browser");
+      expect(out).not.toContain(invite);
+      expect(out).not.toMatch(/OpenMausBot|openmausbot:\/\/|phone app/);
     });
 
-    it("says plainly when an Android phone asked for an app link this server cannot build", () => {
+    it("keeps browser pairing available without a native invite", () => {
       const out = block({ phone: "android", inviteUrl: null });
       expect(out).toContain(qrToString(url));
-      expect(out).toContain("The Android app needs the phone-app link");
-      expect(out).toContain("OMB_PUBLIC_URL");
-      expect(out).not.toContain("Scan that in the OpenMausBot app");
+      expect(out).toContain("im Browser");
+      expect(out).not.toMatch(/App|OMB_PUBLIC_URL/);
+    });
+
+    it("offers manual pairing without leaking an unsupported native invitation", () => {
+      const out = block({ url: null });
+      expect(out).toContain("/pair unter der Adresse dieses Servers");
+      expect(out).toContain("Kopplungscode: ABCD-EFGH-JKLM");
+      expect(out).not.toContain(invite);
+      expect(out).not.toContain(qrToString(invite));
     });
   });
 
@@ -136,9 +136,9 @@ describe("openmausbot command line", () => {
       { id: "b2", label: "", scopes: ["client"], lastSeenAt: now - 3 * 3_600_000, expiresAt: now + 86_400_000 },
     ], now);
     expect(table).toContain("My MacBook");
-    expect(table).toContain("(unnamed)");
-    expect(table).toMatch(/a1\s+My MacBook\s+admin\s+just now/);
-    expect(table).toMatch(/b2\s+\(unnamed\)\s+client\s+3 h ago/);
+    expect(table).toContain("(unbenannt)");
+    expect(table).toMatch(/a1\s+My MacBook\s+admin\s+gerade eben/);
+    expect(table).toMatch(/b2\s+\(unbenannt\)\s+client\s+vor 3 Std./);
     expect(table).toContain("sessions revoke <id>");
   });
 
@@ -162,10 +162,10 @@ describe("openmausbot command line", () => {
     child.stderr.on("data", (c) => (out += String(c)));
     try {
       const deadline = Date.now() + 60_000;
-      while (!out.includes("open or scan:") && Date.now() < deadline && child.exitCode === null) await new Promise((r) => setTimeout(r, 200));
-      expect(out).toContain(`OpenMausBot is running on http://127.0.0.1:${port}, reachable at https://mini.example`);
-      expect(out).toMatch(/pairing code:  [A-Z2-9]{4}-[A-Z2-9]{4}-[A-Z2-9]{4}/);
-      expect(out).toContain("open or scan:  https://mini.example/pair#code=");
+      while (!out.includes("Öffnen oder scannen:") && Date.now() < deadline && child.exitCode === null) await new Promise((r) => setTimeout(r, 200));
+      expect(out).toContain(`SPDBot läuft unter http://127.0.0.1:${port}, erreichbar unter https://mini.example`);
+      expect(out).toMatch(/Kopplungscode: [A-Z2-9]{4}-[A-Z2-9]{4}-[A-Z2-9]{4}/);
+      expect(out).toContain("Öffnen oder scannen: https://mini.example/pair#code=");
       expect(out).toMatch(/[▀▄█]/);
       const descriptor: any = await (await fetch(`http://127.0.0.1:${port}/.well-known/openmausbot/environment`)).json();
       expect(descriptor.label).toBe("cli test");
@@ -228,7 +228,8 @@ describe("terminal onboarding commands", () => {
     expect(setup.runSetup).toHaveBeenCalledWith({ dataDir: options.dataDir, port: options.port });
     expect(setup.isSetupComplete).not.toHaveBeenCalled();
     expect(serve).not.toHaveBeenCalled();
-    expect(output.log).toHaveBeenCalledWith(expect.stringContaining("Start with: openmausbot"));
+    expect(output.log).toHaveBeenCalledWith(expect.stringContaining("Starte mit: pnpm spdbot"));
+    expect(output.log.mock.calls.flat().join("\n")).not.toMatch(/OpenMausBot|npx openmausbot/);
     expect(phoneSetup).toHaveBeenCalledOnce();
     expect(setup.saveCliStartup).toHaveBeenCalledWith(options.dataDir, { access: "local" });
   });
@@ -264,7 +265,7 @@ describe("terminal onboarding commands", () => {
     expect(await runOnboardingCommand(command(name), output, serve, flow)).toBe(1);
     expect(setup.runSetup).not.toHaveBeenCalled();
     expect(serve).not.toHaveBeenCalled();
-    expect(output.error).toHaveBeenCalledWith(expect.stringContaining("interactive terminal"));
+    expect(output.error).toHaveBeenCalledWith(expect.stringMatching(/interaktive[sn] Terminal/));
   });
 
   it.each([false, new SetupCancelled()])("does not start after setup is cancelled (%s)", async (result) => {
@@ -305,7 +306,7 @@ describe("terminal onboarding commands", () => {
     expect(await runOnboardingCommand(command("start"), output, serve, flow)).toBe(130);
     expect(serve).not.toHaveBeenCalled();
     expect(setup.saveCliStartup).not.toHaveBeenCalled();
-    expect(output.log).toHaveBeenCalledWith(expect.stringContaining("already saved is kept"));
+    expect(output.log).toHaveBeenCalledWith(expect.stringContaining("Bereits gespeicherte KI-Einstellungen bleiben erhalten"));
   });
 
   it("reopens an already-running workspace without setup, pairing, or a second server", async () => {
@@ -338,7 +339,7 @@ describe("terminal onboarding commands", () => {
     const output = io();
     const serve = vi.fn();
     expect(await runOnboardingCommand({ ...command("start"), local: true }, output, serve, flow)).toBe(1);
-    expect(output.error).toHaveBeenCalledWith(expect.stringContaining("current connection was not changed"));
+    expect(output.error).toHaveBeenCalledWith(expect.stringContaining("aktuelle Verbindung wurde nicht verändert"));
     expect(open).not.toHaveBeenCalled();
     expect(serve).not.toHaveBeenCalled();
   });
@@ -349,7 +350,7 @@ describe("terminal onboarding commands", () => {
     setup.isSetupComplete.mockResolvedValue(true);
     const options = { ...command("start"), publicUrl: "https://user:secret@example.com" };
     const serve = vi.fn();
-    await expect(runOnboardingCommand(options, io(), serve, flow)).rejects.toThrow("address was not saved");
+    await expect(runOnboardingCommand(options, io(), serve, flow)).rejects.toThrow("Adresse wurde nicht gespeichert");
     expect(setup.saveCliStartup).not.toHaveBeenCalled();
     expect(serve).not.toHaveBeenCalled();
   });
@@ -366,7 +367,7 @@ describe("saved startup access", () => {
   });
   it("refuses a saved URL that embeds a credential or points to localhost", () => {
     for (const publicUrl of ["https://localhost", "https://user:secret@example.com", "https://example.com/pair#code=secret"])
-      expect(() => applyStartupPreferences(options(), { access: "public-url", publicUrl })).toThrow("not a valid HTTPS origin");
+      expect(() => applyStartupPreferences(options(), { access: "public-url", publicUrl })).toThrow("kein gültiger HTTPS-Ursprung");
   });
 });
 
@@ -408,7 +409,7 @@ describe.skipIf(process.platform === "win32")("serve --tunnel", () => {
     child.stderr?.on("data", (chunk) => (err += String(chunk)));
     try {
       expect(await exited(child)).toBe(1);
-      expect(err).toContain("run `openmausbot login` first");
+      expect(err).toContain("kein Dienstkonto eingerichtet");
       let dead = false;
       try {
         await fetch(`http://127.0.0.1:${port}/api/health`);
@@ -458,9 +459,9 @@ describe.skipIf(process.platform === "win32")("serve --tunnel", () => {
     const gateway = `http://127.0.0.1:${originPort}`;
     try {
       const deadline = Date.now() + 60_000;
-      while (!out.includes("OpenMausBot is running") && Date.now() < deadline && child.exitCode === null) await new Promise((r) => setTimeout(r, 200));
+      while (!out.includes("SPDBot läuft") && Date.now() < deadline && child.exitCode === null) await new Promise((r) => setTimeout(r, 200));
       expect(out).toContain("using the installation credential from OMB_INSTALLATION_CREDENTIAL");
-      expect(out).toContain(`reachable at ${stub.endpointUrl}`);
+      expect(out).toContain(`erreichbar unter ${stub.endpointUrl}`);
       expect(existsSync(join(dataDir, "tunnel-account.json"))).toBe(false);
       let status = 0;
       const gatewayDeadline = Date.now() + 20_000;
@@ -510,9 +511,9 @@ describe.skipIf(process.platform === "win32")("serve --tunnel", () => {
     const gateway = `http://127.0.0.1:${originPort}`;
     try {
       const deadline = Date.now() + 60_000;
-      while (!out.includes("open or scan:") && Date.now() < deadline && child.exitCode === null) await new Promise((r) => setTimeout(r, 200));
-      expect(out).toContain(`OpenMausBot is running on http://127.0.0.1:${port}, reachable at ${stub.endpointUrl}`);
-      expect(out).toContain(`open or scan:  ${stub.endpointUrl}/pair#code=`);
+      while (!out.includes("Öffnen oder scannen:") && Date.now() < deadline && child.exitCode === null) await new Promise((r) => setTimeout(r, 200));
+      expect(out).toContain(`SPDBot läuft unter http://127.0.0.1:${port}, erreichbar unter ${stub.endpointUrl}`);
+      expect(out).toContain(`Öffnen oder scannen: ${stub.endpointUrl}/pair#code=`);
       expect(stub.calls).toContain("POST /v1/installations/self/endpoint");
 
       let descriptor: Response | null = null;
@@ -533,7 +534,7 @@ describe.skipIf(process.platform === "win32")("serve --tunnel", () => {
       expect(((await stranger.json()) as { error: string }).error).toMatch(/through a proxy/);
       expect(await (await fetch(`${gateway}/api/health`)).json()).toEqual({ app: "openmausbot" });
       expect(typeof ((await (await fetch(`http://127.0.0.1:${port}/api/health`)).json()) as { pid: unknown }).pid).toBe("number");
-      const match = /pairing code:  ([A-Z2-9-]+)/.exec(out);
+      const match = /Kopplungscode: ([A-Z2-9-]+)/.exec(out);
       expect(match).toBeTruthy();
       const paired = await fetch(`${gateway}/api/auth/pair`, {
         method: "POST",
@@ -572,7 +573,7 @@ describe("openmausbot access", () => {
     const base = { command: "access" as const, port: 1, dataDir, tailscale: false, tunnel: false, client: false, pair: true, json: false };
     try {
       expect(await runAccess({ ...base, accessAction: "list" }, io)).toBe(0);
-      expect(out.at(-1)).toMatch(/pairing codes only/);
+      expect(out.at(-1)).toMatch(/nur Kopplungscodes/);
       expect(await runAccess({ ...base, accessAction: "add", email: "Her@Example.test" }, io)).toBe(0);
       expect(await runAccess({ ...base, accessAction: "add", email: "@agentada.test", chatOnly: true }, io)).toBe(0);
       expect(await runAccess({ ...base, accessAction: "add", email: "not-an-email" }, io)).toBe(2);
@@ -582,7 +583,7 @@ describe("openmausbot access", () => {
       expect(JSON.parse(readFileSync(join(dataDir, "config.json"), "utf8")).signIn).toEqual({ admins: [], members: ["@agentada.test", "her@example.test"] });
       out.length = 0;
       expect(await runAccess({ ...base, accessAction: "list" }, io)).toBe(0);
-      expect(out.join("\n")).toMatch(/@agentada.test\s+chat and approvals/);
+      expect(out.join("\n")).toMatch(/@agentada.test\s+Chat und Freigaben/);
       expect(await runAccess({ ...base, accessAction: "remove", email: "her@example.test" }, io)).toBe(0);
       expect(await runAccess({ ...base, accessAction: "remove", email: "her@example.test" }, io)).toBe(1);
       expect(JSON.parse(readFileSync(join(dataDir, "config.json"), "utf8")).signIn).toEqual({ admins: [], members: ["@agentada.test"] });
@@ -617,10 +618,10 @@ describe.skipIf(process.platform === "win32")("serve --domain", () => {
     child.stderr?.on("data", (chunk) => (out += String(chunk)));
     try {
       const deadline = Date.now() + 60_000;
-      while (!out.includes("open or scan:") && Date.now() < deadline && child.exitCode === null) await new Promise((r) => setTimeout(r, 200));
-      expect(out).toContain(`OpenMausBot is running on http://127.0.0.1:${port}, reachable at https://omb.example.test`);
+      while (!out.includes("Öffnen oder scannen:") && Date.now() < deadline && child.exitCode === null) await new Promise((r) => setTimeout(r, 200));
+      expect(out).toContain(`SPDBot läuft unter http://127.0.0.1:${port}, erreichbar unter https://omb.example.test`);
       expect(out).toContain("https: Caddy serves https://omb.example.test");
-      expect(out).toContain("open or scan:  https://omb.example.test/pair#code=");
+      expect(out).toContain("Öffnen oder scannen: https://omb.example.test/pair#code=");
       const args = readFileSync(join(home, "caddy-args.txt"), "utf8").trim();
       expect(args).toMatch(/^run --config .*Caddyfile --adapter caddyfile$/);
       const caddyfile = readFileSync(join(dataDir, "caddy", "Caddyfile"), "utf8");

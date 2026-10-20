@@ -13,7 +13,7 @@ export interface SetupIo {
 
 export class SetupCancelled extends Error {
   constructor() {
-    super("Setup cancelled.");
+    super("Einrichtung abgebrochen.");
     this.name = "SetupCancelled";
   }
 }
@@ -74,7 +74,7 @@ export function defaultSetupIo(input: TerminalInput = process.stdin, output: Ter
     && (output.columns ?? 80) >= 30 && (output.rows ?? 24) >= 8;
 
   const run = <T>(prompt: (context: PromptContext) => Promise<T | symbol>): Promise<T> => {
-    if (!input.isTTY || !input.setRawMode) throw new Error("Setup needs an interactive terminal.");
+    if (!input.isTTY || !input.setRawMode) throw new Error("Die Einrichtung benötigt ein interaktives Terminal.");
     const raw = input.isRaw === true;
     const flowing = input.readableFlowing === true;
     const controller = new AbortController();
@@ -147,9 +147,9 @@ export function defaultSetupIo(input: TerminalInput = process.stdin, output: Ter
     : plainText(displayText(question), true, context));
 
   const choose: SetupIo["choose"] = async (question, options, defaultIndex = 0) => {
-    if (!options.length) throw new Error("There are no choices available.");
+    if (!options.length) throw new Error("Es stehen keine Optionen zur Auswahl.");
     if (!Number.isInteger(defaultIndex) || defaultIndex < 0 || defaultIndex >= options.length) {
-      throw new Error("The default choice is not available.");
+      throw new Error("Die Standardauswahl ist nicht verfügbar.");
     }
     if (rich()) return run((context) => select({
       ...context,
@@ -165,28 +165,28 @@ export function defaultSetupIo(input: TerminalInput = process.stdin, output: Ter
       log(question);
       options.slice(start, start + pageSize).forEach((label, offset) => {
         const index = start + offset;
-        log(`  ${index + 1}. ${label}${index === defaultIndex ? " (default)" : ""}`);
+        log(`  ${index + 1}. ${label}${index === defaultIndex ? " (Standard)" : ""}`);
       });
       const paged = options.length > pageSize;
-      if (paged) log(`Showing ${start + 1}–${Math.min(start + pageSize, options.length)} of ${options.length}. Type n/p for next/previous page.`);
-      const answer = (await ask(`Choose 1–${options.length} [${defaultIndex + 1}]: `)).trim();
+      if (paged) log(`${start + 1}–${Math.min(start + pageSize, options.length)} von ${options.length}. Mit n/p zur nächsten/vorherigen Seite.`);
+      const answer = (await ask(`Wähle 1–${options.length} [${defaultIndex + 1}]: `)).trim();
       if (!answer) return defaultIndex;
       if (paged && /^[np]$/i.test(answer)) {
         start = Math.max(0, Math.min(Math.floor((options.length - 1) / pageSize) * pageSize, start + (answer.toLowerCase() === "n" ? pageSize : -pageSize)));
         continue;
       }
       if (/^\d+$/.test(answer) && Number(answer) >= 1 && Number(answer) <= options.length) return Number(answer) - 1;
-      log(`Enter a number from 1 to ${options.length}.`);
+      log(`Gib eine Zahl von 1 bis ${options.length} ein.`);
     }
   };
   const confirm: SetupIo["confirm"] = async (question, defaultYes = false) => {
-    if (rich()) return run((context) => clackConfirm({ ...context, message: displayText(question), initialValue: defaultYes }));
+    if (rich()) return run((context) => clackConfirm({ ...context, message: displayText(question), active: "Ja", inactive: "Nein", initialValue: defaultYes }));
     for (;;) {
       const answer = (await ask(`${question} ${defaultYes ? "[Y/n]" : "[y/N]"}: `)).trim();
       if (!answer) return defaultYes;
       if (/^y(es)?$/i.test(answer)) return true;
       if (/^n(o)?$/i.test(answer)) return false;
-      log("Enter yes or no.");
+      log("Gib yes (ja) oder no (nein) ein.");
     }
   };
   return { log, ask, secret, choose, confirm };

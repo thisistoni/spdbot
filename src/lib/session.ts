@@ -1,3 +1,5 @@
+import { t } from "./i18n";
+
 export interface EnvironmentDescriptor {
   environmentId: string;
   label: string;
@@ -83,7 +85,7 @@ export function takeInvitedEmailFromLocation(): string | null {
 export function defaultDeviceLabel(userAgent: string = navigator.userAgent): string {
   const browser = /Edg\//.test(userAgent) ? "Edge" : /OPR\//.test(userAgent) ? "Opera" : /Chrome\//.test(userAgent) ? "Chrome" : /Firefox\//.test(userAgent) ? "Firefox" : /Safari\//.test(userAgent) ? "Safari" : "Browser";
   const os = /iPhone/.test(userAgent) ? "iPhone" : /iPad/.test(userAgent) ? "iPad" : /Android/.test(userAgent) ? "Android" : /Mac OS X/.test(userAgent) ? "Mac" : /Windows/.test(userAgent) ? "Windows" : /Linux/.test(userAgent) ? "Linux" : "";
-  return os ? `${browser} on ${os}` : browser;
+  return os ? t("pairPage.deviceOn", { browser, os }) : browser;
 }
 
 /** A retry with the same id returns the same session, and nobody who merely shares this address can guess it. */

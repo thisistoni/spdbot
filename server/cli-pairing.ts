@@ -2,8 +2,7 @@
 // owner just by being here, so it signs in once with the link printed for it.
 import qrcode from "qrcode-terminal";
 
-/** `url` opens the web app (browsers, the iOS app); `inviteUrl` (openmausbot://) is the only thing the Android app scans;
- * `localUrl` signs in a browser on this computer. */
+/** Render the existing web pairing URL only; native-app invitation fields stay wire-compatible but are not advertised. */
 export function pairingBlock(input: {
   code: string;
   url: string | null;
@@ -13,42 +12,25 @@ export function pairingBlock(input: {
   hint?: string | null;
   phone?: "ios" | "android";
 }): string {
-  const lines = [`pairing code:  ${input.code}`, `expires:       ${new Date(input.expiresAt).toLocaleTimeString()} (single use)`];
-  if (input.localUrl) lines.push(`this computer: ${input.localUrl}`);
-  if (!input.url && !input.inviteUrl) {
-    lines.push(`open:          /pair on the address you use for this server, and type the code`);
-    if (input.hint) lines.push(`               (${input.hint})`);
+  const lines = [`Kopplungscode: ${input.code}`, `Läuft ab:      ${new Date(input.expiresAt).toLocaleTimeString()} (einmalig verwendbar)`];
+  if (input.localUrl) lines.push(`Dieser Computer: ${input.localUrl}`);
+  // Only the existing web route is advertised. This product has no native mobile app.
+  if (!input.url) {
+    lines.push("Öffne /pair unter der Adresse dieses Servers und gib den Code ein.");
+    lines.push("Für einen Telefonlink brauchst du eine erreichbare HTTPS-Adresse (SPDBOT_PUBLIC_URL).");
     return lines.join("\n");
   }
-  const scanInvite = input.phone === "android" && !!input.inviteUrl;
-  if (input.url) lines.push(scanInvite ? `web browser:   ${input.url}` : `open or scan:  ${input.url}`);
-  if (input.inviteUrl) lines.push(`phone app:     ${input.inviteUrl}`);
-  const target = scanInvite ? input.inviteUrl! : input.url;
-  if (target) {
-    lines.push("");
-    lines.push(qrToString(target));
-    lines.push("");
-    if (scanInvite) {
-      lines.push(`Scan that in the OpenMausBot app. For a browser instead, open the web`);
-      lines.push(`address above and type the code.`);
-    } else if (input.phone === "android") {
-      lines.push(`That QR opens the web app. The Android app needs the phone-app link,`);
-      lines.push(`which this server cannot build without a public address: set`);
-      lines.push(`OMB_PUBLIC_URL, or open the web address above and type the code.`);
-    } else if (input.inviteUrl) {
-      lines.push(`Scan that with Camera for the browser, or paste the phone-app link`);
-      lines.push(`above into the OpenMausBot app.`);
-    }
-  }
+  lines.push(`Öffnen oder scannen: ${input.url}`, "", qrToString(input.url), "");
+  lines.push("Scanne den QR-Code mit der Kamera oder öffne die Adresse im Browser.");
   return lines.join("\n");
 }
 
 /** The guided start's one sign-in, for the browser it opens on this computer. */
 export function browserSignInLines(localUrl: string, code: string, expiresAt: number): string {
   return [
-    "Sign in from a browser on this computer with this link (single use, until",
+    "Melde dich im Browser auf diesem Computer mit diesem Link an (einmalig verwendbar, bis",
     `${new Date(expiresAt).toLocaleTimeString()}): ${localUrl}`,
-    `or type the code ${code} on the sign-in page. Later: openmausbot pair`,
+    `Oder gib den Code ${code} auf der Anmeldeseite ein. Später erneut koppeln: pnpm pair`,
   ].join("\n");
 }
 

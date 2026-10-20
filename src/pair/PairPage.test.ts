@@ -7,14 +7,14 @@ vi.mock("react", async original => ({ ...await original<typeof import("react")>(
 vi.mock("../lib/session", async original => ({ ...await original<typeof import("../lib/session")>(), pairWithCode: f.pair, readSessionState: vi.fn().mockResolvedValue({ kind: "unauthenticated", error: "" }) }));
 vi.mock("../components/DesktopWorkspaceSwitcher", () => ({ DesktopWorkspaceSwitcher: () => null }));
 import { PairPage, pairIntro, pairsAutomatically } from "./PairPage";
-import en from "../locales/en.json";
+import { setLocale } from "../lib/i18n";
 
 const code = "ABCD-EFGH-JK23";
 const render = (initialCode: string | null) => { f.effects = []; return renderToStaticMarkup(createElement(PairPage, { initialCode })); };
 const flush = async () => { for (let i = 0; i < 10; i++) await Promise.resolve(); };
 let replaced: string[];
 beforeEach(() => {
-  f.pair.mockReset(); replaced = [];
+  setLocale("en"); f.pair.mockReset(); replaced = [];
   vi.stubGlobal("location", { replace: (url: string) => replaced.push(url) });
   vi.stubGlobal("fetch", vi.fn().mockResolvedValue({ ok: false }));
 });
@@ -30,7 +30,7 @@ it("opening My Cloud from the app needs no click and no code to type", async () 
   vi.stubGlobal("window", { ogb: { workspaces: {} } });
   f.pair.mockResolvedValue({ ok: true });
   const html = render(code);
-  expect(html).toContain("Connecting to this OpenMausBot…");
+  expect(html).toContain("Connecting to this SPDBot…");
   expect(html).not.toContain("Pairing code"); expect(html).not.toContain("<form");
   f.effects[0](); await flush();
   expect(f.pair).toHaveBeenCalledExactlyOnceWith(expect.objectContaining({ code }));
@@ -53,10 +53,22 @@ it("a browser keeps the code in the form for the person to confirm", () => {
 
 it("My Cloud says where its connection starts, never 'the code shown on the server'", () => {
   const cloud = pairIntro({ mode: "code", sent: false, email: "", cloudHome: true });
-  expect(cloud).toContain(`choose ${en["cloudHome.connect"]} in the OpenMausBot app`);
-  expect(cloud).toContain(`Settings → ${en["settings.section.cloudAccount"]}`);
-  expect(cloud).toContain("on your Plan page");
+  expect(cloud).toContain("fresh connection link from its service provider");
+  expect(cloud).not.toMatch(/MausBot|Settings|Plan page/);
   expect(cloud).not.toContain("shown on the server");
   expect(pairIntro({ mode: "code", sent: false, email: "", cloudHome: false })).toContain("shown on the server");
   expect(pairIntro({ mode: "email", sent: true, email: "a@b.test", cloudHome: false })).toContain("a@b.test");
+});
+
+it("renders German pairing, email instructions and the automatic connection transition", () => {
+  setLocale("de");
+  vi.stubGlobal("window", {});
+  const form = render(code);
+  expect(form).toContain("Kopplungscode");
+  expect(form).toContain("Dieses Gerät");
+  expect(form).toContain(">Verbinden</button>");
+  expect(form).not.toMatch(/OpenMausBot|Connecting|Pairing code|This device/);
+  expect(pairIntro({ mode: "email", sent: true, email: "a@b.test", cloudHome: false })).toContain("achtstelligen Code an a@b.test");
+  vi.stubGlobal("window", { ogb: { workspaces: {} } });
+  expect(render(code)).toContain("Verbindung mit diesem SPDBot wird hergestellt…");
 });

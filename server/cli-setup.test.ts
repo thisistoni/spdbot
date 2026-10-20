@@ -96,11 +96,13 @@ describe("native provider onboarding", () => {
       expect(deps.runCli).not.toHaveBeenCalled();
       expect(deps.models).not.toHaveBeenCalled();
       expect(deps.verify).not.toHaveBeenCalled();
-      expect(ui.io.choose.mock.calls[1]?.[1]).toEqual(["Fixture default", "Fixture selected", "Search models…"]);
+      expect(ui.io.choose.mock.calls[1]?.[1]).toEqual(["Fixture default", "Fixture selected", "Modelle suchen…"]);
       expect(loadConfig().defaultModelSelection).toEqual({ instanceId: id, model: "fixture-selected" });
       expect(loadConfig().instances?.[id]).toEqual({ driver, enabled: true });
       expect(loadConfig().instances?.openaiCompat.driver).toBe("openai-compat");
-      expect(ui.lines.join("\n")).toContain("Existing sign-in found");
+      expect(ui.lines.join("\n")).toContain("Vorhandene Anmeldung gefunden");
+      expect(ui.lines.join("\n")).toContain("Willkommen bei SPDBot");
+      expect(ui.lines.join("\n")).not.toMatch(/OpenMausBot|npx openmausbot/);
       expect(await isSetupComplete(DATA_DIR)).toBe(true);
       ui.assertConsumed();
       expectLeaseReleased();
@@ -142,8 +144,8 @@ describe("native provider onboarding", () => {
     deps.inspect.mockResolvedValue({ snapshot: { state: "available", authenticated: false }, models });
     const ui = prompts({ choices: [0, 0, 2] });
     expect(await runSetup(options, ui.io, deps)).toBe(false);
-    expect(ui.lines.join("\n")).toContain("Sign-in was not confirmed");
-    expect(ui.lines.join("\n")).not.toContain("Test reply received");
+    expect(ui.lines.join("\n")).toContain("Die Anmeldung wurde nicht bestätigt");
+    expect(ui.lines.join("\n")).not.toContain("Testantwort erhalten");
     expect(readFileSync(configPath, "utf8")).toBe(original);
     expectLeaseReleased();
   });
@@ -187,7 +189,7 @@ describe("native provider onboarding", () => {
     });
     const ui = prompts({ choices: [0, 1], confirms: [true] });
     expect(await runSetup(options, ui.io, deps)).toBe(true);
-    expect(ui.io.choose.mock.calls[1]?.[1]).toEqual(["id-only", "unnamed", "Search models…"]);
+    expect(ui.io.choose.mock.calls[1]?.[1]).toEqual(["id-only", "unnamed", "Modelle suchen…"]);
     expect(loadConfig().defaultModelSelection?.model).toBe("unnamed");
     ui.assertConsumed();
   });
@@ -206,7 +208,7 @@ describe("native provider onboarding", () => {
     deps.inspect.mockResolvedValue({ snapshot: { state: "unavailable" }, models });
     const ui = prompts({ choices: [0, 2] });
     expect(await runSetup(options, ui.io, deps)).toBe(false);
-    expect(ui.lines.join("\n")).toContain("custom CLI path is unavailable");
+    expect(ui.lines.join("\n")).toContain("benutzerdefinierter CLI-Pfad ist nicht verfügbar");
     expect(deps.runCli).not.toHaveBeenCalled();
     expect(readFileSync(configPath, "utf8")).toBe(original);
     expectLeaseReleased();
@@ -343,7 +345,7 @@ describe("API onboarding", () => {
 
     expect(deps.models).toHaveBeenCalledWith("https://api.openai.com/v1", "new-fixture-secret");
     expect(deps.verify).toHaveBeenCalledWith("https://api.openai.com/v1", "new-fixture-secret", "fixture-selected");
-    expect(ui.io.confirm.mock.calls[0]?.[0]).toMatch(/may charge/);
+    expect(ui.io.confirm.mock.calls[0]?.[0]).toMatch(/kann diese Anfrage berechnen/);
     expect(ui.io.confirm.mock.invocationCallOrder[0]).toBeLessThan(deps.verify.mock.invocationCallOrder[0]!);
     expect(deps.verify.mock.invocationCallOrder[0]).toBeLessThan(ui.io.confirm.mock.invocationCallOrder[1]!);
     const saved = JSON.parse(readFileSync(configPath, "utf8"));
@@ -355,8 +357,8 @@ describe("API onboarding", () => {
     expect(saved).toMatchObject({ openaiCompat: existing.openaiCompat, xai: existing.xai, profile: existing.profile, futureSetting: existing.futureSetting });
     expect(readFileSync(join(DATA_DIR, "bots.json"), "utf8")).toBe(sentinel);
     expect(readFileSync(join(DATA_DIR, "messages-existing-thread.json"), "utf8")).toBe(transcript);
-    expect(ui.lines.join("\n")).toMatch(/billed separately/);
-    expect(ui.lines.join("\n")).toMatch(/plaintext/);
+    expect(ui.lines.join("\n")).toMatch(/getrennt/);
+    expect(ui.lines.join("\n")).toMatch(/Klartext/);
     expect(ui.lines.join("\n")).not.toContain("new-fixture-secret");
     if (process.platform !== "win32") expect(statSync(configPath).mode & 0o777).toBe(0o600);
     ui.assertConsumed();
@@ -414,7 +416,7 @@ describe("API onboarding", () => {
     });
     expect(await runSetup(options, ui.io, deps)).toBe(true);
     expect(ui.io.choose.mock.calls[1]?.[1]).toEqual([
-      "OpenAI API", "OpenRouter", "Groq", "Meta Model API", "Other OpenAI-compatible endpoint",
+      "OpenAI API", "OpenRouter", "Groq", "Meta Model API", "Anderer OpenAI-kompatibler Endpunkt",
     ]);
     expect(deps.verify).toHaveBeenCalledWith("https://custom.example.test/v1", "fixture-custom-key", "fixture-default");
     const cfg = loadConfig();
@@ -459,7 +461,7 @@ describe("API onboarding", () => {
     expect(await runSetup(options, ui.io, deps)).toBe(true);
     expect(deps.verify).toHaveBeenCalledWith("https://api.openai.com/v1", "fixture-key", "fixture-model-24");
     expect(loadConfig().defaultModelSelection?.model).toBe("fixture-model-24");
-    expect(ui.io.choose.mock.calls[3]?.[1]).toEqual(["Model 24", "Search models…"]);
+    expect(ui.io.choose.mock.calls[3]?.[1]).toEqual(["Model 24", "Modelle suchen…"]);
     ui.assertConsumed();
   });
 
@@ -472,7 +474,7 @@ describe("API onboarding", () => {
     deps.models.mockResolvedValue(Array.from({ length: 25 }, (_, index) => ({ id: `fixture-model-${index}`, label: `Model ${index}` })));
     const ui = prompts({ confirms: [true, true] });
     ui.io.choose.mockImplementation(async (question, available, defaultIndex) => {
-      if (question === "Choose your AI connection") return 3;
+      if (question === "Wähle deine KI-Verbindung") return 3;
       expect(defaultIndex).toBeDefined();
       expect(available[defaultIndex!]).toBe("Model 24");
       return defaultIndex!;
@@ -520,8 +522,8 @@ describe("connection recovery", () => {
     expect(deps.runCli).not.toHaveBeenCalled();
     expect(deps.verify).not.toHaveBeenCalled();
     expect(loadConfig().defaultModelSelection).toEqual({ instanceId: "codex", model: "fixture-default" });
-    expect(ui.lines.join("\n")).toContain("Model access is checked by the provider when you send your first message");
-    expect(ui.lines.join("\n")).not.toContain("Test reply received");
+    expect(ui.lines.join("\n")).toContain("Der Anbieter prüft den Modellzugriff, wenn du deine erste Nachricht sendest");
+    expect(ui.lines.join("\n")).not.toContain("Testantwort erhalten");
     ui.assertConsumed();
     expectLeaseReleased();
   });
@@ -553,7 +555,7 @@ describe("connection recovery", () => {
     expect(readFileSync(configPath, "utf8")).toBe(original);
     expect(readFileSync(botsPath, "utf8")).toBe('[{"id":"keep"}]');
     expect(readFileSync(messagesPath, "utf8")).toBe('[{"text":"keep conversation"}]');
-    expect(ui.lines.join("\n")).not.toContain("Setup saved");
+    expect(ui.lines.join("\n")).not.toContain("Einrichtung gespeichert");
     ui.assertConsumed();
     expectLeaseReleased();
   });
@@ -574,7 +576,7 @@ describe("connection recovery", () => {
       ["https://api.groq.com/openai/v1", "fixture-wrong-key", "fixture-default"],
       ["https://api.groq.com/openai/v1", "fixture-replacement-key", "fixture-default"],
     ]);
-    expect(ui.io.confirm.mock.calls.slice(0, 2).every(([question]) => question.includes("may charge"))).toBe(true);
+    expect(ui.io.confirm.mock.calls.slice(0, 2).every(([question]) => question.includes("kann diese Anfrage berechnen"))).toBe(true);
     for (let i = 0; i < 2; i++) {
       expect(ui.io.confirm.mock.invocationCallOrder[i]).toBeLessThan(deps.verify.mock.invocationCallOrder[i]!);
     }
@@ -637,15 +639,15 @@ describe("CLI startup preferences", () => {
   it("refuses corrupt configuration on both read and save", () => {
     const original = "{broken config";
     writeFileSync(configPath, original);
-    expect(() => readCliStartup(DATA_DIR)).toThrow("Existing config.json");
-    expect(() => saveCliStartup(DATA_DIR, { access: "local" })).toThrow("Existing config.json");
+    expect(() => readCliStartup(DATA_DIR)).toThrow("Die vorhandene config.json");
+    expect(() => saveCliStartup(DATA_DIR, { access: "local" })).toThrow("Die vorhandene config.json");
     expect(readFileSync(configPath, "utf8")).toBe(original);
     expectLeaseReleased();
   });
 
   it("refuses a different data directory without reading or writing it", () => {
-    expect(() => readCliStartup(join(DATA_DIR, "wrong"))).toThrow("data directory mismatch");
-    expect(() => saveCliStartup(join(DATA_DIR, "wrong"), { access: "local" })).toThrow("data directory mismatch");
+    expect(() => readCliStartup(join(DATA_DIR, "wrong"))).toThrow("Das Datenverzeichnis stimmt nicht");
+    expect(() => saveCliStartup(join(DATA_DIR, "wrong"), { access: "local" })).toThrow("Das Datenverzeichnis stimmt nicht");
     expect(existsSync(join(DATA_DIR, "wrong"))).toBe(false);
   });
 });
@@ -672,8 +674,8 @@ describe("setup state and write boundaries", () => {
     writeFileSync(configPath, raw);
     const ui = prompts();
     const deps = dependencies();
-    await expect(runSetup(options, ui.io, deps)).rejects.toThrow("Existing config.json");
-    await expect(isSetupComplete(DATA_DIR)).rejects.toThrow("Existing config.json");
+    await expect(runSetup(options, ui.io, deps)).rejects.toThrow("Die vorhandene config.json");
+    await expect(isSetupComplete(DATA_DIR)).rejects.toThrow("Die vorhandene config.json");
     expect(readFileSync(configPath, "utf8")).toBe(raw);
     expect(ui.io.choose).not.toHaveBeenCalled();
     expect(deps.inspect).not.toHaveBeenCalled();

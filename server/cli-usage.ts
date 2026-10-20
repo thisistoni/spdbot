@@ -1,95 +1,74 @@
 export { HEADLESS_VERBS as HEADLESS_VERB_NAMES } from "./headless/args.ts";
 
-export const HEADLESS_USAGE = `Drive a running workspace (scripts, CI, other agents):
-  openmausbot doctor                    check the server answers and an engine is ready
-  openmausbot bots | channels | models  your bots, your rooms, the engines and their models
-  openmausbot run BOT "do this"         give a bot one job and wait until it and every teammate it asked are done
-  openmausbot send BOT "text"           send one message and return at once
-  openmausbot wait BOT                  wait on work already running
-  openmausbot messages BOT              the latest messages of a conversation
-  openmausbot interrupt BOT [--tree]    press Stop (--tree: and every teammate on its job)
-  openmausbot export BOT --out DIR      write a job's transcripts, files and screens to DIR
-  openmausbot events [--job THREAD]     the server's live events as JSON lines
-  openmausbot team apply FILE           make the workspace match a team file (team export writes one)
-  openmausbot engine set claude --key-env ANTHROPIC_API_KEY   give it an engine without a screen
-  openmausbot connect URL --code CODE --out FILE              get a token for a workspace elsewhere
-  openmausbot new-bot | new-channel | set-model | edit | mcp
+export const HEADLESS_USAGE = `Einen laufenden Arbeitsbereich steuern (Skripte, CI, andere Agenten):
+  pnpm spdbot doctor                    Serververbindung und verfügbare Engine prüfen
+  pnpm spdbot bots | channels | models  Bots, Gruppen, Engines und Modelle anzeigen
+  pnpm spdbot run BOT "Aufgabe"         einen Auftrag starten und auf alle beteiligten Bots warten
+  pnpm spdbot send BOT "Text"           eine Nachricht senden und sofort zurückkehren
+  pnpm spdbot wait BOT                  auf bereits laufende Arbeit warten
+  pnpm spdbot messages BOT              die letzten Nachrichten eines Chats anzeigen
+  pnpm spdbot interrupt BOT [--tree]    stoppen (--tree: auch alle beteiligten Bots)
+  pnpm spdbot export BOT --out DIR      Chatverläufe, Dateien und Bildschirmbilder nach DIR exportieren
+  pnpm spdbot events [--job THREAD]     Live-Ereignisse des Servers als JSON-Zeilen ausgeben
+  pnpm spdbot team apply FILE           den Arbeitsbereich an eine Teamdatei anpassen
+  pnpm spdbot engine set claude --key-env ANTHROPIC_API_KEY   Engine ohne Oberfläche einrichten
+  pnpm spdbot connect URL --code CODE --out FILE              Token für einen anderen Arbeitsbereich abrufen
+  pnpm spdbot new-bot | new-channel | set-model | edit | mcp
 
-  Server: --url URL (or OPENMAUSBOT_URL), --port N (or OMB_PORT), else this computer's.
-  Token: OPENMAUSBOT_TOKEN or --token-file FILE. --json prints one JSON document;
-  progress goes to stderr (--quiet drops it). openmausbot help VERB for the details.`;
+  Server: --url URL (oder SPDBOT_URL), --port N (oder SPDBOT_PORT), sonst dieser Computer.
+  Token: SPDBOT_TOKEN oder --token-file FILE. --json gibt ein JSON-Dokument aus.
+  Fortschritt erscheint auf stderr; --quiet blendet ihn aus.
+  Details zu einem Befehl: pnpm spdbot help VERB.`;
 
-export const USAGE = `openmausbot — your team of AI bots, ready in a few steps
+export const USAGE = `SPDBot: dein Team aus KI-Bots
 
-  openmausbot                         set up once, then open your workspace
-  openmausbot setup [--data-dir DIR]
-  openmausbot start [the same options as serve]
-  openmausbot serve [--port 8799] [--data-dir DIR] [--label NAME]
-                    [--public-url https://host] [--tailscale | --tunnel | --domain HOST] [--no-pair]
-  openmausbot pair  [--label NAME] [--client] [--phone ios|android]
-                    [--public-url https://host]
-  openmausbot sessions [revoke ID]
-  openmausbot status
-  openmausbot login [--email you@example.com]
-  openmausbot logout
-  openmausbot access list | add EMAIL [--chat-only] | remove EMAIL
-  openmausbot service install [--domain HOST | --tunnel | --tailscale] [--port N] [--data-dir DIR] | uninstall
-                    [--sentinel]   (the health scan below, every two minutes, instead of the server)
-  openmausbot sentinel [--data-dir DIR] [--out DIR] [--once] [--json]   (read-only health scan; see --help)
-  openmausbot browser install [--with-deps] | status
-  openmausbot fleet init --domain HOST [--operator USER] | create NAME --admin EMAIL [--member EMAIL] [--brand FILE]
-                    [--anthropic-key-file FILE] [--cap USD] [--license-key KEY] [--memory 1G]
-                  | list | users NAME add|remove EMAIL [--chat-only] | suspend NAME | resume NAME
-                  | delete NAME --yes [--keep-data] | upgrade   (all take --dry-run)
-                  | agent [--socket PATH] [--group USER]   (root; installed by init --operator)
+Befehle im Projektverzeichnis ausführen:
+  pnpm spdbot                         einmal einrichten, danach den Arbeitsbereich öffnen
+  pnpm spdbot setup [--data-dir DIR]
+  pnpm spdbot start [dieselben Optionen wie serve]
+  pnpm spdbot serve [--port 8899] [--data-dir DIR] [--label NAME]
+                    [--public-url https://host] [--tailscale | --domain HOST] [--no-pair]
+  pnpm pair [--label NAME] [--client] [--phone ios|android] [--public-url https://host]
+  pnpm spdbot sessions [revoke ID]
+  pnpm spdbot status
+  pnpm spdbot access list | add EMAIL [--chat-only] | remove EMAIL
+  pnpm spdbot service install [--domain HOST | --tailscale] [--port N] [--data-dir DIR] | uninstall
+                    [--sentinel]
+  pnpm spdbot sentinel [--data-dir DIR] [--out DIR] [--once] [--json]
+  pnpm spdbot browser install [--with-deps] | status
 
-setup   choose AI access and optional phone access; keep existing bots and chats
-start   same as openmausbot: use your saved settings and open the workspace
-serve   starts the server without prompts and prints a pairing link + QR code
-pair    mints a pairing code against a running server (--client: chat only)
-sessions lists paired devices; "sessions revoke ID" signs one out
-status  what the server says about itself
-login   signs this machine in to an OpenMausBot account (an emailed code)
-        and reserves its public address for --tunnel
-logout  releases that address and signs out
-access  who may sign in with an emailed code at /pair: an address or
-        @domain; --chat-only gives chat and approvals without settings.
-        Takes effect at once, no restart.
-service keep the server running across reboots: writes a systemd unit
-        (Linux) or a launchd agent (macOS) for the same serve options and
-        prints the commands that install it. Install the package
-        permanently first (npm install -g openmausbot).
-browser install: the bots' browser engine (agent-browser, pinned) into the
-        data dir, and Chrome for Testing into the user's browser cache.
-        --with-deps also installs
-        the Linux libraries Chrome needs (run as root once). Then run
-        browser install as the user running serve, from that user's home.
-        status: what the current user and data directory have.
-fleet   many client workspaces on one Linux server, each its own account,
-        service, data folder, brand, sign-in list and keys at NAME.HOST
-        behind the system Caddy. Plans are printed unless run as root;
-        --dry-run always prints. Install the package permanently first.
-        init --operator USER also installs the fleet agent, a root service
-        on a Unix socket only USER may open, so the workspace running as
-        USER manages the others from Settings → Installations.
+setup   KI-Zugang und optionalen Telefonzugriff einrichten. Bestehende Bots und Chats bleiben erhalten.
+start   Gespeicherte Einstellungen verwenden und den Arbeitsbereich öffnen, wie pnpm spdbot.
+serve   Server ohne Rückfragen starten und einen Kopplungslink mit QR-Code ausgeben.
+pair    Kopplungscode von einem laufenden Server abrufen. --client erlaubt nur Chats und Freigaben.
+sessions Gekoppelte Geräte anzeigen. Mit sessions revoke ID ein Gerät abmelden.
+status  Informationen des Servers anzeigen.
+access  Festlegen, wer sich unter /pair per E-Mail-Code anmelden darf: eine Adresse oder @domain.
+        --chat-only erlaubt Chats und Freigaben, aber keine Einstellungen. Änderungen gelten sofort.
+service Server nach Neustarts automatisch starten. Erstellt eine systemd-Unit (Linux) oder
+        einen launchd-Agenten (macOS) und zeigt die Installationsbefehle an.
+        Verwende einen dauerhaft vorhandenen Projektordner, keinen temporären Paketcache.
+        --sentinel richtet stattdessen alle zwei Minuten eine schreibgeschützte Zustandsprüfung ein.
+sentinel Schreibgeschützte Zustandsprüfung. Weitere Optionen stehen unter --help.
+browser install installiert die festgelegte Version von agent-browser im Datenverzeichnis und
+        Chrome for Testing im Browsercache des Benutzers. --with-deps installiert zusätzlich
+        die benötigten Linux-Bibliotheken und muss dafür einmal als root ausgeführt werden.
+        Führe browser install anschließend als der Benutzer aus, der auch serve startet.
+        status zeigt die vorhandene Installation für diesen Benutzer und dieses Datenverzeichnis.
 
---tailscale  serve over your tailnet: Tailscale terminates HTTPS and the
-             link uses this machine's MagicDNS name (needs Tailscale signed in
-             and HTTPS certificates enabled for the tailnet)
---tunnel     serve at a public https://c-… address through a
-             Cloudflare tunnel: no domain, no proxy, no open port. Run
-             \`openmausbot login\` once on this machine first.
---domain     serve at https://HOST on your own domain: a pinned Caddy is
-             downloaded once and run alongside the server, and gets the
-             certificate itself. Point the domain's DNS at this machine and
-             open ports 80 and 443.
+--tailscale  Zugriff über dein Tailnet. Tailscale stellt HTTPS bereit; der Link verwendet den
+             MagicDNS-Namen dieses Computers. Tailscale muss angemeldet sein und HTTPS-Zertifikate
+             müssen für das Tailnet aktiviert sein.
+--domain     Zugriff über https://HOST auf deiner eigenen Domain. Eine festgelegte Caddy-Version
+             wird einmal heruntergeladen, läuft neben dem Server und bezieht das Zertifikat.
+             Richte den DNS-Eintrag auf diesen Computer aus und öffne die Ports 80 und 443.
 
---no-open   do not open a browser window
---no-pair   skip phone setup and do not print a pairing code
---local     start locally this time, ignoring saved remote-access settings
+--no-open   Kein Browserfenster öffnen.
+--no-pair   Telefoneinrichtung überspringen und keinen Kopplungscode ausgeben.
+--local     Diesmal lokal starten; gespeicherte Fernzugriffseinstellungen nicht verwenden.
 
 ${HEADLESS_USAGE}
 
-Install once with \`npm install -g openmausbot\`, then type \`openmausbot\`.
-Or run without a global install: \`npx openmausbot\`. Node 24+ is required.
+Voraussetzung: Node 24+ und die in package.json festgelegte pnpm-Version.
+SPDBot wird aus diesem Projekt mit pnpm spdbot gestartet. Es gibt kein veröffentlichtes npm-Paket.
 `;

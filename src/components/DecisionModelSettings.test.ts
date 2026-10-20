@@ -162,7 +162,7 @@ describe("DecisionModelSettings", () => {
   it("shows Cloud Pro's included decisions as included, on, with nothing to clear", () => {
     fixture.config = status({ provider: "jev", configured: true, included: true, enabled: true, jobs: { roomRouting: true } });
     const view = render();
-    expect(view.html).toContain("Included with your Cloud plan");
+    expect(view.html).toContain("Included by your connected service");
     expect(view.html).not.toContain("Connected");
     expect(view.html).not.toContain("Not connected");
     expect(view.html).not.toContain("Save a key below to turn this on.");
@@ -180,7 +180,7 @@ describe("DecisionModelSettings", () => {
     fixture.config = status({ provider: "jev", configured: true, enabled: true, jobs: { roomRouting: true } });
     const view = render();
     expect(view.html).toContain("Connected");
-    expect(view.html).not.toContain("Included with your Cloud plan");
+    expect(view.html).not.toContain("Included by your connected service");
     expect(view.html).toContain("Clear");
     expect(view.save.props.disabled).toBe(false);
   });
@@ -211,9 +211,9 @@ describe("DecisionModelSettings", () => {
     expect(fixture.api).toHaveBeenLastCalledWith("/api/decider/test", { method: "POST", body: "{}" });
     expect(render().html).toContain("Jev answered in 210 ms.");
     for (const [result, text] of [
-      [{ ok: false, reason: "http_error", status: 402 }, "Decisions are included with an active Cloud subscription."],
-      [{ ok: false, reason: "rate_limited", status: 429 }, "Your Cloud plan&#x27;s decisions are busy or used up for this month. Try again later."],
-      [{ ok: false, reason: "rejected", status: 401 }, "MausBot Cloud did not accept this machine&#x27;s decisions. Try again later."],
+      [{ ok: false, reason: "http_error", status: 402 }, "The connected decision service requires an active subscription."],
+      [{ ok: false, reason: "rate_limited", status: 429 }, "Your connected decision service is busy or its monthly allowance is used up. Try again later."],
+      [{ ok: false, reason: "rejected", status: 401 }, "The connected decision service did not accept this computer’s request. Try again later."],
     ] as const) {
       fixture.api.mockResolvedValueOnce(result);
       click(render().test);
@@ -442,7 +442,7 @@ describe("DecisionModelSettings", () => {
       expect(text({ reason: "http_error", status: 500 })).toBe("OpenRouter returned an unexpected error (HTTP 500).");
       expect(text({ reason: "rate_limited" })).toBe("OpenRouter is limiting requests right now. Try again in a moment.");
       expect(text({ reason: "overloaded" })).toBe("The model is overloaded right now. Try again shortly.");
-      expect(text({ reason: "malformed" })).toBe("The model sent an answer OpenMausBot could not read. Try another model.");
+      expect(text({ reason: "malformed" })).toBe("The model sent an answer SPDBot could not read. Try another model.");
       expect(text({ reason: "unreachable" })).toBe("Could not reach OpenRouter. Check your connection.");
       expect(text({ reason: "timeout" })).toBe("OpenRouter did not answer in time. Try again.");
       expect(text({ reason: "no_key" })).toBe("Paste a key or save one first.");

@@ -1,6 +1,6 @@
 // Phone onboarding only chooses a route; the caller starts, verifies and stops it, and mints or cancels its pairing code.
 import type { CliOptions } from "./cli.ts";
-import { SetupCancelled, type SetupIo } from "./cli-prompts.ts";
+import { type SetupIo } from "./cli-prompts.ts";
 
 export type PhoneKind = "ios" | "android";
 export interface PhoneSetupResult {
@@ -34,78 +34,56 @@ export function normalizePhoneOrigin(raw: string): string | null {
 export async function runPhoneSetup(
   options: CliOptions,
   io: SetupIo,
-  deps: PhoneSetupDependencies,
+  _deps: PhoneSetupDependencies,
 ): Promise<PhoneSetupResult> {
   const skip = (): PhoneSetupResult => ({ options });
   const selected = (phone: PhoneKind, route: Partial<CliOptions> = {}): PhoneSetupResult => ({
     options: { ...options, ...route, client: true, pair: true }, phone,
   });
-  const signIn = async (): Promise<boolean> => {
-    try {
-      if (await deps.accountReady?.(options)) {
-        io.log("Your saved OpenMausBot account can be reused. The connection will be checked when the server starts.");
-        return true;
-      }
-      io.log("Sign in to an OpenMausBot account using an emailed code. This is separate from your AI provider account.");
-      if (await deps.login(options, io) === 0) return true;
-    } catch (error) {
-      if (error instanceof SetupCancelled) throw error;
-      // Account errors can carry credentials or URLs: never echo them into terminal logs.
-    }
-    io.log("Phone access could not be prepared. Your AI provider setup is still saved; you can try phone setup later.");
-    return false;
-  };
+  // This standalone product has no managed account/relay. Fail closed rather than save a local fallback.
+  if (options.tunnel) throw new Error("Verwalteter Telefonzugriff ist in SPDBot nicht verfügbar. Verwende vorhandenes Tailscale oder eine eigene HTTPS-Adresse statt --tunnel. Es wurde keine Verbindung geändert.");
   for (;;) {
-    const device = await io.choose("Use OpenMausBot on your phone?", [
-      "Skip for now",
-      "iPhone / iPad — native app or Safari",
-      "Android — app or browser",
+    const device = await io.choose("SPDBot im Browser auf deinem Telefon nutzen?", [
+      "Vorerst überspringen",
+      "iPhone / iPad – Safari",
+      "Android – Browser",
     ], 0);
     if (device === 0) return skip();
     const phone: PhoneKind = device === 1 ? "ios" : "android";
-    if (options.tunnel) return await signIn() ? selected(phone) : skip();
     if (options.tailscale) {
-      io.log("Keep Tailscale connected on both this computer and your phone, on the same tailnet.");
+      io.log("Lass Tailscale auf diesem Computer und deinem Telefon im selben Tailnet verbunden.");
       return selected(phone);
     }
     const existing = options.publicUrl ? normalizePhoneOrigin(options.publicUrl) : null;
     if (existing) {
-      io.log("Your configured HTTPS address will be checked before a phone pairing link is shown.");
+      io.log("Deine konfigurierte HTTPS-Adresse wird geprüft, bevor ein Kopplungslink für das Telefon angezeigt wird.");
       return selected(phone, { publicUrl: existing });
     }
-    io.log("This server listens only on this computer. A localhost or LAN-IP link will not connect your phone.");
+    io.log("Dieser Server lauscht nur auf diesem Computer. Ein localhost- oder LAN-IP-Link verbindet dein Telefon nicht.");
     let back = false;
     while (!back) {
-      const route = await io.choose("How should your phone reach this computer?", [
-        "Managed HTTPS address — protected by pairing",
-        "Existing Tailscale — only your tailnet",
-        "Existing HTTPS address — advanced",
-        "Back to phone choice",
-        "Skip for now",
-      ], 4);
-      if (route === 4) return skip();
-      if (route === 3) { back = true; continue; }
+      const route = await io.choose("Wie soll dein Telefon diesen Computer erreichen?", [
+        "Vorhandenes Tailscale – nur dein Tailnet",
+        "Vorhandene HTTPS-Adresse – erweiterte Einrichtung",
+        "Zurück zur Telefonauswahl",
+        "Vorerst überspringen",
+      ], 3);
+      if (route === 3) return skip();
+      if (route === 2) { back = true; continue; }
       if (route === 0) {
-        io.log("This creates a public HTTPS endpoint through Cloudflare. Chat and settings require device pairing; the sign-in page and basic server identity are public.");
-        io.log("Starting it may download the Cloudflare connector. It stays active while OpenMausBot runs; stop OpenMausBot to close the connection.");
-        if (!await io.confirm("Allow this managed public endpoint and connector download?", false)) continue;
-        if (!await signIn()) return skip();
-        return selected(phone, { tunnel: true, tailscale: false, publicUrl: undefined });
-      }
-      if (route === 1) {
-        io.log("Tailscale must already be installed and signed in on this computer and phone, with HTTPS certificates enabled for the tailnet.");
-        if (!await io.confirm("Allow OpenMausBot to serve HTTPS to your tailnet while it runs?", false)) continue;
+        io.log("Tailscale muss auf diesem Computer und dem Telefon bereits installiert und angemeldet sein. HTTPS-Zertifikate müssen für das Tailnet aktiviert sein.");
+        if (!await io.confirm("Darf SPDBot während des Betriebs HTTPS in deinem Tailnet bereitstellen?", false)) continue;
         return selected(phone, { tailscale: true, tunnel: false, publicUrl: undefined });
       }
-      io.log("Use an HTTPS reverse proxy you already configured for this server. Enter only its origin, without a password, pairing code, path, query or fragment.");
-      const answer = await io.ask("Existing HTTPS address (Enter goes back): ");
+      io.log("Verwende einen HTTPS-Reverse-Proxy, den du bereits für diesen Server eingerichtet hast. Gib nur seinen Ursprung ein, ohne Passwort, Kopplungscode, Pfad, Suchparameter oder Fragment.");
+      const answer = await io.ask("Vorhandene HTTPS-Adresse (Enter geht zurück): ");
       if (!answer.trim()) continue;
       const origin = normalizePhoneOrigin(answer);
       if (!origin) {
-        io.log("Enter a non-localhost HTTPS origin, such as https://maus.example.com. The address was not saved.");
+        io.log("Gib einen HTTPS-Ursprung ein, der nicht auf localhost zeigt, zum Beispiel https://bot.example.com. Die Adresse wurde nicht gespeichert.");
         continue;
       }
-      io.log("This does not create a proxy or open a LAN listener. Its connection will be checked before pairing.");
+      io.log("Dadurch wird weder ein Proxy erstellt noch ein LAN-Listener geöffnet. Die Verbindung wird vor der Kopplung geprüft.");
       return selected(phone, { publicUrl: origin, tunnel: false, tailscale: false });
     }
   }
@@ -118,15 +96,15 @@ export function phonePairingInstructions(
 ): string[] {
   const origin = input.origin ? normalizePhoneOrigin(input.origin) : null;
   if (!input.ready || !origin) {
-    return ["Phone access is not ready yet. No phone QR should be shown until the HTTPS connection is verified.",
-      "Your local OpenMausBot can still be used on this computer."];
+    return ["Der Telefonzugriff ist noch nicht bereit. Ein QR-Code für das Telefon darf erst nach Prüfung der HTTPS-Verbindung angezeigt werden.",
+      "Du kannst SPDBot weiterhin lokal auf diesem Computer nutzen."];
   }
   return [
     phone === "ios"
-      ? "On iPhone or iPad, scan the QR with Camera to open Safari. If you already have the OpenMausBot iOS app, use its pairing scanner or paste the full pairing link there."
-      : "On Android, open the OpenMausBot app and scan the QR with its pairing scanner. The QR is an app link, so Camera will not open it in a browser.",
-    `Or open ${origin}/pair on your phone and enter the code.`,
-    "Choose Connect on the phone. Scanning a QR does not mean the phone is paired.",
-    "The code works once and expires after five minutes. This phone receives client access: chat and approvals, not settings or pairing administration.",
+      ? "Scanne auf dem iPhone oder iPad den QR-Code mit der Kamera, um Safari zu öffnen. Eine separate SPDBot-App ist nicht erforderlich."
+      : "Scanne unter Android den QR-Code mit der Kamera, um den Browser zu öffnen. Eine separate SPDBot-App ist nicht erforderlich.",
+    `Oder öffne ${origin}/pair auf deinem Telefon und gib den Code ein.`,
+    "Wähle auf dem Telefon „Verbinden“. Das Scannen eines QR-Codes allein koppelt das Telefon noch nicht.",
+    "Der Code ist einmalig verwendbar und läuft nach fünf Minuten ab. Dieses Telefon erhält client-Zugriff: Chat und Freigaben, keine Einstellungen oder Kopplungsverwaltung.",
   ];
 }

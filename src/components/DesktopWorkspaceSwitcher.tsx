@@ -10,6 +10,10 @@ export function openServerMenu(bridge: { menu: (options?: { from?: "howto" }) =>
   return bridge.menu(howTo ? { from: "howto" } : undefined).finally(() => { if (howTo) onClosed?.(); });
 }
 
+export function workspaceDisplayName(current: { local: boolean; name: string }): string {
+  return current.local && current.name === "This computer" ? t("place.local") : current.name;
+}
+
 function AlwaysOn() {
   return <span className="font-normal text-ink-secondary"> · {t("cloudSetup.alwaysOn")}</span>;
 }
@@ -51,7 +55,7 @@ export function DesktopWorkspaceSwitcher({ compact = false, inline = false, pill
       </div>
     </div>;
   }
-  const name = current?.name ?? (cloudHome ? t("cloudSetup.myCloud") : t("sidebar.servers"));
+  const name = current ? workspaceDisplayName(current) : (cloudHome ? t("cloudSetup.myCloud") : t("sidebar.servers"));
   const Icon = current?.local === false || (cloudHome && !current) ? Cloud : Laptop;
   const shown = cloudHome ? `${name} · ${t("cloudSetup.alwaysOn")}` : name;
   const title = current?.origin ? `${shown} · ${current.origin}` : shown;

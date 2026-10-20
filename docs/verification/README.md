@@ -301,3 +301,5 @@ state. A green unit test alone does not prove a user workflow.
 Interrupt the `launch` process with Ctrl-C. It stops the exact child it owns and
 removes only its temporary data directory. The server log remains at the
 printed path. Never kill processes by name and never delete a broad temp root.
+
+- [SPDBot German interface and startup](spdbot-german-ui.md): reachable copy coverage, isolated screenshots and native/runtime limits.
