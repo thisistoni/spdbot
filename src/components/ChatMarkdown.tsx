@@ -8,7 +8,8 @@ import { fromMarkdown, type Options as MarkdownParseOptions } from "mdast-util-f
 import { Check, Copy, Download, LoaderCircle, RotateCcw, WrapText, X } from "lucide-react";
 import { useCopyFeedback } from "@/lib/copy-text";
 import { activeLocale, t } from "@/lib/i18n";
-import { remarkMentions, sameMentionPerson, type MentionPeer, type MentionPerson } from "@/lib/mentions";
+import { remarkMentions, sameMentionPerson, samePeers, type MentionPeer, type MentionPerson } from "@/lib/mentions";
+export { samePeers } from "@/lib/mentions";
 
 import {
   countLines,
@@ -1010,15 +1011,6 @@ function ChatMarkdownComponent({ text, message, mentionPeers = NO_MENTION_PEERS,
       </div>
     </MessageScopeContext.Provider>
   );
-}
-
-export function samePeers(previous: readonly MentionPeer[], next: readonly MentionPeer[]): boolean {
-  if (previous === next) return true;
-  if (previous.length !== next.length) return false;
-  return previous.every((peer, index) => {
-    const other = next[index]!;
-    return peer.name === other.name && peer.hidden === other.hidden && peer.color === other.color;
-  });
 }
 
 const MemoChatMarkdown = memo(ChatMarkdownComponent, (previous, next) => (

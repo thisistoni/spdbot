@@ -6,6 +6,7 @@ import ts from "typescript";
 import { describe, expect, it } from "vitest";
 
 import en from "./en.json";
+import de from "./de.json";
 import { locales } from "./index";
 
 const RETIRED: ReadonlyArray<readonly [string, RegExp, string]> = [
@@ -152,17 +153,22 @@ describe("one name per thing", () => {
     const myCloud = /CLOUD_HOME_NAME = "([^"]+)"/.exec(source("electron/cloud-home.mjs"))?.[1];
     const thisComputer = /id: "workspace-local", label: "([^"]+)"/.exec(source("electron/environments.cjs"))?.[1];
     const serverMenuLocal = /\{ label: "([^"]+)", type: "radio", checked: !active/.exec(source("electron/menu.mjs"))?.[1];
-    expect([myCloud, thisComputer, serverMenuLocal]).toEqual([e["cloudSetup.myCloud"], e["place.local"], e["place.local"]]);
-    const pointers: Array<[string, string[]]> = [
-      ["cloudHome.connectHelp", [e["place.local"]!]],
-      ["cloudPhone.step1", [myCloud!]],
-      ["lending.status.connectFirst", [e["cloudHome.connect"]!]],
-      ["cloudAccount.storageFailed", [e["cloudAccount.signOut"]!]],
-      ["cloudAccount.codeExpired", [e["cloudAccount.signIn"]!]],
-      ["computer.routines.offWarning", [e["routines.runsOn.boat"]!]],
-    ];
-    const stale = pointers.flatMap(([key, labels]) => labels.filter((label) => !e[key]!.includes(label)).map((label) => `${key} → ${label}`));
-    expect(stale).toEqual([]);
+    expect(myCloud).toBe(e["cloudSetup.myCloud"]);
+    // Native local menus use German; the external cloud entry keeps its actual service label.
+    expect([thisComputer, serverMenuLocal]).toEqual([de["place.local"], de["place.local"]]);
+    for (const [locale, translated] of [["en", en], ["de", de]] as const) {
+      const copy: Record<string, string> = { ...en, ...translated };
+      const pointers: Array<[string, string[]]> = [
+        ["cloudHome.connectHelp", [copy["place.local"]!]],
+        ["cloudPhone.step1", [myCloud!]],
+        ["lending.status.connectFirst", [copy["cloudHome.connect"]!]],
+        ["cloudAccount.storageFailed", [copy["cloudAccount.signOut"]!]],
+        ["cloudAccount.codeExpired", [copy["cloudAccount.signIn"]!]],
+        ["computer.routines.offWarning", [copy["routines.runsOn.boat"]!]],
+      ];
+      const stale = pointers.flatMap(([key, labels]) => labels.filter((label) => !copy[key]!.includes(label)).map((label) => `${locale}: ${key} → ${label}`));
+      expect(stale).toEqual([]);
+    }
     for (const key of ["computer.worksOnHintCloudHome", "cloudMove.leftBehindLend"]) {
       expect(e[key]).toContain("not offered in SPDBot");
       expect(e[key]).not.toContain("Settings →");

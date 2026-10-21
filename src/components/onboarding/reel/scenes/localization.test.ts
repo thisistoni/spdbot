@@ -25,7 +25,7 @@ describe("localized reel examples", () => {
       [Channels, ["@Recherche", "Zahlen der letzten Woche", "Nachricht an #Arbeit"]],
       [Hands, ["Termin um 15 Uhr", "Termin buchen", "Gebucht ✓", "clinic.example/book"]],
       [Setup, ["/setup", "beobachte Discord", "Alle 15 Min.", "~/bug-triage"]],
-      [Terminal, ["Willkommen bei SPDBot", "Dein Name", "Weiter", "npx openmausbot", "http://127.0.0.1:8799"]],
+      [Terminal, ["Willkommen bei SPDBot", "Dein Name", "Weiter", "pnpm spdbot", "http://127.0.0.1:8799"]],
     ] as const) {
       const html = renderToStaticMarkup(createElement(Scene, { playing: false, label: "Demo" }));
       for (const text of expected) expect(html).toContain(text);

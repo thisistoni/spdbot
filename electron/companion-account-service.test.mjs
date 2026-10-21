@@ -128,6 +128,23 @@ describe("Companion account service", () => {
     expect(resolveCompanionControlPlaneURL({ isPackaged: false, environment: {} })).toBe("");
   });
 
+  it("prefers the SPDBot control-plane override and never falls back from an invalid explicit value", () => {
+    expect(resolveCompanionControlPlaneURL({
+      isPackaged: true,
+      environment: { SPDBOT_CONTROL_PLANE_URL: "https://accounts.spdbot.example/", OMB_CONTROL_PLANE_URL: "https://legacy.example" },
+    })).toBe("https://accounts.spdbot.example");
+    for (const value of ["", "ftp://nope", "http://remote.example", "https://accounts.spdbot.example/path", new String("https://accounts.spdbot.example")]) {
+      expect(resolveCompanionControlPlaneURL({
+        isPackaged: true,
+        environment: { SPDBOT_CONTROL_PLANE_URL: value, OMB_CONTROL_PLANE_URL: "https://legacy.example" },
+      })).toBe("");
+    }
+    expect(resolveCompanionControlPlaneURL({
+      isPackaged: false,
+      environment: { SPDBOT_CONTROL_PLANE_URL: "http://127.0.0.1:8787/", OMB_CONTROL_PLANE_URL: "ftp://nope" },
+    })).toBe("http://127.0.0.1:8787");
+  });
+
   it("does not coerce boxed credential fields into an account", async () => {
     const initial = signedCredentials({
       [COMPANION_ACCOUNT_EMAIL_FIELD]: new String("ada@example.com"),

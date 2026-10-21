@@ -63,7 +63,9 @@ import {
   companionStateRefreshIsCurrent,
   mutateCompanionBridgeState,
   phonePairingManualCodeMode,
+  companionAccountActionError,
 } from "../lib/companion-state";
+export { companionAccountActionError } from "../lib/companion-state";
 import { ConnectionDetail } from "./ConnectionDetail";
 import { brand } from "../lib/brand";
 
@@ -152,14 +154,6 @@ export const shouldHydrateCompanionEmail = (
   userEdited: boolean,
   account: CompanionAccountState,
 ): boolean => !userEdited && Boolean(account.email);
-
-export const companionAccountActionError = (
-  account: CompanionAccountState | null,
-  actionError: string | null,
-): string | null => {
-  if (actionError) return actionError;
-  return account?.status === "signed-out" ? account.message ?? null : null;
-};
 
 export interface PhoneSetupController {
   state: CompanionState | null;

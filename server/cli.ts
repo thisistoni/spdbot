@@ -545,7 +545,7 @@ export async function runLogin(options: CliOptions, io: CliIo = defaultIo()): Pr
     return 1;
   }
   if (!account.controlPlane) {
-    io.error("SPDBOT_CONTROL_PLANE_URL ist gesetzt, aber keine HTTPS-Adresse.");
+    io.error(`${Object.hasOwn(process.env, "SPDBOT_CONTROL_PLANE_URL") ? "SPDBOT_CONTROL_PLANE_URL" : "OMB_CONTROL_PLANE_URL"} ist gesetzt, aber keine gültige Control-Plane-Adresse.`);
     return 1;
   }
   const existing = describeTunnelAccount(account.credentials.read());
