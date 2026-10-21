@@ -98,7 +98,11 @@ describe("Bottts customization in the real German renderer", () => {
     await evaluate("localStorage.setItem('omb-advanced-mode','1'); location.reload(); true");
     await expect.poll(() => exists('[data-chathead-identity] button'), { timeout: 30_000 }).toBe(true);
     await clickSelector('[data-chathead-identity] button');
-    await clickSelector('[data-bot-settings-section="identity"] button');
+    const identityToggle = '[data-bot-settings-section="identity"] > button[aria-expanded]';
+    await expect.poll(() => evaluate(`document.querySelectorAll(${JSON.stringify(identityToggle)}).length`), { timeout: 10_000 }).toBe(1);
+    if (await evaluate(`document.querySelector(${JSON.stringify(identityToggle)}).getAttribute('aria-expanded')`) !== "true") {
+      await clickSelector(identityToggle);
+    }
     await expect.poll(() => evaluate("[...document.querySelectorAll('button')].some(b=>b.textContent.trim()==='Bottts')"), { timeout: 10_000 }).toBe(true);
     await click("Bottts");
     await click("Sensoraugen");
