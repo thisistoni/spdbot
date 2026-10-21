@@ -35,7 +35,10 @@ describe("Bottts customization in the real German renderer", () => {
     const evaluate = async (js: string) => (await ui("eval", "--js", js)).result;
     const click = (name: string) => ui("click", "--name", name);
     const exists = (selector: string) => evaluate(`Boolean(document.querySelector(${JSON.stringify(selector)}))`);
-    const clickSelector = (selector: string) => evaluate(`document.querySelector(${JSON.stringify(selector)}).click(); true`);
+    const clickSelector = async (selector: string) => {
+      expect(await evaluate(`document.querySelectorAll(${JSON.stringify(selector)}).length`)).toBe(1);
+      return evaluate(`document.querySelector(${JSON.stringify(selector)}).click(); true`);
+    };
     const api = fixtureApi(info!.url);
     const bot = async () => (await api("GET", "/api/bots")).bots.find((row: { id: string }) => row.id === info.botId);
     const screenshot = (name: string) => ui("screenshot", "--out", join(evidenceDir, `bottts-avatar-${name}.png`));
@@ -44,7 +47,7 @@ describe("Bottts customization in the real German renderer", () => {
     await evaluate("localStorage.setItem('omb-advanced-mode','0'); location.reload(); true");
     await expect.poll(() => exists('[data-chathead-identity] button'), { timeout: 30_000 }).toBe(true);
     const defaultFace = await evaluate("document.querySelector('[data-chathead-identity] img').src");
-    await click("Profil von Pepper öffnen");
+    await clickSelector('[data-chathead-identity] button');
     await click("Avatar bearbeiten");
     await expect.poll(() => exists("[data-bottts-editor]"), { timeout: 10_000 }).toBe(true);
     expect(await evaluate("document.querySelectorAll('[data-bottts-part=eyes]').length")).toBe(14);
@@ -69,7 +72,7 @@ describe("Bottts customization in the real German renderer", () => {
     expect(await evaluate("document.querySelector('[data-bottts-value=hearts]').getAttribute('aria-pressed')")).toBe("true");
     await evaluate("location.reload(); true");
     await expect.poll(() => evaluate("document.querySelector('[data-chathead-identity] img')?.src"), { timeout: 30_000 }).toBe(changedFace);
-    await click("Profil von Pepper öffnen");
+    await clickSelector('[data-chathead-identity] button');
     await click("Avatar bearbeiten");
     await click("Hochladen");
     // A real File passes through the existing upload handler and attachment API.
@@ -94,7 +97,7 @@ describe("Bottts customization in the real German renderer", () => {
     // Same real App, advanced profile surface. No fake desktop bridge.
     await evaluate("localStorage.setItem('omb-advanced-mode','1'); location.reload(); true");
     await expect.poll(() => exists('[data-chathead-identity] button'), { timeout: 30_000 }).toBe(true);
-    await click("Profil von Pepper öffnen");
+    await clickSelector('[data-chathead-identity] button');
     await clickSelector('[data-bot-settings-section="identity"] button');
     await expect.poll(() => evaluate("[...document.querySelectorAll('button')].some(b=>b.textContent.trim()==='Bottts')"), { timeout: 10_000 }).toBe(true);
     await click("Bottts");

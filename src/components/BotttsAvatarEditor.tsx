@@ -4,6 +4,7 @@ import { t } from "@/lib/i18n";
 import { BOTTTS_COLORS, botttsAvatarBackground, botttsAvatarUri } from "@/lib/bottts-avatar";
 import { BOTTTS_EYES, BOTTTS_MOUTHS, BOTTTS_TEXTURES, botttsAvatarOptions, type BotttsAvatarOptions } from "../../shared/bottts-avatar";
 import type { AvatarPatch } from "./avatar-editing";
+import { Select } from "./Select";
 
 /** Both profile editors use the same supported Bottts Neutral controls. */
 export function BotttsAvatarEditor({ bot, disabled, onPatch }: {
@@ -85,16 +86,16 @@ export function BotttsAvatarEditor({ bot, disabled, onPatch }: {
 
     <label className="flex items-center justify-between gap-3 text-[12px] text-ink-secondary">
       {t("botttsAvatar.texture")}
-      <select disabled={disabled} aria-label={t("botttsAvatar.texture")}
+      <Select disabled={disabled} aria-label={t("botttsAvatar.texture")} size="sm"
         value={options.texture === false ? "none" : options.textureVariant ?? "auto"}
         onChange={(event) => change(event.target.value === "auto" ? { texture: undefined, textureVariant: undefined }
           : event.target.value === "none" ? { texture: false, textureVariant: undefined }
           : { texture: true, textureVariant: event.target.value as (typeof BOTTTS_TEXTURES)[number] })}
-        className="min-w-0 rounded-lg border border-hairline/40 bg-control px-2 py-1.5 text-ink">
+        className="min-w-0">
         <option value="auto">{t("botttsAvatar.automatic")}</option>
         <option value="none">{t("botttsAvatar.noTexture")}</option>
         {BOTTTS_TEXTURES.map((value) => <option key={value} value={value}>{t(`botttsAvatar.texture.${value}`)}</option>)}
-      </select>
+      </Select>
     </label>
   </div>;
 }
