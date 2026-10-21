@@ -140,6 +140,20 @@ describe("computer inventory request wiring", () => {
 });
 
 describe("Local VM inventory UI", () => {
+  it("renders server-owned VM problems in the current language", () => {
+    setLocale("de");
+    const markup = renderToStaticMarkup(createElement(LocalVmInventoryCard, {
+      instances: [], maxInstances: 4, loading: false, deletingBotId: null,
+      error: "Prepare the Cua desktop image with Driver 0.20.0",
+      unavailableReason: "Install a supported container runtime first",
+      onRefresh: vi.fn(), onDelete: vi.fn(),
+    }));
+    expect(markup).toContain("Installiere zuerst eine unterstützte Container-Laufzeit.");
+    expect(markup).toContain("Bereite das Cua-Desktop-Image mit Treiber 0.20.0 vor.");
+    expect(markup).not.toContain("Install a supported container runtime first");
+    expect(markup).not.toContain("Prepare the Cua desktop image");
+  });
+
   it("shows capacity, current destinations, health, and an in-use deletion guard", () => {
     const markup = renderToStaticMarkup(createElement(LocalVmInventoryCard, {
       instances: [

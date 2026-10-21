@@ -6831,5 +6831,8 @@
   "teamImport.error.botName": "Bot {index} does not have a name.",
   "botIdentity.ai.savedCustomKeyHint": "The saved custom key will be used. Remove it for a keyless connection.",
   "remote.status.pairedOne": "{count} device paired",
-  "remote.status.pairedMany": "{count} devices paired"
+  "remote.status.pairedMany": "{count} devices paired",
+  "computer.problem.installRuntime": "Install a supported container runtime first",
+  "computer.problem.startRuntime": "Start {runtime} first",
+  "computer.problem.prepareImage": "Prepare the Cua desktop image with Driver {version}"
 }

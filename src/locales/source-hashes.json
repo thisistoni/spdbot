@@ -6145,7 +6145,10 @@
       "botIdentity.ai.directionLabel": "8390024003ec1356e41d189b9bfa2d6f220dd9b4d33ee3a90235efa732f95be0",
       "remote.status.pairedOne": "4847aced6d6990f608278e9de7085d1cb7c1a1467b58952e3a13bfb5ddce10ef",
       "remote.status.pairedMany": "d02074da1bcf9155e223a474150c9634a23efe95cdfe2f0a53634733636c9278",
-      "lending.status.connectFirst": "b86eea013b5fcdb6f7fb367776b512adddffbb83dd3ab20c2572f70815a67ea1"
+      "lending.status.connectFirst": "b86eea013b5fcdb6f7fb367776b512adddffbb83dd3ab20c2572f70815a67ea1",
+      "computer.problem.installRuntime": "59e0aca083d462c7160bbffd01291d8de51b7be8c41bfbda2a498f1d4e0fb943",
+      "computer.problem.startRuntime": "c95f7941b66c17735fe6dac538e9e6ebea816c7e6d9e0cdf350044bf9d16c46f",
+      "computer.problem.prepareImage": "45e584300aa3b3aaf356797ca8c96d2ddd9803785693a38572a93be013d7e6fc"
     },
     "es": {
       "whop.description": "1a07cf04ef17029448d3781415cbac16d54e66b821907a40d94e0e6349710e70",

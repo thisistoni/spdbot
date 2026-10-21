@@ -1,6 +1,9 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { t } from "@/lib/i18n";
 import { waitForLocalVmReady } from "@/lib/local-vm-readiness";
+import { localizeComputerProblem } from "@/lib/computer-messages";
+import { DEFAULT_LOCAL_VM_IDLE_TIMEOUT_MINUTES, MIN_LOCAL_VM_IDLE_TIMEOUT_MINUTES, MAX_LOCAL_VM_IDLE_TIMEOUT_MINUTES, parseLocalVmIdleTimeoutMinutes } from "@/lib/local-vm-idle-timeout";
+export { parseLocalVmIdleTimeoutMinutes } from "@/lib/local-vm-idle-timeout";
 import type { LocaleKey } from "@/locales";
 import {
   AlertTriangle,
@@ -390,13 +393,13 @@ export function VpsComputersCard({
         </button>
       </div>
 
-      {error && <div role="alert" className="mt-3 rounded-lg bg-danger/10 px-3 py-2 text-[12px] text-danger">{error}</div>}
+      {error && <div role="alert" className="mt-3 rounded-lg bg-danger/10 px-3 py-2 text-[12px] text-danger">{localizeComputerProblem(error)}</div>}
 
       <p role="status" aria-live="polite" aria-atomic="true" className="sr-only">
         {loading
           ? t("vm.vps.checking")
           : unavailableReason
-            ? t("vm.vps.unavailable", { reason: unavailableReason })
+            ? t("vm.vps.unavailable", { reason: localizeComputerProblem(unavailableReason) ?? unavailableReason })
             : configured === false
               ? t("vm.vps.notConfigured")
               : instances.length === 1
@@ -414,7 +417,7 @@ export function VpsComputersCard({
           </div>
         ) : unavailableReason ? (
           <div className="flex items-center gap-2 px-3 py-4 text-[13px] text-ink-secondary">
-            <AlertTriangle size={14} className="shrink-0 text-warning" /> {unavailableReason}
+            <AlertTriangle size={14} className="shrink-0 text-warning" /> {localizeComputerProblem(unavailableReason)}
           </div>
         ) : configured === false ? (
           <div className="flex items-center gap-2 px-3 py-4 text-[13px] text-ink-secondary">
@@ -524,13 +527,13 @@ export function CloudComputersCard({
         </button>
       </div>
 
-      {error && <div role="alert" className="mt-3 rounded-lg bg-danger/10 px-3 py-2 text-[12px] text-danger">{error}</div>}
+      {error && <div role="alert" className="mt-3 rounded-lg bg-danger/10 px-3 py-2 text-[12px] text-danger">{localizeComputerProblem(error)}</div>}
 
       <p role="status" aria-live="polite" aria-atomic="true" className="sr-only">
         {loading
           ? t("vm.cloud.checking")
           : unavailableReason
-            ? t("vm.cloud.unavailable", { reason: unavailableReason })
+            ? t("vm.cloud.unavailable", { reason: localizeComputerProblem(unavailableReason) ?? unavailableReason })
             : configured === false
               ? t("vm.cloud.notConnected")
               : instances.length === 1
@@ -548,7 +551,7 @@ export function CloudComputersCard({
           </div>
         ) : unavailableReason ? (
           <div className="flex items-center gap-2 px-3 py-4 text-[13px] text-ink-secondary">
-            <AlertTriangle size={14} className="shrink-0 text-warning" /> {unavailableReason}
+            <AlertTriangle size={14} className="shrink-0 text-warning" /> {localizeComputerProblem(unavailableReason)}
           </div>
         ) : configured === false ? (
           <div className="flex items-center gap-2 px-3 py-4 text-[13px] text-ink-secondary">
@@ -670,13 +673,13 @@ export function LocalVmInventoryCard({
         </button>
       </div>
 
-      {error && <div role="alert" className="mt-3 rounded-lg bg-danger/10 px-3 py-2 text-[12px] text-danger">{error}</div>}
+      {error && <div role="alert" className="mt-3 rounded-lg bg-danger/10 px-3 py-2 text-[12px] text-danger">{localizeComputerProblem(error)}</div>}
 
       <p role="status" aria-live="polite" aria-atomic="true" className="sr-only">
         {loading
           ? t("vm.perBot.checking")
           : unavailableReason
-            ? t("vm.perBot.unavailable", { reason: unavailableReason })
+            ? t("vm.perBot.unavailable", { reason: localizeComputerProblem(unavailableReason) ?? unavailableReason })
             : instances.length === 1
               ? t("vm.perBot.foundOne")
               : t("vm.perBot.foundMany", { count: instances.length })}
@@ -692,7 +695,7 @@ export function LocalVmInventoryCard({
           </div>
         ) : unavailableReason ? (
           <div className="flex items-center gap-2 px-3 py-4 text-[13px] text-ink-secondary">
-            <AlertTriangle size={14} className="shrink-0 text-warning" /> {unavailableReason}
+            <AlertTriangle size={14} className="shrink-0 text-warning" /> {localizeComputerProblem(unavailableReason)}
           </div>
         ) : instances.length === 0 ? (
           <div className="px-3 py-4 text-[13px] text-ink-secondary">{t("vm.perBot.none")}</div>
@@ -735,7 +738,7 @@ export function LocalVmInventoryCard({
                   </div>
                 )}
                 {managed && instance.problem && !instance.inUse && (
-                  <div className="mt-1 text-[11.5px] text-warning">{instance.problem}</div>
+                  <div className="mt-1 text-[11.5px] text-warning">{localizeComputerProblem(instance.problem)}</div>
                 )}
                 {managed && instance.inUse && (
                   <div className="mt-1 text-[11.5px] text-ink-secondary">{t("vm.perBot.stopFirst")}</div>
@@ -810,18 +813,6 @@ function ActionButton({
       {children}
     </button>
   );
-}
-
-// Mirrors localVm.idleTimeoutMinutes in server/config.ts; the server is the authority.
-const MIN_LOCAL_VM_IDLE_TIMEOUT_MINUTES = 5;
-const MAX_LOCAL_VM_IDLE_TIMEOUT_MINUTES = 1_440;
-const DEFAULT_LOCAL_VM_IDLE_TIMEOUT_MINUTES = 480;
-
-export function parseLocalVmIdleTimeoutMinutes(value: string): number | null {
-  const trimmed = value.trim();
-  if (!/^\d+$/.test(trimmed)) return null;
-  const minutes = Number(trimmed);
-  return minutes >= MIN_LOCAL_VM_IDLE_TIMEOUT_MINUTES && minutes <= MAX_LOCAL_VM_IDLE_TIMEOUT_MINUTES ? minutes : null;
 }
 
 export function LocalVmIdleTimeoutSetting({
@@ -1389,7 +1380,7 @@ export function LocalComputerSection() {
                     ? t("vm.main.perBotUnsupported")
                   : ready
                     ? t("vm.main.ready")
-                    : (status?.problem ?? t("vm.main.notReady"))}
+                    : (localizeComputerProblem(status?.problem) ?? t("vm.main.notReady"))}
           </span>
           <button
             onClick={() => {
@@ -1413,7 +1404,7 @@ export function LocalComputerSection() {
             </a>
           )}
         </div>
-        {error && <div role="alert" className="mt-3 rounded-lg bg-danger/10 px-3 py-2 text-[12px] text-danger">{error}</div>}
+        {error && <div role="alert" className="mt-3 rounded-lg bg-danger/10 px-3 py-2 text-[12px] text-danger">{localizeComputerProblem(error)}</div>}
       </Card>
 
       <Card
@@ -1520,7 +1511,7 @@ export function LocalComputerSection() {
               <>
                 <div className="flex gap-2 text-[13px] text-warning">
                   <AlertTriangle size={15} className="mt-0.5 shrink-0" />
-                  <span>{status?.problem}</span>
+                  <span>{localizeComputerProblem(status?.problem)}</span>
                 </div>
                 {status?.image ? (
                   <ActionButton action="recreate" pending={pending} onClick={() => void act("recreate")} danger>

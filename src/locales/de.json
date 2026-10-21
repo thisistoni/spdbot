@@ -6142,5 +6142,8 @@
   "botIdentity.ai.directionLabel": "Vorgabe für die Avatar-Generierung",
   "remote.status.pairedOne": "{count} Gerät gekoppelt",
   "remote.status.pairedMany": "{count} Geräte gekoppelt",
-  "lending.status.connectFirst": "Wähle „My Cloud öffnen“, damit die Verbindung zu diesem Computer hergestellt werden kann."
+  "lending.status.connectFirst": "Wähle „My Cloud öffnen“, damit die Verbindung zu diesem Computer hergestellt werden kann.",
+  "computer.problem.installRuntime": "Installiere zuerst eine unterstützte Container-Laufzeit.",
+  "computer.problem.startRuntime": "Starte zuerst {runtime}.",
+  "computer.problem.prepareImage": "Bereite das Cua-Desktop-Image mit Treiber {version} vor."
 }

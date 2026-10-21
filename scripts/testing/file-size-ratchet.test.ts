@@ -30,7 +30,7 @@ const LINES: Record<string, number> = {
   "src/components/ChatView.tsx": 1482,
   "server/routine-requests.ts": 1677,
   "src/components/GroupView.tsx": 1615,
-  "src/components/LocalComputerSection.tsx": 1605,
+  "src/components/LocalComputerSection.tsx": 1596,
   "src/components/CursorAvatar.tsx": 1441,
   "server/skills.ts": 1391,
   "server/composio.ts": 1345,
