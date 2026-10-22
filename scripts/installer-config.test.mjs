@@ -121,18 +121,19 @@ ${uninstaller ? 'Section "Uninstall"\n  DetailPrint "uninstall fixture"\nSection
     }, 120_000,
   );
 
-  it("excludes only enterprise payloads using electron-builder's real resource filter", () => {
+  it("excludes enterprise and stale legacy CLI payloads using electron-builder's real resource filter", () => {
     const resource = config.extraResources.find((entry) => entry.from === "dist-server");
     const source = path.resolve("fixture-server");
     const filter = new FileMatcher(source, path.resolve("fixture-output"), (value) => value, resource.filter).createFilter();
     const file = { isDirectory: () => false };
-    for (const relative of ["index.js", "desktop-entry.mjs", "enterprise.js", "drivers/agents-proxy.js", "package.json"]) {
+    for (const relative of ["index.js", "spdbot.js", "desktop-entry.mjs", "enterprise.js", "drivers/agents-proxy.js", "package.json"]) {
       expect(filter(path.join(source, relative), file), relative).toBe(true);
     }
-    for (const relative of ["enterprise/LICENSE", "enterprise/server/index.js"]) {
+    for (const relative of ["enterprise/LICENSE", "enterprise/server/index.js", "openmausbot.js", "server/openmausbot.js"]) {
       expect(filter(path.join(source, relative), file), relative).toBe(false);
     }
     expect(filter(path.join(source, "enterprise"), { isDirectory: () => true })).toBe(false);
+    for (const helper of ["OpenMausBot Speech", "OpenMausBot Recorder"]) expect(config.files).toContain(`!electron/resources/${helper}.app/**`);
     expect(config.extraResources).toContainEqual({ from: "LICENSE", to: "licenses/OpenMausBot-LICENSE.txt" });
     expect(config.extraResources).toContainEqual({ from: "NOTICE", to: "licenses/OpenMausBot-NOTICE.txt" });
   });

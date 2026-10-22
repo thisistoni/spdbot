@@ -2,12 +2,17 @@
 // packaged app ships no node_modules. Entry points keep their exact relative
 // paths under dist-server, where the server locates each proxy by path.
 import { build } from "esbuild";
-import { copyFileSync, existsSync, mkdirSync, writeFileSync } from "node:fs";
+import { copyFileSync, existsSync, mkdirSync, rmSync, writeFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import { dirname, join } from "node:path";
 
 const root = join(dirname(fileURLToPath(import.meta.url)), "..");
 const server = join(root, "server");
+// tsc does not remove outputs for renamed entries. Never package a stale CLI
+// that could still start the inherited app identity or write its old data.
+for (const obsolete of ["openmausbot.js", "server/openmausbot.js"]) {
+  rmSync(join(root, "dist-server", obsolete), { force: true });
+}
 
 // yaml's Node export is CommonJS with dynamic requires that cannot run once
 // inlined into ESM; its browser export is the same parser without them.
