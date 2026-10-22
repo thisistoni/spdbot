@@ -1,8 +1,9 @@
 import * as fs from "node:fs";
 import { dirname } from "node:path";
+import { DESKTOP_PORTS } from "./desktop-ports.mjs";
 import { DataDirLeaseError } from "./data-dir-lease.mjs";
 
-export const DEFAULT_SERVER_PORT = 8799;
+export const DEFAULT_SERVER_PORT = DESKTOP_PORTS[0];
 
 /** A missing parent means an absent volume: abort and stay put, never mkdir through it. */
 export function validateTargetDir(dataDir, fsImpl = fs) {

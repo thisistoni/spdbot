@@ -66,7 +66,7 @@ test("missing parent dir: aborts with unavailable, rolls back, never persists", 
   const result = await switchLocalEnvironment({ targetDir: join(dir, "gone", ".spdbot-x"), deps });
   assert.deepEqual(result, { ok: false, error: "unavailable", rolledBack: true });
   assert.deepEqual(calls, ["stop", "release", "rollback"]);
-  assert.deepEqual(args.rollback, [[8799]]);
+  assert.deepEqual(args.rollback, [[8899]]);
   assert.equal(args.persist, undefined);
   assert.equal(args.start, undefined);
 });

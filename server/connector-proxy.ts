@@ -15,7 +15,7 @@ import { withSignedOutHint } from "./connector-signed-out-hint.ts";
 type Json = Record<string, unknown>;
 
 const UPSTREAM = process.env.OMB_CONNECTOR_UPSTREAM_URL ?? "";
-const HARNESS = process.env.OMB_HARNESS_URL ?? "http://127.0.0.1:8799";
+const HARNESS = process.env.OMB_HARNESS_URL ?? "http://127.0.0.1:8899";
 const BOT_ID = process.env.OMB_BOT_ID ?? "";
 const THREAD_ID = process.env.OMB_THREAD_ID ?? "";
 const TOKEN = process.env.OMB_CONNECTOR_TOKEN ?? process.env.OMB_COMMS_TOKEN ?? "";
