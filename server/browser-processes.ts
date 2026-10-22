@@ -1,3 +1,4 @@
+import { BROWSER_NAMESPACE } from "./browser-identity.ts";
 // agent-browser 0.37 starts each daemon in a session of its own (setsid) and each Chrome in its own process group, so neither
 // stops with the server, and a killed daemon leaves its Chrome running, re-parented to init. Every process is recorded with
 // its start time, so a pid the system has since given to another program is never signalled.
@@ -10,7 +11,7 @@ type ListedProcess = { ppid: number; pgid: number; zombie: boolean; started: str
 
 export interface BrowserProcessTree {
   daemon: number;
-  /** pid → start time; start times are empty where the system gives none (Windows). */
+  /** pid → start time, from procfs/ps or Windows CIM. */
   members: Map<number, string>;
   /** Process groups a member leads; a helper Chrome started after the snapshot joins one. */
   groups: number[];
@@ -98,9 +99,18 @@ async function processEnvironment(pid: number): Promise<Map<string, string> | nu
   }));
 }
 
-async function imageOf(pid: number): Promise<string | null> {
-  const row = await execText("tasklist", ["/FI", `PID eq ${pid}`, "/FO", "CSV", "/NH"]);
-  return row === null ? null : /^"([^"]*)"/.exec(row.trim())?.[1]?.toLowerCase() ?? "";
+// tasklist's basename cannot distinguish MausBot's bundled engine from ours.
+// CIM supplies the full executable path and creation time; unavailable identity fails closed.
+async function imageOf(pid: number): Promise<{ path: string; started: string } | null> {
+  const output = await execText("powershell.exe", ["-NoProfile", "-NonInteractive", "-Command",
+    `Get-CimInstance Win32_Process -Filter 'ProcessId = ${pid}' | Select-Object ExecutablePath,CreationDate | ConvertTo-Json -Compress`]);
+  if (output === null) return null;
+  if (!output.trim()) return { path: "", started: "" };
+  try {
+    const row = JSON.parse(output);
+    return typeof row.ExecutablePath === "string" && typeof row.CreationDate === "string"
+      ? { path: row.ExecutablePath.replaceAll("\\", "/").toLowerCase(), started: row.CreationDate } : null;
+  } catch { return null; }
 }
 
 /** agent-browser starts a daemon through the binary's resolved path with AGENT_BROWSER_DAEMON=1 and the session's name, so a
@@ -110,14 +120,15 @@ export async function browserProcessTree(binaryPath: string, daemon: number, ses
   const paths = new Set([binaryPath]);
   try { paths.add(realpathSync(binaryPath)); } catch {}
   if (process.platform === "win32") {
-    // Windows shows no environments, trees or start times: the image tells the daemon from a later program, and taskkill /T walks the tree.
+    // Require this installation's full path and a process creation time before considering a saved PID.
     const image = await imageOf(daemon);
-    return image && [...paths].some((path) => basename(path).toLowerCase() === image) ? { daemon, members: new Map([[daemon, ""]]), groups: [], image } : null;
+    return image?.started && [...paths].some((path) => path.replaceAll("\\", "/").toLowerCase() === image.path)
+      ? { daemon, members: new Map([[daemon, image.started]]), groups: [], image: image.path } : null;
   }
   const command = await processArgs(daemon);
   if (!command || ![...paths].some((path) => command === path || command.startsWith(`${path} `))) return null;
   const env = await processEnvironment(daemon);
-  if (env?.get("AGENT_BROWSER_DAEMON") !== "1" || env.get("AGENT_BROWSER_SESSION") !== session) return null;
+  if (env?.get("AGENT_BROWSER_DAEMON") !== "1" || env.get("AGENT_BROWSER_SESSION") !== session || env.get("AGENT_BROWSER_NAMESPACE") !== BROWSER_NAMESPACE) return null;
   const table = await processTable();
   if (!table?.has(daemon)) return null;
   const children = new Map<number, number[]>();
@@ -152,7 +163,7 @@ export async function orphanedBrowsers(home: string | undefined): Promise<Array<
     if (parent && !parent.zombie && entry.ppid > 1 && (/(?:^|\/)agent-browser[^/\s]*$/.test(parent.args ?? "") || (await processEnvironment(entry.ppid))?.get("AGENT_BROWSER_DAEMON") === "1")) continue;
     const env = await processEnvironment(pid);
     const session = env?.get("AGENT_BROWSER_SESSION");
-    if (env?.get("AGENT_BROWSER_DAEMON") !== "1" || !session || !/^[A-Za-z0-9_.-]{1,96}$/.test(session) || (home && env.get("HOME") !== home)) continue;
+    if (env?.get("AGENT_BROWSER_DAEMON") !== "1" || env.get("AGENT_BROWSER_NAMESPACE") !== BROWSER_NAMESPACE || !session || !/^[A-Za-z0-9_.-]{1,96}$/.test(session) || (home && env.get("HOME") !== home)) continue;
     const profile = temporaryProfile(entry.args);
     found.push({ session, tree: { daemon: pid, members: new Map([[pid, entry.started]]), groups: [pid], profiles: profile ? [profile] : [] } });
   }
@@ -176,7 +187,7 @@ function survivors(tree: BrowserProcessTree, table: Map<number, ListedProcess>):
 /** Windows soon gives a freed pid to a new process, which is never counted or killed as the daemon. */
 async function windowsDaemonRuns(tree: BrowserProcessTree): Promise<boolean | null> {
   const image = await imageOf(tree.daemon);
-  return image === null ? null : !!image && image === tree.image;
+  return image === null ? null : image.path === tree.image && image.started === tree.members.get(tree.daemon);
 }
 
 export async function browserProcessesRunning(tree: BrowserProcessTree): Promise<boolean> {
@@ -204,7 +215,7 @@ export async function stopBrowserProcesses(tree: BrowserProcessTree, graceMs = 1
   const send = (target: number, signal: NodeJS.Signals) => { try { process.kill(target, signal); } catch {} };
   const rootRuns = async () => {
     const table = await processTable();
-    return table ? stillRuns(tree, table, tree.daemon) : processAlive(tree.daemon);
+    return table ? stillRuns(tree, table, tree.daemon) : false;
   };
   if (await rootRuns()) {
     send(tree.daemon, "SIGTERM");
@@ -215,7 +226,7 @@ export async function stopBrowserProcesses(tree: BrowserProcessTree, graceMs = 1
   for (let pass = 0; pass < 2 && !gone; pass++) {
     const table = await processTable();
     if (!table) {
-      for (const pid of tree.members.keys()) send(pid, "SIGKILL");
+      return false;
     } else {
       const left = survivors(tree, table);
       if (!left.pids.length) { gone = true; break; }

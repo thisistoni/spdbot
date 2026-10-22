@@ -45,7 +45,7 @@ async function binaryVersion(candidate) {
 }
 
 async function officialBinary() {
-  const cache = join(root, "node_modules", ".cache", "openmausbot", `cua-driver-${release.version}`);
+  const cache = join(root, "node_modules", ".cache", "spdbot", `cua-driver-${release.version}`);
   const cachedBinary = join(cache, "cua-driver");
   if ((await binaryVersion(cachedBinary)) === expectedVersion) return cachedBinary;
 
@@ -146,7 +146,7 @@ await build({
       'export { requestMacOSPermissions, hasRequiredMacOSPermissions } from "@trycua/cua-driver/electron";',
     ].join("\n"),
     resolveDir: root,
-    sourcefile: "openmausbot-cua-entry.mjs",
+    sourcefile: "spdbot-cua-entry.mjs",
     loader: "js",
   },
   bundle: true,

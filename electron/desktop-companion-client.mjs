@@ -346,7 +346,7 @@ function listen(server, port) {
 export async function startDesktopCompanionRelay({
   access,
   staticDir,
-  ports = [8798, 18_798, 28_798],
+  ports = [8898, 18_898, 28_898],
 }) {
   const normalized = desktopCompanionAccess({ [DESKTOP_COMPANION_FIELD]: access });
   if (!normalized) throw new Error("The saved remote computer credential is invalid");

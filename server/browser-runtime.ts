@@ -1,3 +1,6 @@
+import { join } from "node:path";
+import { BROWSER_NAMESPACE } from "./browser-identity.ts";
+import { DATA_DIR } from "./config.ts";
 import { killCliTree, spawnCli } from "./procs.ts";
 import { scrubHeldSecrets } from "../shared/redact.ts";
 import { DEFAULT_BROWSER_RESULT_BUDGET, describePageChange, OBSERVE_PAGE_SCRIPT, parsePageState, READ_OPEN_PAGE_ONLY, readsAroundBrowser, scrubBrowserResult, shapeBrowserToolResult, slimBrowserToolList, stripHarnessOwnedArguments, type PageState } from "./browser-tool-shape.ts";
@@ -65,7 +68,8 @@ const HOST_ENV = ["HOME", "USERPROFILE", "APPDATA", "LOCALAPPDATA", "PATH", "Pat
 /** One env for MCP, viewer and cleanup so they share HOME/socket paths: OS plumbing, never provider credentials. */
 export function browserRuntimeEnv(overrides: Record<string, string | undefined>): NodeJS.ProcessEnv {
   const env = Object.fromEntries(HOST_ENV.flatMap((key) => process.env[key] === undefined ? [] : [[key, process.env[key]]]));
-  return { ...env, ...overrides };
+  return { ...env, AGENT_BROWSER_NAMESPACE: BROWSER_NAMESPACE,
+    XDG_CACHE_HOME: join(DATA_DIR, "browser-cache"), ...overrides };
 }
 
 /** Page size in CSS pixels. agent-browser sizes the Chrome window, and headless full Chrome (Chrome for Testing) takes its

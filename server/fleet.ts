@@ -28,18 +28,18 @@ export interface FleetLayout {
 export function fleetLayout(root = "/"): FleetLayout {
   const at = (...parts: string[]) => join(root, ...parts);
   return {
-    etcDir: at("etc", "openmausbot"),
-    registryFile: at("etc", "openmausbot", "fleet.json"),
-    instancesDir: at("etc", "openmausbot", "instances"),
+    etcDir: at("etc", "spdbot"),
+    registryFile: at("etc", "spdbot", "fleet.json"),
+    instancesDir: at("etc", "spdbot", "instances"),
     unitFile: at("etc", "systemd", "system", "openmausbot@.service"),
-    fenceFile: at("etc", "openmausbot", "fence.nft"),
+    fenceFile: at("etc", "spdbot", "fence.nft"),
     fenceUnitFile: at("etc", "systemd", "system", "openmausbot-fence.service"),
     caddyDir: at("etc", "caddy", "omb.d"),
     caddyfile: at("etc", "caddy", "Caddyfile"),
-    homesDir: at("var", "lib", "openmausbot"),
+    homesDir: at("var", "lib", "spdbot"),
     agentUnitFile: at("etc", "systemd", "system", "openmausbot-fleet.service"),
-    socketPath: at("run", "openmausbot", "fleet.sock"),
-    auditFile: at("var", "log", "openmausbot", "fleet.jsonl"),
+    socketPath: at("run", "spdbot", "fleet.sock"),
+    auditFile: at("var", "log", "spdbot", "fleet.jsonl"),
   };
 }
 
@@ -116,7 +116,7 @@ export function workspaceHome(layout: FleetLayout, slug: string): string {
 }
 
 export function workspaceDataDir(layout: FleetLayout, slug: string): string {
-  return join(workspaceHome(layout, slug), ".openmausbot");
+  return join(workspaceHome(layout, slug), ".spdbot");
 }
 
 export function assertSlug(slug: string): void {

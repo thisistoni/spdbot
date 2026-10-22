@@ -166,7 +166,7 @@ export function CloudPlanOnCloud({ bridge, onConnectPhone }: { bridge: CloudPlan
 }
 
 /** Security: the public native snapshot carries no credential and cannot activate a plan. */
-/** `onSignIn`: the sheet's email-code sign-in (the browser approval stays for openmausbot://cloud and Sign in again). */
+/** `onSignIn`: the sheet's email-code sign-in (the browser approval stays for spdbot://cloud and Sign in again). */
 export function CloudAccountSettings({ linkRequest = 0, cloudHome = false, onConnectPhone, onAddCloud, onSignIn }: {
   linkRequest?: number; cloudHome?: boolean; onConnectPhone?: () => void; onAddCloud?: () => void; onSignIn?: () => void;
 } = {}) {

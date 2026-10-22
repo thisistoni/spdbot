@@ -34,33 +34,35 @@ SPDBot feed becomes active only in a build packaged with this configuration.
 Until SPDBot has a published release, there is no real update to download; do
 not describe an unavailable feed as a successful end-to-end update test.
 
-## Compatibility and remaining branding
+## Independent installation
 
-Safe display labels include the Windows installer/uninstaller captions,
-Windows shortcut and Apps & Features entry, Linux launcher, macOS permission
-text and download names. The NSIS `customHeader` sets `Name` and `BrandingText`
-after the standard template; it does not rename installed files. We preserve
-`package.json`'s `openmausbot` name, `productName: OpenMausBot`,
-`com.openmausbot.app`, the executable and install directories, the speech-helper
-bundle identity, `openmausbot://` links, `OMB_*` variables and existing data paths.
-These names participate in OS integration, saved credentials and helper lookup;
-renaming them is not a cosmetic search-and-replace.
+SPDBot uses package `spdbot`, product `SPDBot`, app ID `de.spdlabs.spdbot`,
+`SPDBot.exe` / `SPDBot.app` / Linux executable `spdbot`, and `spdbot://` links.
+Installer, uninstall entry, Linux policy, service/autostart units and speech
+helper use their own identities. The updater cache is `spdbot-updater`, with
+only the owned GitHub feed above. MausBot keeps its installer, updater and data.
 
-Consequently the `.app`/executable names, some secondary native dialogs and file
-properties, speech-helper prompts and current icon assets can still show the
-inherited branding. They need a separately tested follow-up, not an invented replacement
-icon or an untested credential migration. The required LICENSE, NOTICE and
-third-party credits remain unchanged.
+The workspace defaults to `~/.spdbot`; desktop credentials and Chromium sessions
+live under the platform application-data directory's `SPDBot` folder. Browser
+state and daemon discovery use a product/workspace-specific namespace, and the
+server uses ports 8899, 18899 or 28899. The companion has its own data, ports and
+mDNS service. No MausBot or OpenGrokBot directory is imported or renamed.
+Existing internal `OMB_*` environment overrides remain explicit configuration;
+do not point `OMB_DATA_DIR` or `OMB_USER_DATA` at another app's data.
+CLI/MCP endpoint and token variables are `SPDBOT_URL` and `SPDBOT_TOKEN`.
+
+From the checkout use `pnpm spdbot pair --client` or `pnpm spdbot help`.
+A locally packed CLI has its own `spdbot` bin; no published npm package is
+assumed. Container examples use local image `spdbot-runtime:local`; build it
+from this checkout with `docker build --target server -t spdbot-runtime:local .`
+before using Compose. Product VM/image names and labels are separate; vendor
+pins and required provenance remain unchanged.
 
 `OMB_NSIS_TEST=1 pnpm exec vitest run scripts/installer-config.test.mjs` compiles
-small installer/uninstaller fixtures with electron-builder's pinned NSIS, checks
-English/German captions and unchanged file names, and retains warnings-as-errors.
-The Windows packaging workflow runs this too. These compiler checks do not
-replace installing and viewing the actual packaged app on Windows.
-
-Desktop packaging excludes the separately licensed `dist-server/enterprise/`
-layer using the existing resource filter. It distributes the permitted core
-edition without changing core runtime behavior or licensing checks.
+localized installer/uninstaller fixtures with the pinned NSIS and warnings as
+errors. These checks do not replace installing the real app on Windows/macOS.
+LICENSE, NOTICE, third-party credits and original license filenames remain.
+Desktop and local CLI packaging exclude the separately licensed enterprise code.
 
 ## Verification retained
 

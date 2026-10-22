@@ -42,7 +42,7 @@ function stubWorkspace() {
   const fetchImpl = async (url, init) => {
     const route = new URL(url).pathname;
     if (route === "/api/auth/session") return json({ kind: "session", id: sessionId });
-    if (route === "/.well-known/openmausbot/environment") return json({ environmentId, capabilities: { sharedComputers: true } });
+    if (route === "/.well-known/spdbot/environment") return json({ environmentId, capabilities: { sharedComputers: true } });
     const body = init?.body ? JSON.parse(init.body) : {};
     if (route === "/api/shared-computers/connect") { state.connected = body; return json({}); }
     if (route.endsWith("/poll")) {
@@ -243,7 +243,7 @@ test("a protected directory spelled in another case is still refused", async t =
   await assert.rejects(run({ action: "read_file", path: "OpenMausBot/credentials.bin" }), /Desktop credentials/);
   await assert.rejects(run({ action: "read_file", path: "openmausbot/credentials.bin" }), /Desktop credentials/);
   await assert.rejects(run({ action: "read_file", path: "OPENMAUSBOT/credentials.bin" }), /Desktop credentials/);
-  await assert.rejects(run({ action: "list_files", path: "openmausbot" }), /Desktop credentials/);
+  await assert.rejects(run({ action: "list_files", path: "spdbot" }), /Desktop credentials/);
   await assert.rejects(run({ action: "write_file", path: "openmausbot/computer-sharing.json", content: "{}" }), /sharing settings/);
 });
 
@@ -371,11 +371,11 @@ test("filesystem identities keep all 64 bits instead of rounding distinct inode 
 test("the harness data directory is protected through a broad share", async t => {
   const { dir } = await fixture(t);
   const shared = path.join(dir, "share");
-  const dataDir = path.join(shared, ".openmausbot");
+  const dataDir = path.join(shared, ".spdbot");
   await mkdir(dataDir, { recursive: true });
   await writeFile(path.join(dataDir, "config.json"), JSON.stringify({ anthropicApiKey: "sk-fixture" }));
   const stub = stubWorkspace();
-  stub.state.work.push({ action: "read_file", path: ".openmausbot/config.json" });
+  stub.state.work.push({ action: "read_file", path: ".spdbot/config.json" });
   const sharing = createComputerSharing({
     file: path.join(dir, "profile", "computer-sharing.json"), fetch: stub.fetchImpl,
     environments: () => [stub.env], enabled: async () => true, cuaConnection: async () => null, protectedPaths: [dataDir],
@@ -397,7 +397,7 @@ test("a harness data directory that does not exist yet still saves and connects"
   stub.state.work.push({ action: "read_file", path: "note.txt" });
   const sharing = createComputerSharing({
     file: path.join(dir, "profile", "computer-sharing.json"), fetch: stub.fetchImpl,
-    environments: () => [stub.env], enabled: async () => true, cuaConnection: async () => null, protectedPaths: [path.join(dir, "never-installed", ".openmausbot")],
+    environments: () => [stub.env], enabled: async () => true, cuaConnection: async () => null, protectedPaths: [path.join(dir, "never-installed", ".spdbot")],
   });
   t.after(() => sharing.close());
   const info = await sharing.identity(stub.env);

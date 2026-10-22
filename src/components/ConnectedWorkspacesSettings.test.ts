@@ -97,8 +97,8 @@ it("a server's own Copy brings the person here, on that server's copy, to start 
   expect(render().html).toContain("from this computer to VPS");
 });
 
-const LOCAL_ENV = { id: "env-1", kind: "local", name: "Work", dataDir: "/home/me/.openmausbot-work", missing: false };
-const GONE_ENV = { id: "env-2", kind: "local", name: "Old", dataDir: "/home/me/.openmausbot-old", missing: true };
+const LOCAL_ENV = { id: "env-1", kind: "local", name: "Work", dataDir: "/home/me/.spdbot-work", missing: false };
+const GONE_ENV = { id: "env-2", kind: "local", name: "Old", dataDir: "/home/me/.spdbot-old", missing: true };
 const envState = (overrides: Record<string, unknown> = {}) => ({
   localOrigin: "http://127.0.0.1:1", remote: false, packaged: true, activeId: "local",
   environments: [LOCAL_ENV, GONE_ENV, VPS], ...overrides,
@@ -120,7 +120,7 @@ it("lists local environments with their folders above the servers, marking a mis
   expect(html).toContain("Environments on this computer");
   expect(html).toContain("Your servers");
   expect(html.indexOf("Environments on this computer")).toBeLessThan(html.indexOf("Your servers"));
-  expect(html).toContain("/home/me/.openmausbot-work");
+  expect(html).toContain("/home/me/.spdbot-work");
   expect(html.match(/>missing</g)).toHaveLength(1);
   expect(html).toContain("https://bots.example.test");
 });
@@ -130,7 +130,7 @@ it("hides local environments and the create form in a dev build", async () => {
   const { html } = render();
   expect(html).not.toContain("Environments on this computer");
   expect(html).not.toContain("Choose…");
-  expect(html).not.toContain("/home/me/.openmausbot-work");
+  expect(html).not.toContain("/home/me/.spdbot-work");
 });
 
 it("creates an environment with the chosen folder — and without one when the field is left empty", async () => {

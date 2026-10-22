@@ -1,3 +1,4 @@
+import { BROWSER_NAMESPACE } from "./browser-identity.ts";
 // Real processes stand in for agent-browser's: node with Chrome's telltale
 // arguments, in a process group of its own, with the environment a daemon
 // hands its Chrome.
@@ -36,7 +37,7 @@ function profileFolder(home: string, name = `agent-browser-chrome-${randomUUID()
   writeFileSync(join(folder, "Default", "Cookies"), "fixture");
   return folder;
 }
-const daemonEnv = (home: string, session: string) => ({ PATH: process.env.PATH, HOME: home, AGENT_BROWSER_DAEMON: "1", AGENT_BROWSER_SESSION: session });
+const daemonEnv = (home: string, session: string) => ({ PATH: process.env.PATH, HOME: home, AGENT_BROWSER_DAEMON: "1", AGENT_BROWSER_NAMESPACE: BROWSER_NAMESPACE, AGENT_BROWSER_SESSION: session });
 const gone = (pid: number) => {
   try { return execFileSync("ps", ["-o", "stat=", "-p", String(pid)], { encoding: "utf8" }).trim().startsWith("Z"); } catch { return true; }
 };
@@ -61,6 +62,8 @@ describe.skipIf(!posix)("browsers whose engine was killed under them", () => {
     const servedPid = join(home, "served.pid");
     const daemon = start(process.execPath, ["-e", `const served = require('node:child_process').spawn(process.execPath, ${JSON.stringify(chromeArgs(home))}, { stdio: 'ignore', detached: true }); require('node:fs').writeFileSync(${JSON.stringify(servedPid)}, String(served.pid)); ${IDLE}`], daemonEnv(home, "bot-served"));
     const elsewhere = start(process.execPath, chromeArgs(home), daemonEnv(join(home, "other"), "bot-elsewhere"));
+    const foreign = start(process.execPath, chromeArgs(home), { ...daemonEnv(home, "bot-orphan"), AGENT_BROWSER_NAMESPACE: "mausbot" });
+    expect(await browserProcessTree(process.execPath, foreign.pid!, "bot-orphan")).toBeNull();
     // A process with the arguments and a session's name that no daemon
     // started (no AGENT_BROWSER_DAEMON) is not one either.
     const lookalike = start(process.execPath, chromeArgs(home), { PATH: process.env.PATH, HOME: home, AGENT_BROWSER_SESSION: "bot-lookalike" });
@@ -73,7 +76,7 @@ describe.skipIf(!posix)("browsers whose engine was killed under them", () => {
     expect(await stopBrowserProcesses(found!.tree)).toBe(true);
     expect(gone(orphan.pid!)).toBe(true);
     expect(await browserProcessesRunning(found!.tree)).toBe(false);
-    for (const other of [daemon.pid!, served, elsewhere.pid!, lookalike.pid!]) expect(gone(other)).toBe(false);
+    for (const other of [daemon.pid!, served, elsewhere.pid!, lookalike.pid!, foreign.pid!]) expect(gone(other)).toBe(false);
     expect(existsSync(profile)).toBe(false);
     expect(existsSync(lookalikeProfile)).toBe(true);
   });
@@ -121,8 +124,7 @@ describe.skipIf(!posix)("browsers whose engine was killed under them", () => {
   });
 });
 
-// Windows soon gives a freed pid to a new process, and tasklist shows no
-// start time to tell the two apart: the daemon is the image it ran when read.
+// Windows CIM distinguishes full executable paths and reused PIDs.
 describe("a browser on Windows", () => {
   const platform = process.platform;
   const actualExecFile = vi.mocked(execFile).getMockImplementation()!;
@@ -131,26 +133,27 @@ describe("a browser on Windows", () => {
     vi.mocked(execFile).mockImplementation(actualExecFile);
   });
 
-  it("kills the daemon's tree while the daemon runs, and never a program that took its pid or one tasklist cannot vouch for", async () => {
+  it("kills only the same executable and creation time, never a foreign path, reused PID or unverifiable process", async () => {
     // A live process answers for the pid, as whatever Windows gave it to would.
     const holder = spawn(process.execPath, ["-e", IDLE], { stdio: "ignore" });
     try {
-      let image: string | null = "agent-browser.exe";
+      let image: string | null = "/engine/agent-browser.exe";
+      let started = "created-1";
       const commands: string[][] = [];
       vi.mocked(execFile).mockImplementation(((file: string, args: string[], _options: unknown, done: (error: Error | null, stdout: string) => void) => {
         commands.push([file, ...args]);
         if (file === "taskkill") image = ""; // the tree is gone
-        const row = image ? `"${image}","${holder.pid}","Console","1","12,345 K"\r\n` : "INFO: No tasks are running which match the specified criteria.\r\n";
-        queueMicrotask(() => image === null && file === "tasklist" ? done(new Error("tasklist failed"), "") : done(null, file === "tasklist" ? row : ""));
+        const row = image ? JSON.stringify({ ExecutablePath: image, CreationDate: started }) : "";
+        queueMicrotask(() => image === null && file === "powershell.exe" ? done(new Error("CIM failed"), "") : done(null, file === "powershell.exe" ? row : ""));
         return {} as ChildProcess;
       }) as unknown as typeof execFile);
       Object.defineProperty(process, "platform", { value: "win32", configurable: true });
       // A pid file naming another program gives no tree to stop.
       image = "notepad.exe";
       expect(await browserProcessTree("/engine/agent-browser.exe", holder.pid!, "bot-a")).toBeNull();
-      image = "agent-browser.exe";
+      image = "/engine/agent-browser.exe";
       const tree = (await browserProcessTree("/engine/agent-browser.exe", holder.pid!, "bot-a"))!;
-      expect(tree).toMatchObject({ daemon: holder.pid, image: "agent-browser.exe" });
+      expect(tree).toMatchObject({ daemon: holder.pid, image: "/engine/agent-browser.exe" });
       expect(await browserProcessesRunning(tree)).toBe(true);
       const killed = () => commands.filter(([file]) => file === "taskkill");
       // The daemon exited and Windows gave its pid to another program.
@@ -162,7 +165,14 @@ describe("a browser on Windows", () => {
       image = null;
       expect(await stopBrowserProcesses(tree)).toBe(false);
       expect(killed()).toEqual([]);
-      image = "agent-browser.exe";
+      image = "/mausbot/agent-browser.exe";
+      expect(await stopBrowserProcesses(tree)).toBe(true);
+      expect(killed()).toEqual([]);
+      image = "/engine/agent-browser.exe";
+      started = "created-2";
+      expect(await stopBrowserProcesses(tree)).toBe(true);
+      expect(killed()).toEqual([]);
+      started = "created-1";
       expect(await stopBrowserProcesses(tree)).toBe(true);
       expect(killed()).toEqual([["taskkill", "/PID", String(holder.pid), "/T", "/F"]]);
       expect(await browserProcessesRunning(tree)).toBe(false);

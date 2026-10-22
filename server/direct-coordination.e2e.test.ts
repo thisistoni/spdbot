@@ -29,7 +29,7 @@ async function fixture(test: (f: any) => Promise<void>, fakeEnv: NodeJS.ProcessE
 
 async function fixtureSession(test: (f: any) => Promise<void>, fakeEnv: NodeJS.ProcessEnv) {
   const session = await launchVerificationServer({ ...process.env, ...fakeEnv }, undefined, undefined, undefined, undefined, { scripted: true });
-  const cli = (...args: string[]) => runControlOmb(args, { env: { OPENMAUSBOT_URL: session.info.url } }) as Promise<any>;
+  const cli = (...args: string[]) => runControlOmb(args, { env: { SPDBOT_URL: session.info.url } }) as Promise<any>;
   const api = (path: string, body?: unknown, method = "POST") => request(path, body === undefined ? {} : { method, body: JSON.stringify(body) }, session.info.url) as Promise<any>;
   try {
     const chief = (await cli("new-bot", "--name", "Clive", "--section", "Leadership")).bot;
@@ -528,7 +528,7 @@ it.each<[string, NodeJS.ProcessEnv]>([
   ["a headless server", {}],
   ["the desktop app", { OMB_TEST_DESKTOP_OWNER_TOKEN: randomBytes(32).toString("base64url") }],
 ])("on %s, holds a follow-up sent while the teammate still works and runs it next in the same thread", (_where, env) => fixture(async f => {
-  expect((await f.api("/.well-known/openmausbot/environment", undefined, "GET")).capabilities.selfUpdate)
+  expect((await f.api("/.well-known/spdbot/environment", undefined, "GET")).capabilities.selfUpdate)
     .toBe(env.OMB_TEST_DESKTOP_OWNER_TOKEN ? "desktop-managed" : "operator");
   const gate = join(f.session.info.dataDir, "first-request.gate");
   f.plan[f.lead.id] = { turns: [{ gateFile: gate, reply: "Export implemented" }, { reply: "Header row added" }] };

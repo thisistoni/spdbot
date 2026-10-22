@@ -1,3 +1,4 @@
+import { configureProductIdentity } from "./product-identity.mjs";
 import { app, autoUpdater as nativeAutoUpdater, BrowserWindow, Tray, WebContentsView, clipboard, desktopCapturer, dialog, ipcMain, Menu, nativeImage, Notification, powerMonitor, powerSaveBlocker, safeStorage, screen, session, shell, systemPreferences, utilityProcess } from "electron";
 import { createRequire } from "node:module";
 import { randomBytes, randomUUID } from "node:crypto";
@@ -117,7 +118,7 @@ const { MIN_BOUNDS, normalizeUnreadCount, parseWindowState, resolveWindowState }
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 // vite binds IPv4; a bare "localhost" can resolve to ::1.
 const DEV_URL = process.env.ELECTRON_START_URL ?? "http://127.0.0.1:5199";
-let SERVER_PORT = 8799;
+let SERVER_PORT = 8899;
 const APP_ICON = path.join(__dirname, "resources/app-icon.png");
 let desktopViewerWindow = null;
 let desktopViewerOwner = null;
@@ -214,11 +215,14 @@ function applyUnreadBadge(win = mainWindow) {
   if (process.platform === "darwin" || process.platform === "linux") app.setBadgeCount(count);
 }
 
+// Keep Chromium profiles, encrypted credentials and the instance lock separate from MausBot.
+configureProductIdentity(app);
+
 // GNOME groups the window with its desktop entry only when both identities match; set before ready.
 // Chromium's GPU process crashed on NVIDIA/libGLES and left an invisible window intercepting input.
 if (process.platform === "linux") {
   app.disableHardwareAcceleration();
-  app.setDesktopName("com.openmausbot.app.desktop");
+  app.setDesktopName("de.spdlabs.spdbot.desktop");
 }
 
 if (!app.requestSingleInstanceLock()) {
@@ -287,7 +291,7 @@ app.on("open-url", (event, url) => {
 
 app.on("second-instance", (_event, commandLine) => {
   if (takeOrganizationDeepLink(commandLine)) {
-    queueOrganizationEntry("openmausbot://organization");
+    queueOrganizationEntry("spdbot://organization");
     return;
   }
   if (cloudEntry.fromArgs(commandLine)) return;
@@ -374,7 +378,7 @@ const serverSupervisor = createServerSupervisor({
 
 function desktopDataDir() {
   // An empty OMB_DATA_DIR falls back here too; server/config.ts would not, so the child gets this path.
-  return process.env.OMB_DATA_DIR || path.join(app.getPath("home"), ".openmausbot");
+  return process.env.OMB_DATA_DIR || path.join(app.getPath("home"), ".spdbot");
 }
 
 async function stopUtilityServer(proc, timeoutMs = UTILITY_SERVER_STOP_TIMEOUT_MS) {
@@ -1280,7 +1284,7 @@ function buildErrorPage({ allPortsOccupied }) {
   const serverLogPath = path.join(LOG_DIR, "server.log");
   const serverLogHref = pathToFileURL(serverLogPath).href;
   const reason = allPortsOccupied
-    ? "Every SPDBot port answered health checks from another process — likely a second copy of the app, or another program on ports 8799–28799. Quit that program, then quit and reopen SPDBot."
+    ? "Every SPDBot port answered health checks from another process — likely a second copy of the app, or another program on ports 8899–28899. Quit that program, then quit and reopen SPDBot."
     : "The background server didn't come up in time — this is usually slow startup, not a port conflict. Quit and reopen SPDBot.";
   return (
     "data:text/html;charset=utf-8," +
@@ -1647,7 +1651,7 @@ function refreshApplicationMenu() {
       onSwitch: (id) => void workspaceMenuAction(() => switchEnvironment(id)),
       onAddFromClipboard: () => void addServerFromClipboard(),
       onConnect: () => void workspaceMenuAction(openWorkspaceSettings),
-      onOrganizationSignIn: () => queueOrganizationEntry("openmausbot://organization"),
+      onOrganizationSignIn: () => queueOrganizationEntry("spdbot://organization"),
       onForget: (id) => void workspaceMenuAction(() => forgetEnvironment(id)),
       onOpenSettings: () => {
         if (mainWindow && !mainWindow.isDestroyed()) mainWindow.webContents.send("app:open-settings");
@@ -1678,9 +1682,7 @@ function navigateMainWindow(url) {
 let rememberedHome = null;
 
 function acquireDataDirLeaseFor(dir) {
-  return dir === desktopDataDir()
-    ? acquireDataDirLease(dir, { legacyDataDir: path.join(app.getPath("home"), ".opengrokbot") })
-    : acquireDataDirLease(dir);
+  return acquireDataDirLease(dir);
 }
 
 /** Pause the supervisor first, or its recovery forks on the wrong data dir; resume() stays in the finally. */
@@ -1805,7 +1807,7 @@ function createLocalEnvironment(name, dataDir) {
       ? name.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "")
       : "";
     if (typeof name !== "string" || !name.trim()) return { ok: false, error: "name", state };
-    candidateDir = path.join(os.homedir(), `.openmausbot-${slug || randomUUID().slice(0, 8)}`);
+    candidateDir = path.join(os.homedir(), `.spdbot-${slug || randomUUID().slice(0, 8)}`);
   } else {
     candidateDir = typeof dataDir === "string" ? dataDir.trim() : "";
     if (
@@ -2030,7 +2032,7 @@ async function forgetEnvironment(id, purge = false) {
     const resolvedCanon = canonical(resolved);
     const rootCanon = canonical(root);
     if (runningDataDir && canonical(runningDataDir) === resolvedCanon) return { ok: false, error: "active" };
-    if (path.basename(resolved).startsWith(".openmausbot") && resolvedCanon !== rootCanon && !resolvedCanon.startsWith(rootCanon + path.sep)) {
+    if (path.basename(resolved).startsWith(".spdbot") && resolvedCanon !== rootCanon && !resolvedCanon.startsWith(rootCanon + path.sep)) {
       try {
         await fs.promises.rm(resolved, { recursive: true, force: true });
       } catch (error) {
@@ -2386,7 +2388,7 @@ ipcMain.handle("desktop:export-diagnostics", localOnly("desktop:export-diagnosti
   return result.filePath;
 }));
 
-// The path is renderer-controlled: it must resolve inside ~/.openmausbot to a regular file, never a symlink escape.
+// The path is renderer-controlled: it must resolve inside ~/.spdbot to a regular file, never a symlink escape.
 ipcMain.handle("desktop:save-file", localOnly("desktop:save-file", async (event, rawPath) => {
   return withSavableFile(rawPath, { home: os.homedir() }, async ({ defaultName, copyTo }) => {
     const parent = BrowserWindow.fromWebContents(event.sender);
@@ -3146,9 +3148,7 @@ app.whenReady().then(async () => {
   if (app.isPackaged) {
     try {
       // Acquire before either plaintext credential migration touches config.json.
-      desktopDataDirLease = acquireDataDirLease(bootDataDir, {
-        legacyDataDir: path.join(app.getPath("home"), ".opengrokbot"),
-      });
+      desktopDataDirLease = acquireDataDirLease(bootDataDir);
       runningDataDir = bootDataDir;
     } catch (error) {
       dialog.showErrorBox(
@@ -3161,7 +3161,7 @@ app.whenReady().then(async () => {
   }
   installServerSessions({ app, defaultSession: session.defaultSession, serverPort: () => SERVER_PORT,
     ownerToken: () => (app.isPackaged && serverReady ? desktopMutationToken : null) });
-  if (app.isPackaged) app.setAsDefaultProtocolClient("openmausbot");
+  if (app.isPackaged) app.setAsDefaultProtocolClient("spdbot");
   if (process.platform === "darwin") app.dock.setIcon(APP_ICON);
   secureCredentials = await loadSecureCredentials();
   // An orphaned third-party key with no clear handler left: drop it rather than keep it at rest.
@@ -3274,9 +3274,7 @@ app.whenReady().then(async () => {
       }
       desktopDataDirLease = null;
       try {
-        desktopDataDirLease = acquireDataDirLease(desktopDataDir(), {
-          legacyDataDir: path.join(app.getPath("home"), ".opengrokbot"),
-        });
+        desktopDataDirLease = acquireDataDirLease(desktopDataDir());
         runningDataDir = desktopDataDir();
       } catch (error) {
         dialog.showErrorBox(

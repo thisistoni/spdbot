@@ -282,7 +282,7 @@ describe("VPS computer", () => {
   it("uses a deterministic, bot-id-derived managed container name", () => {
     expect(vpsContainerName(BOT_ID)).toBe(vpsContainerName(BOT_ID));
     expect(vpsContainerName(BOT_ID)).not.toBe(vpsContainerName("another-bot"));
-    expect(vpsContainerName(BOT_ID)).toMatch(/^openmausbot-vps-[a-z0-9-]+$/);
+    expect(vpsContainerName(BOT_ID)).toMatch(/^spdbot-vps-[a-z0-9-]+$/);
   });
 
   it("passes the SSH target as one validated Docker argv value", () => {
@@ -447,7 +447,7 @@ describe("VPS computer", () => {
     expect(run.at(-1)).toBe(IMAGE_ID);
     expect(run.join(" ")).toContain(`--label ${VPS_MANAGED_LABEL}=1`);
     expect(run.find((arg) => arg.startsWith(`${VPS_ENVIRONMENT_LABEL}=`)))
-      .toMatch(/^com\.openmausbot\.environment=[0-9a-f-]{36}$/i);
+      .toMatch(/^com\.spdbot\.environment=[0-9a-f-]{36}$/i);
     expect(run.join(" ")).toContain(`--label ${IMAGE_LAYER_LABEL}=${IMAGE_LAYER_VERSION}`);
     expect(run.join(" ")).toContain(`--label ${VPS_VIEWER_LABEL}=1`);
     expect(run.join(" ")).toContain("--restart unless-stopped");
@@ -624,10 +624,10 @@ describe("VPS computer", () => {
       "-e",
       "CUA_DRIVER_RS_TELEMETRY_ENABLED=0",
       vpsContainerName(BOT_ID),
-      "/usr/local/libexec/openmausbot/cua-driver",
+      "/usr/local/libexec/spdbot/cua-driver",
       "mcp",
       "--socket",
-      "/run/user/1000/openmausbot-cua.sock",
+      "/run/user/1000/spdbot-cua.sock",
     ]);
   });
 
@@ -639,7 +639,7 @@ describe("VPS computer", () => {
     const transfer = fake.calls.find(({ args }) => args.includes("openmausbot-preview"))!.args;
     expect(transfer.slice(2)).toEqual([
       "exec", "-u", "cua", "-e", "HOME=/home/cua", CONTAINER_ID,
-      "sh", "-c", expect.stringContaining('quality=70'), "openmausbot-preview", "/tmp/openmausbot-vps-preview.png",
+      "sh", "-c", expect.stringContaining('quality=70'), "openmausbot-preview", "/tmp/spdbot-vps-preview.png",
     ]);
     expect(transfer[transfer.indexOf("-c") + 1]).toContain("image.thumbnail((1280, 1280))");
     expect(fake.calls.some(({ args }) => args.includes("rm") && args.includes("-f"))).toBe(true);

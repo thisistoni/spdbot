@@ -43,7 +43,7 @@ async function binaryVersion(candidate) {
 }
 
 async function officialBinary() {
-  const cache = join(root, "node_modules", ".cache", "openmausbot", `cua-driver-${release.version}-win`);
+  const cache = join(root, "node_modules", ".cache", "spdbot", `cua-driver-${release.version}-win`);
   const cachedBinary = join(cache, "cua-driver.exe");
   if ((await binaryVersion(cachedBinary)) === expectedVersion) return cachedBinary;
 
@@ -132,7 +132,7 @@ await build({
       'export { EmbeddedCuaDriverHost } from "@trycua/cua-driver/embedded";',
     ].join("\n"),
     resolveDir: root,
-    sourcefile: "openmausbot-cua-entry.mjs",
+    sourcefile: "spdbot-cua-entry.mjs",
     loader: "js",
   },
   bundle: true,

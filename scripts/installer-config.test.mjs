@@ -10,6 +10,7 @@ import { parse, stringify } from "yaml";
 const require = createRequire(import.meta.url);
 const builderRequire = createRequire(require.resolve("electron-builder"));
 const { validateConfiguration } = builderRequire("app-builder-lib/out/util/config/config.js");
+const { AppInfo } = builderRequire("app-builder-lib/out/appInfo.js");
 const { FileMatcher } = builderRequire("app-builder-lib/out/fileMatcher.js");
 const read = (name) => readFileSync(new URL(`../${name}`, import.meta.url), "utf8");
 const config = parse(read("electron-builder.yml"));
@@ -27,13 +28,14 @@ describe("SPDBot desktop distribution", () => {
     await validateConfiguration(config, { isEnabled: false });
   });
 
-  it("targets only the owned public feed without changing persisted runtime identities", () => {
+  it("targets only the owned public feed with independent package and runtime identities", () => {
     expect(config.publish).toEqual([{ provider: "github", owner: "thisistoni", repo: "spdbot" }]);
-    expect(packageJson.name).toBe("openmausbot");
-    expect(config).toMatchObject({ appId: "com.openmausbot.app", productName: "OpenMausBot" });
-    expect(config.protocols[0].schemes).toEqual(["openmausbot"]);
-    expect(config.linux.executableName).toBe("openmausbot");
-    expect(packageJson.desktopName).toBe("com.openmausbot.app.desktop");
+    expect(packageJson.name).toBe("spdbot");
+    expect(config).toMatchObject({ appId: "de.spdlabs.spdbot", productName: "SPDBot" });
+    expect(config.protocols[0].schemes).toEqual(["spdbot"]);
+    expect(config.linux.executableName).toBe("spdbot");
+    expect(packageJson.desktopName).toBe("de.spdlabs.spdbot.desktop");
+    expect(new AppInfo({ metadata: packageJson, config }).updaterCacheDirName).toBe("spdbot-updater");
     expect(config.win.publisherName).toBeUndefined();
   });
 
@@ -47,7 +49,7 @@ describe("SPDBot desktop distribution", () => {
     for (const description of Object.values(config.mac.extendInfo)) expect(description).toMatch(/^SPDBot /);
   });
 
-  it("brands NSIS captions after the default name without renaming installed files", () => {
+  it("brands NSIS captions after the default name with independent installed files", () => {
     expect(config.nsis.include).toBe("build/installer.nsh");
     expect(config.nsis.uninstallDisplayName).toBe("SPDBot ${version}");
     const include = read(config.nsis.include);
@@ -77,7 +79,7 @@ describe("SPDBot desktop distribution", () => {
       const output = path.join(dir, "caption.exe");
       writeFileSync(script, `Unicode true
 !define PRODUCT_NAME "${config.productName}"
-!define PRODUCT_FILENAME "OpenMausBot"
+!define PRODUCT_FILENAME "SPDBot"
 !define VERSION "${packageJson.version}"
 ${uninstaller ? "!define BUILD_UNINSTALLER" : ""}
 !include "${nsisPath(path.resolve(config.nsis.include))}"
@@ -103,8 +105,8 @@ ${uninstaller ? 'Section "Uninstall"\n  DetailPrint "uninstall fixture"\nSection
       expect(preprocessed.status, preprocessed.stderr).toBe(0);
       expect([...preprocessed.stdout.matchAll(/^Name .+$/gm)].at(-1)?.[0]).toBe('Name "SPDBot" "SPDBot"');
       expect([...preprocessed.stdout.matchAll(/^BrandingText .+$/gm)].at(-1)?.[0]).toBe(`BrandingText "SPDBot ${packageJson.version}"`);
-      expect(preprocessed.stdout).toContain('DetailPrint "OpenMausBot.exe"');
-      expect(preprocessed.stdout).toContain('DetailPrint "Uninstall OpenMausBot.exe"');
+      expect(preprocessed.stdout).toContain('DetailPrint "SPDBot.exe"');
+      expect(preprocessed.stdout).toContain('DetailPrint "Uninstall SPDBot.exe"');
       for (const [language, setup, uninstall] of [
         ["English", "$(^Name) Setup", "$(^Name) Uninstall"],
         ["German", "Installation von $(^Name)", "Deinstallation von $(^Name)"],

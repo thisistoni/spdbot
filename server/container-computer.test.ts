@@ -299,10 +299,10 @@ describe("containerComputerStatus", () => {
     const derived = perBotLocalVmTarget("bot-win");
     const target: LocalVmTarget = {
       ...derived,
-      workspaceDir: "C:\\Users\\light\\.openmausbot\\vm-homes\\win-target",
+      workspaceDir: "C:\\Users\\light\\.spdbot\\vm-homes\\win-target",
     };
     const detail = JSON.parse(perBotReadyInspect("bot-win", 41629))[0];
-    detail.Mounts[0].Source = "/mnt/c/Users/light/.openmausbot/vm-homes/win-target";
+    detail.Mounts[0].Source = "/mnt/c/Users/light/.spdbot/vm-homes/win-target";
     detail.HostConfig = {
       ...detail.HostConfig,
       CapDrop: ["CAP_CHOWN", "CAP_DAC_OVERRIDE"],
@@ -789,7 +789,7 @@ describe("Cua integration", () => {
     expect(dockerfile).toContain(`cua-driver ${CUA_DRIVER_VERSION}`);
     expect(dockerfile).toContain(`serve --socket ${CUA_SOCKET} --permission-mode standard`);
     expect(dockerfile).toContain("CUA_DRIVER_RS_TELEMETRY_ENABLED=0");
-    expect(dockerfile).toContain("prepare-openmausbot-workspace.sh");
+    expect(dockerfile).toContain("prepare-spdbot-workspace.sh");
     expect(dockerfile).toContain('if ! chmod 0700 "$workspace"');
     expect(dockerfile).toContain('test -r "$directory" && test -w "$directory" && test -x "$directory"');
     expect(dockerfile).toContain("migrate_profile google-chrome");

@@ -10,7 +10,7 @@ import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { removeTempDir, waitForExit } from "./testing/cleanup.ts";
 
 const SERVER_DIR = dirname(fileURLToPath(import.meta.url));
-const ENTRY = join(SERVER_DIR, "openmausbot.ts");
+const ENTRY = join(SERVER_DIR, "spdbot.ts");
 const PORT = 38800 + Math.floor(Math.random() * 5_000);
 const run = promisify(execFile);
 
@@ -33,7 +33,7 @@ const cli = async (args: string[]) => {
   }
 };
 
-describe.skipIf(process.platform === "win32")("openmausbot serve under service loopback trust", () => {
+describe.skipIf(process.platform === "win32")("spdbot serve under service loopback trust", () => {
   beforeAll(async () => {
     home = mkdtempSync(join(tmpdir(), "omb-cli-service-"));
     serve = spawn(process.execPath, ["--experimental-strip-types", ENTRY, "serve", "--port", String(PORT), "--data-dir", join(home, "data")], {
@@ -63,7 +63,7 @@ describe.skipIf(process.platform === "win32")("openmausbot serve under service l
   });
 
   it("refuses everyone else on this machine the pairing route", async () => {
-    for (const headers of [{}, { "x-openmausbot-cli-owner": "x".repeat(43) }]) {
+    for (const headers of [{}, { "x-spdbot-cli-owner": "x".repeat(43) }]) {
       const minted = await fetch(`http://127.0.0.1:${PORT}/api/auth/pairing`, { method: "POST", headers: { "content-type": "application/json", ...headers }, body: "{}" });
       expect(minted.status).toBe(403);
     }

@@ -43,7 +43,7 @@ export function cloudHomeChildEnvironments(config: CloudHomeConfig, env: NodeJS.
   const allowed = Object.fromEntries(Object.entries(offered).filter(([name, value]) => value !== undefined && serverEnvironmentAllowed(name)));
   const dropped = Object.keys(offered).filter((name) => !serverEnvironmentAllowed(name) && name !== "HOME").sort();
   const server: NodeJS.ProcessEnv = {
-    ...allowed, HOME: home, OMB_DATA_DIR: env.OMB_DATA_DIR || posix.join(home, ".openmausbot"),
+    ...allowed, HOME: home, OMB_DATA_DIR: env.OMB_DATA_DIR || posix.join(home, ".spdbot"),
     OMB_PORT: "8799", OMB_WEBHOOK_PORT: "8800", OMB_PUBLIC_URL: config.publicOrigin,
     OMB_WEBHOOK_PUBLIC_URL: env.OMB_WEBHOOK_PUBLIC_URL || config.publicOrigin,
     [CLOUD_SECRETS_FD_ENV]: String(SECRETS_FD),

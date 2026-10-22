@@ -53,7 +53,7 @@ describe("events against a server", () => {
   let answer: (req: IncomingMessage, res: ServerResponse, n: number) => void = () => undefined;
   const asked: string[] = [];
   beforeAll(async () => {
-    server = createServer((req, res) => { asked.push(req.url ?? ""); answer(req, res, asked.length); });
+    server = createServer((req, res) => { if (req.url === "/api/health") { res.setHeader("content-type", "application/json"); res.end(JSON.stringify({ app: "spdbot" })); return; } asked.push(req.url ?? ""); answer(req, res, asked.length); });
     await new Promise<void>((ready) => server.listen(0, "127.0.0.1", ready));
     origin = `http://127.0.0.1:${(server.address() as AddressInfo).port}`;
   });
@@ -77,7 +77,7 @@ describe("events against a server", () => {
     asked.length = 0;
     answer = (_req, res) => { res.writeHead(401, { "content-type": "application/json" }); res.end(JSON.stringify({ error: "unauthorized: this session has expired or was revoked" })); };
     const { io, out } = capture();
-    const code = await runHeadless(["events", "--json"], { io, env: { OPENMAUSBOT_URL: origin, OPENMAUSBOT_TOKEN: "omb_sess_expired" } });
+    const code = await runHeadless(["events", "--json"], { io, env: { SPDBOT_URL: origin, SPDBOT_TOKEN: "omb_sess_expired" } });
     expect(code).toBe(5);
     expect(JSON.parse(out.join("\n"))).toMatchObject({ ok: false, exitCode: 5, error: "this server needs a credential and did not accept the one given" });
     expect(asked).toHaveLength(1);
@@ -102,7 +102,7 @@ describe("events against a server", () => {
     };
     const { io, out } = capture();
     try {
-      const code = await runHeadless(["events", "--job", "t1", "--until-settled"], { io, env: { OPENMAUSBOT_URL: origin } });
+      const code = await runHeadless(["events", "--job", "t1", "--until-settled"], { io, env: { SPDBOT_URL: origin } });
       expect(code).toBe(0);
       expect(JSON.parse(out.at(-1)!)).toMatchObject({ kind: "job", threadId: "t1", state: "completed" });
       expect(reads).toBeGreaterThanOrEqual(3);
@@ -121,7 +121,7 @@ describe("events against a server", () => {
     };
     const { io, out, err } = capture();
     const controller = new AbortController();
-    const ran = runHeadless(["events", "--thread", "t1"], { io, env: { OPENMAUSBOT_URL: origin }, signal: controller.signal });
+    const ran = runHeadless(["events", "--thread", "t1"], { io, env: { SPDBOT_URL: origin }, signal: controller.signal });
     await expect.poll(() => out.length, { timeout: 10_000 }).toBe(4);
     controller.abort();
     expect(await ran).toBe(130);

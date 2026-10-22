@@ -37,7 +37,7 @@ export async function connectVerb(ctx: VerbContext): Promise<VerbOutcome> {
   const out = flag(ctx.flags, "out")?.trim();
   if (!out) throw usageError("--out FILE is required: where to keep the token");
   const mcp = await loadMcp();
-  const named = ctx.positionals[0]?.trim() ? { url: ctx.positionals[0]!.trim() } : namedServer(ctx.flags, ctx.env) ?? { port: "8799" };
+  const named = ctx.positionals[0]?.trim() ? { url: ctx.positionals[0]!.trim() } : namedServer(ctx.flags, ctx.env) ?? { port: "8899" };
   let origin: string;
   try {
     origin = "url" in named ? mcp.validateBaseUrl(named.url) : mcp.validateBaseUrl(`http://127.0.0.1:${named.port}`);
@@ -46,10 +46,10 @@ export async function connectVerb(ctx: VerbContext): Promise<VerbOutcome> {
   }
   let code = flag(ctx.flags, "code")?.replace(/\s+/g, "");
   if (!code && !isLoopback(origin)) throw usageError("a workspace elsewhere needs a pairing code", "open Settings → Phone → Set up a phone there, then pass --code CODE");
-  const unreachable = () => new HeadlessError(`no OpenMausBot server answers at ${origin}`, EXIT.unreachable, "check the address, and that the server is running");
-  const described = await call(origin, "/.well-known/openmausbot/environment").catch(() => { throw unreachable(); });
+  const unreachable = () => new HeadlessError(`no SPDBot server answers at ${origin}`, EXIT.unreachable, "check the address, and that the server is running");
+  const described = await call(origin, "/.well-known/spdbot/environment").catch(() => { throw unreachable(); });
   if (described.status !== 200 || typeof described.body.environmentId !== "string") throw unreachable();
-  const label = flag(ctx.flags, "label")?.trim() || "openmausbot CLI";
+  const label = flag(ctx.flags, "label")?.trim() || "spdbot CLI";
   if (!code) {
     const minted = await call(origin, "/api/auth/pairing", { method: "POST", body: JSON.stringify({ label, ...(ctx.flags.client ? { scopes: ["client"] } : {}) }) });
     if (minted.status !== 200 || typeof minted.body.code !== "string") {
@@ -76,7 +76,7 @@ export async function connectVerb(ctx: VerbContext): Promise<VerbOutcome> {
     human: [
       `Connected to "${environment.label}" (${origin}, id ${environment.environmentId}).`,
       `Session "${session.label ?? label}", ${scope === "admin" ? "full access" : "chat and approvals only"}${typeof session.expiresAt === "number" ? `, until ${new Date(session.expiresAt).toISOString().slice(0, 10)}` : ""}.`,
-      `Token saved to ${out}. Use it with: openmausbot doctor --url ${origin} --token-file ${out}`,
+      `Token saved to ${out}. Use it with: spdbot doctor --url ${origin} --token-file ${out}`,
     ],
   };
 }

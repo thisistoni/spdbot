@@ -37,6 +37,7 @@ function answer(req: IncomingMessage, res: ServerResponse, raw: string) {
     res.writeHead(status, { "content-type": "application/json", ...headers });
     res.end(JSON.stringify(body));
   };
+  if (url.pathname === "/api/health") return send(200, { app: "spdbot" });
   if (url.pathname === "/api/bots") return send(200, { bots: [{ id: "lead", name: "Room Lead", threadId: LEAD, tasks: [{ threadId: LEAD }] }], groups: [] });
   if (url.pathname === `/api/threads/${LEAD}/job`) {
     return send(200, { threadId: LEAD, state: "completed", reason: "Room Lead finished", since: 0, version: "v1", nodes: [
@@ -104,7 +105,7 @@ const run = async (argv: string[]) => {
   const out: string[] = [];
   const err: string[] = [];
   const io: HeadlessIo = { out: (text) => out.push(text), err: (text) => err.push(text), readStdin: async () => "" };
-  const code = await runHeadless(argv, { io, env: { OPENMAUSBOT_URL: origin } });
+  const code = await runHeadless(argv, { io, env: { SPDBOT_URL: origin } });
   return { code, result: out.length ? JSON.parse(out.join("\n")) : undefined, err };
 };
 

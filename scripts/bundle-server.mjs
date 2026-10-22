@@ -32,7 +32,7 @@ const ENTRY_POINTS = [
   "index.ts",
   "message-search.worker.ts",
   // the `openmausbot` command
-  "openmausbot.ts",
+  "spdbot.ts",
   "pair-cli.ts",
   "workspace-backup.worker.ts",
   // the OMB Cloud Pro home image's entry point

@@ -228,7 +228,7 @@ pairing code for your first device:
 
 ```sh
 docker compose exec omb claude                       # each CLI you listed in ENGINES
-docker compose exec omb node dist-server/openmausbot.js pair # prints a code, a link and a QR
+docker compose exec omb node dist-server/spdbot.js pair # prints a code, a link and a QR
 ```
 
 Open the link (`https://<DOMAIN>/pair#code=…`) in a browser and it is
@@ -415,7 +415,7 @@ reach it. On the server:
 ```sh
 npx openmausbot pair                         # npm install
 pnpm omb pair                                # from a checkout
-docker compose exec omb node dist-server/openmausbot.js pair   # Docker
+docker compose exec omb node dist-server/spdbot.js pair   # Docker
 ```
 
 It prints a 12-character code (single use, five minutes) and, when the
@@ -840,7 +840,7 @@ than present the old session to it.
 Both native apps pair this way. `openmausbot pair --phone android` prints the
 app-scheme QR that Android's scanner needs, and the iOS app accepts either
 that QR or the web link. Pass `--phone` whenever nothing is watching the
-terminal, such as `docker compose exec omb node dist-server/openmausbot.js
+terminal, such as `docker compose exec omb node dist-server/spdbot.js
 pair --phone android --public-url https://your-domain`, since a scripted run
 never reaches the question the interactive command asks. Nothing extra to install, and the phone becomes a
 session like any other.

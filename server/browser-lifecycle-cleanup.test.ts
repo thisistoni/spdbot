@@ -1,3 +1,4 @@
+import { BROWSER_NAMESPACE } from "./browser-identity.ts";
 import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
@@ -244,8 +245,8 @@ describe("closing this data dir's browsers nothing uses", () => {
   function home(daemons: string[]) {
     const folder = mkdtempSync(join(tmpdir(), "openmaus-browser-sweep-"));
     folders.push(folder);
-    mkdirSync(join(folder, "agent-browser"));
-    for (const session of daemons) writeFileSync(join(folder, "agent-browser", `${session}.pid`), "0");
+    mkdirSync(join(folder, "agent-browser", "namespaces", BROWSER_NAMESPACE, "run"), { recursive: true });
+    for (const session of daemons) writeFileSync(join(folder, "agent-browser", "namespaces", BROWSER_NAMESPACE, "run", `${session}.pid`), "0");
     vi.stubEnv("XDG_RUNTIME_DIR", folder);
     vi.mocked(runningBrowserSessionNames).mockClear().mockResolvedValue(daemons);
     vi.mocked(closeBrowserSession).mockClear().mockResolvedValue(true);
@@ -341,7 +342,7 @@ describe("closing this data dir's browsers nothing uses", () => {
     const running = sweep({ live: ["bot-b"] }).value;
     await running.sweep();
     expect(vi.mocked(stopBrowserProcesses).mock.calls).toEqual([[orphan("guest-0f0f0f0f-1").tree]]);
-    rmSync(join(process.env.XDG_RUNTIME_DIR!, "agent-browser", "bot-b.pid"));
+    rmSync(join(process.env.XDG_RUNTIME_DIR!, "agent-browser", "namespaces", BROWSER_NAMESPACE, "run", "bot-b.pid"));
     await running.sweep();
     expect(orphanedBrowsers).toHaveBeenCalledTimes(2);
     await running.sweep();
