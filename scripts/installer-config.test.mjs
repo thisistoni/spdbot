@@ -74,7 +74,7 @@ describe("SPDBot desktop distribution", () => {
       const compiler = await getMakeNsisPath(config.toolsets?.nsis, config.nsis.customNsisBinary);
       const dir = mkdtempSync(path.join(tmpdir(), "spdbot-nsis-"));
       temporary.push(dir);
-      const nsisPath = (value) => value.replaceAll("\\", "/");
+      const nsisPath = (value) => process.platform === "win32" ? value : value.replaceAll("\\", "/");
       const script = path.join(dir, "caption.nsi");
       const output = path.join(dir, "caption.exe");
       writeFileSync(script, `Unicode true

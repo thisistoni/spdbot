@@ -1,4 +1,4 @@
-import { BROWSER_NAMESPACE } from "./browser-identity.ts";
+import { BROWSER_NAMESPACE, browserSocketRoot } from "./browser-identity.ts";
 import { createHash, randomUUID } from "node:crypto";
 import { spawn } from "node:child_process";
 import { EventEmitter } from "node:events";
@@ -277,8 +277,18 @@ describe("deleting one browser session's saved logins", () => {
 });
 
 describe("a browser daemon that will not close (#2603)", () => {
+  it("keeps product socket paths private and below the Unix socket limit", () => {
+    if (!posix) return;
+    const root = browserSocketRoot();
+    expect(statSync(root).mode & 0o077).toBe(0);
+    const socket = browserDaemonFile({ AGENT_BROWSER_SOCKET_DIR: root, AGENT_BROWSER_NAMESPACE: BROWSER_NAMESPACE,
+      AGENT_BROWSER_SESSION: `bot-${randomUUID()}` }, ".pid").replace(/\.pid$/, ".sock");
+    expect(Buffer.byteLength(socket)).toBeLessThanOrEqual(103);
+    expect(socket).toContain(`/namespaces/${BROWSER_NAMESPACE}/run/`);
+  });
+
   it.each([
-    [{ AGENT_BROWSER_SOCKET_DIR: "/s", XDG_RUNTIME_DIR: "/x", AGENT_BROWSER_NAMESPACE: "ns" }, "/s/work.pid"],
+    [{ AGENT_BROWSER_SOCKET_DIR: "/s", XDG_RUNTIME_DIR: "/x", AGENT_BROWSER_NAMESPACE: "ns" }, "/s/namespaces/ns/run/work.pid"],
     [{ XDG_RUNTIME_DIR: "/x" }, "/x/agent-browser/work.pid"],
     [{ XDG_RUNTIME_DIR: "/x", AGENT_BROWSER_NAMESPACE: "ns" }, "/x/agent-browser/namespaces/ns/run/work.pid"],
     [{ AGENT_BROWSER_NAMESPACE: "ns" }, "/h/.agent-browser/namespaces/ns/run/work.pid"],
@@ -850,6 +860,7 @@ describe("what a bot gets", () => {
       },
     });
     expect(spec.env).toEqual({
+      AGENT_BROWSER_NAMESPACE: BROWSER_NAMESPACE, AGENT_BROWSER_SOCKET_DIR: browserSocketRoot(),
       AGENT_BROWSER_SESSION: "bot-1", AGENT_BROWSER_NO_WEBMCP: "1", AGENT_BROWSER_RESTORE: browserRestoreKey("bot-1"),
       AGENT_BROWSER_RESTORE_SAVE: "auto", AGENT_BROWSER_ENCRYPTION_KEY: "session-key",
       AGENT_BROWSER_CONFIG: expect.stringContaining("omb-managed-config.json"),
@@ -864,6 +875,7 @@ describe("what a bot gets", () => {
     vi.stubEnv("PRIVATE_WORKSPACE_SECRET", "synthetic-process-secret");
     const spec = agentBrowserIntegration({ binaryPath: "/x/agent-browser", session: "bot-1", encryptionKey: "session-key" });
     expect(spec.env).toEqual({
+      AGENT_BROWSER_NAMESPACE: BROWSER_NAMESPACE, AGENT_BROWSER_SOCKET_DIR: browserSocketRoot(),
       AGENT_BROWSER_SESSION: "bot-1", AGENT_BROWSER_NO_WEBMCP: "1", AGENT_BROWSER_RESTORE: browserRestoreKey("bot-1"),
       AGENT_BROWSER_RESTORE_SAVE: "auto", AGENT_BROWSER_ENCRYPTION_KEY: "session-key",
       AGENT_BROWSER_CONFIG: expect.stringContaining("omb-managed-config.json"),

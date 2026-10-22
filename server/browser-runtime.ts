@@ -1,5 +1,5 @@
 import { join } from "node:path";
-import { BROWSER_NAMESPACE } from "./browser-identity.ts";
+import { BROWSER_NAMESPACE, browserSocketRoot } from "./browser-identity.ts";
 import { DATA_DIR } from "./config.ts";
 import { killCliTree, spawnCli } from "./procs.ts";
 import { scrubHeldSecrets } from "../shared/redact.ts";
@@ -68,7 +68,7 @@ const HOST_ENV = ["HOME", "USERPROFILE", "APPDATA", "LOCALAPPDATA", "PATH", "Pat
 /** One env for MCP, viewer and cleanup so they share HOME/socket paths: OS plumbing, never provider credentials. */
 export function browserRuntimeEnv(overrides: Record<string, string | undefined>): NodeJS.ProcessEnv {
   const env = Object.fromEntries(HOST_ENV.flatMap((key) => process.env[key] === undefined ? [] : [[key, process.env[key]]]));
-  return { ...env, AGENT_BROWSER_NAMESPACE: BROWSER_NAMESPACE,
+  return { ...env, AGENT_BROWSER_NAMESPACE: BROWSER_NAMESPACE, AGENT_BROWSER_SOCKET_DIR: browserSocketRoot(),
     XDG_CACHE_HOME: join(DATA_DIR, "browser-cache"), ...overrides };
 }
 

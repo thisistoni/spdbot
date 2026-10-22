@@ -1,3 +1,4 @@
+import { BROWSER_NAMESPACE } from "./browser-identity.ts";
 import { existsSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
@@ -1135,7 +1136,7 @@ describe("around each bot call (browser-steps.ts)", () => {
   const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 
   it("never closes a browser while a call's page reads over the relay are in flight, and starts its idle time once they end", async () => {
-    const relay = await new FakeRelay("s").start();
+    const relay = await new FakeRelay("s", BROWSER_NAMESPACE).start();
     let release!: () => void;
     const reading = new Promise<void>((resolve) => { release = resolve; });
     let held = false;

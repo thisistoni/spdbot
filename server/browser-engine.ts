@@ -171,9 +171,8 @@ export async function inRunningBrowser(binaryPath: string, env: NodeJS.ProcessEn
  * AGENT_BROWSER_SOCKET_DIR, else `$XDG_RUNTIME_DIR/agent-browser` or `~/.agent-browser`, plus `namespaces/<name>/run`. */
 export function browserDaemonFile(env: NodeJS.ProcessEnv, suffix: ".pid" | ".stream"): string {
   const session = env.AGENT_BROWSER_SESSION ?? "";
-  if (env.AGENT_BROWSER_SOCKET_DIR) return join(env.AGENT_BROWSER_SOCKET_DIR, `${session}${suffix}`);
   const home = (process.platform === "win32" ? env.USERPROFILE : env.HOME) || homedir();
-  const base = env.XDG_RUNTIME_DIR ? join(env.XDG_RUNTIME_DIR, "agent-browser") : join(home, ".agent-browser");
+  const base = env.AGENT_BROWSER_SOCKET_DIR || (env.XDG_RUNTIME_DIR ? join(env.XDG_RUNTIME_DIR, "agent-browser") : join(home, ".agent-browser"));
   const namespace = env.AGENT_BROWSER_NAMESPACE;
   return join(namespace ? join(base, "namespaces", namespace, "run") : base, `${session}${suffix}`);
 }
@@ -552,7 +551,10 @@ export function agentBrowserIntegration(input: {
   launcher?: Record<string, string>;
 }): { command: string; args: string[]; env: Record<string, string> } {
   const sourceEnv = input.env ?? process.env;
+  const identity = browserRuntimeEnv({});
   const env: Record<string, string> = {
+    AGENT_BROWSER_NAMESPACE: identity.AGENT_BROWSER_NAMESPACE!,
+    AGENT_BROWSER_SOCKET_DIR: identity.AGENT_BROWSER_SOCKET_DIR!,
     AGENT_BROWSER_SESSION: input.session,
     // agent-browser's MCP server runs child CLI commands without its own global flags, so these go through the env.
     AGENT_BROWSER_NO_WEBMCP: "1",
