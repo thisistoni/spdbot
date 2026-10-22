@@ -207,7 +207,8 @@ export async function checkGerman({ browser, url, botId, output, evidence }) {
     await page.getByRole("button", { name: "Neu oder teilen", exact: true }).click();
     await page.getByRole("button", { name: /^Neuer Bot/ }).click();
     const newBot = page.getByRole("dialog", { name: "Neuer Bot", exact: true });
-    await newBot.locator("fieldset").waitFor();
+    // The draft contains nested avatar option fieldsets; wait for its outer readiness container.
+    await newBot.locator("fieldset:not(fieldset fieldset)").waitFor();
     const navigation = newBot.getByRole("navigation", { name: "Bot-Einstellungen", exact: true });
     assert.equal(await navigation.getByRole("button").count(), tabs.length);
     for (const [index, id] of tabs.entries()) {

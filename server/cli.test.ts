@@ -5,7 +5,7 @@ import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
-import { applyStartupPreferences, formatSessions, parseArgs, runAccess, runLogin, runOnboardingCommand, serverEntry, type CliOptions, verifyPhoneEndpoint } from "./cli.ts";
+import { applyStartupPreferences, formatSessions, main, parseArgs, runAccess, runLogin, runOnboardingCommand, serverEntry, type CliOptions, verifyPhoneEndpoint } from "./cli.ts";
 import { browserSignInLines, pairingBlock, qrToString } from "./cli-pairing.ts";
 import { readAdminActivityRange } from "./admin-activity.ts";
 import { SetupCancelled } from "./cli-prompts.ts";
@@ -564,6 +564,35 @@ describe.skipIf(process.platform === "win32")("serve --tunnel", () => {
 });
 
 describe("spdbot access", () => {
+  it("runs add/list/remove through main offline without probing a listener", async () => {
+    const home = mkdtempSync(join(tmpdir(), "spdbot-access-entry-"));
+    const dataDir = join(home, "workspace");
+    const previousDataDir = process.env.OMB_DATA_DIR;
+    const network = vi.spyOn(globalThis, "fetch").mockRejectedValue(new Error("no listener"));
+    const output = vi.spyOn(console, "log").mockImplementation(() => {});
+    const errors = vi.spyOn(console, "error").mockImplementation(() => {});
+    try {
+      mkdirSync(dataDir);
+      writeFileSync(join(dataDir, "config.json"), JSON.stringify({ language: "de", userName: "Offline fixture" }));
+      const args = ["--data-dir", dataDir, "--port", "1"];
+      expect(await main(["access", "add", "owner@example.test", ...args])).toBe(0);
+      expect(JSON.parse(readFileSync(join(dataDir, "config.json"), "utf8"))).toMatchObject({
+        language: "de", userName: "Offline fixture", signIn: { admins: ["owner@example.test"], members: [] },
+      });
+      expect(await main(["access", "list", ...args])).toBe(0);
+      expect(output.mock.calls.flat().join("\n")).toContain("owner@example.test");
+      expect(await main(["access", "remove", "owner@example.test", ...args])).toBe(0);
+      expect(JSON.parse(readFileSync(join(dataDir, "config.json"), "utf8")).signIn).toEqual({ admins: [], members: [] });
+      expect(network).not.toHaveBeenCalled();
+      expect(errors).not.toHaveBeenCalled();
+    } finally {
+      if (previousDataDir === undefined) delete process.env.OMB_DATA_DIR;
+      else process.env.OMB_DATA_DIR = previousDataDir;
+      network.mockRestore(); output.mockRestore(); errors.mockRestore();
+      await removeTempDir(home);
+    }
+  });
+
   it("edits the sign-in allow-list in config.json without a running server", async () => {
     const home = mkdtempSync(join(tmpdir(), "omb-cli-access-"));
     const dataDir = join(home, "data");

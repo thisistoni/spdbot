@@ -50,31 +50,76 @@ This browser fixture does not establish native Windows installer behavior,
 paid image-provider access, or the user's live profile. A Windows package check
 is a separate step; this change does not publish or deploy a release.
 
-## Independent verification, 2026-10-22
+## Integrated verification, 2026-10-22
 
-The expanded browser check passed on Linux, Node 24.19.0, pnpm 10.33.0,
-agent-browser 0.37.0 and system Chromium 154.0.8037.57. Browser sandbox flags
-were unchanged. Its eight screenshots cover both editors, shape/texture
-controls, and retained uploaded crops at 150% and 180%; inspect the files from
-the corresponding run, rather than relying on an older screenshot set.
+Integrated `main` at `73fa5309e`, including the actual merges of PRs #12 and
+#13. The conflict resolutions preserve both Bottts options and the German
+identity/crop labels. No bot color defaults, stored faces, custom images,
+permissions or agent runtime behavior were changed.
 
-The Windows failure in [CI run 39642993698](https://github.com/thisistoni/spdbot/actions/runs/39642993698/job/119373223502)
-is still an open investigation. On its exact head `cfcb7278`, the focused
-delegated-step-cap test and all 32 tests in `server/comms.test.ts` passed on
-Linux. That test file is byte-identical to `main` at `0c76806f`; this comparison
-does not prove a Windows fix. The historical log shows `ECONNRESET` while
-polling `/api/bots`, and subsequent tests use the same server successfully.
-The fixture starts one child in `beforeAll` and stops it in `afterAll`.
+The dedicated browser check passed on Linux, Node 24.19.0, pnpm 10.33.0,
+agent-browser 0.37.0 and Chromium 154.0.8037.57 with the sandbox enabled.
+Both real editors cover options, save/reload, Escape/reopen, PNG uploads,
+retained crop at 150% and 180%, reset, multiple bots, and small/large sizes.
+The complete German browser check also passed all seven phases. Its New bot
+readiness selector targets the outer draft fieldset because the avatar controls
+now contain nested fieldsets; strict matching and all mutation/branding guards
+remain enabled.
 
-The fixture now drains and retains a bounded stdout tail, records process
-exit/signal and socket reuse, and diagnoses transport failures with a separate,
-unpooled health connection. It still fails the original request immediately;
-there is no retry of that operation, no changed step cap or assertion, and no
-agent-runtime change. The extra diagnostics are not a demonstrated remedy for
-the historical reset. Native Windows reproduction and the macOS smoke result
-must be checked at the published head.
+A separate actual Electron development app ran on Linux/Xvfb, using the real
+main process, preload and production React entry. The German welcome screen
+and skip path, bot creation through the real dialog, sending a message to the
+repository fake provider, and Settings were exercised. Both avatar editors
+saved face choices and a real quadrant PNG with a 160% crop. The app was closed
+through its native window, the server was stopped, and both were launched anew
+from the same disposable profile/workspace. New PIDs, unchanged bot/color,
+transcript, onboarding state, German language, face options, upload and crop
+were verified. A synthetic legacy MausBot marker in that temporary home stayed
+unchanged. No existing user's app, data or credentials were used.
 
-Final product identity, full German interface and an actual app restart still
-require integration after PRs #12 and #13 merge. Browser reload alone proves
-only profile persistence; it does not establish a desktop restart or provider
-sign-in. Keep those checks separate and use disposable data.
+The [restart receipt](evidence/spdbot-integration/restart-receipt.json) records
+both process pairs and actual `sandbox: true`, `contextIsolation: true`,
+`nodeIntegration: false`; no `--no-sandbox` flag was used. Screenshots were
+opened and inspected:
+
+- [Actual German Electron welcome](evidence/spdbot-integration/onboarding-electron.png)
+- [Simple editor](evidence/spdbot-integration/avatar-simple-electron-de.png)
+- [Custom image and crop](evidence/spdbot-integration/avatar-crop-electron-de.png)
+- [Advanced editor](evidence/spdbot-integration/avatar-advanced-electron-de.png)
+- [After actual app and server restart](evidence/spdbot-integration/after-real-restart-electron-de.png)
+- [German Settings](evidence/spdbot-integration/settings-electron-de.png)
+
+### CLI and Windows fixture findings
+
+The [offline access finding](https://github.com/thisistoni/spdbot/pull/12#discussion_r4352753343)
+was reproduced through `main()` without a listener: discovery returned 1 before
+`runAccess` could edit the local file. Only `access` is removed from live
+discovery; `pair`, `sessions` and `status` retain product checks. The regression
+covers add/list/remove through `main`, forbids network calls and preserves
+unrelated config. All three also passed through the actual `server/spdbot.ts`
+process entry with a disposable workspace and no listener.
+
+The [Windows failure on integrated main](https://github.com/thisistoni/spdbot/actions/runs/39840892693/job/120042651431)
+was reproduced locally at the same `makeBot` assertion: Stop acknowledges the
+interrupt before the fake provider exits, so the next test's section change
+correctly gets 409 while a bot is busy. The provenance test now holds its reader
+and delays its shutdown by 750 ms, reproducing slow Windows termination on
+Linux. Before the fix the next test fails 409/200; after explicitly asserting
+fleet idle following Stop, the complete file passes. Assertions, limits,
+timeouts and production security/agent code remain unchanged.
+
+The older [Comms ECONNRESET](https://github.com/thisistoni/spdbot/actions/runs/39642993698/job/119373223502)
+is not claimed to have the same cause. The previous PR Windows run passed
+`server/comms.test.ts`; its failures were in another lending fixture. All 32
+Comms cases also passed locally after this integration. The process/socket
+failure diagnostics remain in place; no retry or speculative runtime fix was
+introduced.
+
+### Practical limits
+
+This proves the real Electron **development app** and separately controlled
+server under Linux/Xvfb, not a native Windows/macOS installation. Browser
+reload is reported separately from the actual app/server restart. Native
+Windows install/uninstall/display, OS integration and real provider sign-in
+remain practical checks. No release, publishing, deployment or real credentials
+were used; Windows packages, if built, must use build-only/`--publish never`.

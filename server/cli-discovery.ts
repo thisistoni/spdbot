@@ -11,7 +11,7 @@ export async function probeLocalProduct(api: LocalApi, port: number, pid?: numbe
 }
 
 export async function discoverCliPort(options: { command: string; port: number }, argv: string[], env: NodeJS.ProcessEnv, serverUp: (port: number) => Promise<boolean>): Promise<boolean> {
-  if (["pair", "sessions", "status", "access"].includes(options.command)) {
+  if (["pair", "sessions", "status"].includes(options.command)) {
     const ports = argv.includes("--port") || env.OMB_PORT ? [options.port] : [8899, 18899, 28899];
     let found: number | undefined;
     for (const port of ports) if (await serverUp(port)) { found = port; break; }

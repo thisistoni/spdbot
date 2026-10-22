@@ -1,0 +1,33 @@
+{
+  "passed": true,
+  "runtime": "Real Electron development app on Linux/Xvfb, production main/preload/renderer; isolated fake provider; no --no-sandbox",
+  "checks": [
+    "real Electron SPDBot identity, German welcome and skipped onboarding saved through UI",
+    "bot created through actual New bot dialog",
+    "message sent through real composer and fake-provider reply received",
+    "real German Settings opened and closed",
+    "both real Electron avatar editors saved Bottts and custom PNG/crop without changing bot color",
+    "actual first Electron process exited after native window close",
+    "new Electron and server PIDs; identity, German language, onboarding, bot, transcript, avatar options/upload/crop persisted; legacy marker unchanged"
+  ],
+  "firstElectronPid": 33547,
+  "secondElectronPid": 41187,
+  "firstServerPid": 33411,
+  "secondServerPid": 41140,
+  "native": {
+    "name": "SPDBot",
+    "userData": "/tmp/spdbot-verify-data-go6c7d/desktop-home/SPDBot",
+    "windows": [
+      {
+        "url": "http://127.0.0.1:5173/__integrated-app.html",
+        "sandbox": true,
+        "contextIsolation": true,
+        "nodeIntegration": false
+      }
+    ]
+  },
+  "limitations": [
+    "No native Windows/macOS installer or real provider sign-in",
+    "Development server managed by fixture; both server and Electron actually stopped/restarted"
+  ]
+}

@@ -14,7 +14,6 @@ import {
   type BotAvatarCrop,
 } from "../../shared/bot-avatar";
 import { BotAvatar } from "./Avatar";
-import { t } from "@/lib/i18n";
 import { useBotEditor } from "./bot-settings/BotEditorContext";
 
 export type AvatarPatch = Partial<
