@@ -12,6 +12,7 @@
 //   spdbot run | send | wait | doctor | team apply | export | …
 //
 // This module only exports: spdbot.ts runs main(), so bundling this file into other entries never runs it twice.
+import { discoverCliPort, probeLocalProduct } from "./cli-discovery.ts";
 import { spawn, type ChildProcess } from "node:child_process";
 import { randomBytes } from "node:crypto";
 import { closeSync, existsSync, mkdirSync, openSync, readFileSync } from "node:fs";
@@ -260,14 +261,7 @@ function refusedAsService(status: number, body: any): boolean {
   return status === 403 && typeof body?.error === "string" && /shared server|Sign in through the workspace portal/.test(body.error);
 }
 
-async function serverUp(port: number, pid?: number): Promise<boolean> {
-  try {
-    const { status, body } = await api(port, "/api/health");
-    return status === 200 && body?.app === "spdbot" && (pid === undefined || body.pid === pid);
-  } catch {
-    return false;
-  }
-}
+const serverUp = (port: number, pid?: number) => probeLocalProduct(api, port, pid);
 
 /** Never attach to another workspace just because it listens on the requested port. */
 export async function isWorkspaceRunning(options: CliOptions): Promise<boolean> {
@@ -1011,16 +1005,7 @@ export async function main(argv = process.argv.slice(2)): Promise<number> {
     console.error(`${options.error}\n\n${USAGE}`);
     return 2;
   }
-  if (["pair", "sessions", "status", "access"].includes(options.command)) {
-    const ports = argv.includes("--port") || process.env.OMB_PORT ? [options.port] : [8899, 18899, 28899];
-    let found: number | undefined;
-    for (const port of ports) if (await serverUp(port)) { found = port; break; }
-    if (found === undefined) {
-      console.error("No SPDBot server found. Start SPDBot or pass its --port explicitly.");
-      return 1;
-    }
-    options.port = found;
-  }
+  if (!await discoverCliPort(options, argv, process.env, serverUp)) return 1;
   process.env.OMB_DATA_DIR = options.dataDir;
   switch (options.command) {
     case "setup":

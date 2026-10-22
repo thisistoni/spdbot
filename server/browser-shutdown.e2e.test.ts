@@ -7,17 +7,21 @@ import { fileURLToPath } from "node:url";
 import { afterEach, describe, expect, it } from "vitest";
 import { verificationServerEnvironment } from "../scripts/control-omb.ts";
 import { removeTempDir, waitForExit } from "./testing/cleanup.ts";
+import { browserNamespace, browserSocketRoot } from "./browser-identity.ts";
+import { AGENT_BROWSER_VERSION } from "./browser-engine-release.ts";
 import { freePortBlock } from "./testing/ports.ts";
 
 const ROOT = fileURLToPath(new URL("..", import.meta.url));
 const FAKE_CLI = join(ROOT, "server/testing/fake-claude-cli.ts");
 
 const homes: string[] = [];
+const runtimes: string[] = [];
 const children: ChildProcess[] = [];
 
 afterEach(async () => {
   for (const child of children.splice(0)) await waitForExit(child, { signal: "SIGTERM" });
   for (const home of homes.splice(0)) await removeTempDir(home);
+  for (const runtime of runtimes.splice(0)) await removeTempDir(runtime);
 });
 
 /** A home with the stub engine. A running daemon is a file in `running/`
@@ -27,15 +31,18 @@ function engineHome(config: Record<string, unknown> = {}) {
   homes.push(home);
   mkdirSync(join(home, "tmp"), { recursive: true });
   mkdirSync(join(home, "running"), { recursive: true });
-  mkdirSync(join(home, ".agent-browser"), { recursive: true });
+  const runDirectory = join(browserSocketRoot(), "namespaces", browserNamespace(home), "run");
+  mkdirSync(runDirectory, { recursive: true, mode: 0o700 });
+  runtimes.push(runDirectory);
   const log = join(home, "agent-browser.log");
   const engine = join(home, "agent-browser");
   writeFileSync(engine, [
     "#!/bin/sh",
+    `if [ "$1" = --version ]; then echo "agent-browser ${AGENT_BROWSER_VERSION}"; exit 0; fi`,
     `printf '%s %s\\n' "$AGENT_BROWSER_SESSION" "$*" >> '${log}'`,
     `if [ "$1" = session ]; then printf '{"success":true,"data":{"sessions":['; sep=''; for f in '${home}/running'/*; do [ -e "$f" ] || continue; printf '%s"%s"' "$sep" "\${f##*/}"; sep=','; done; printf ']}}\\n'; fi`,
     // The server's PATH holds only node: name rm by its path.
-    `if [ "$1" = close ]; then /bin/rm -f '${home}/running/'"$AGENT_BROWSER_SESSION" '${home}/.agent-browser/'"$AGENT_BROWSER_SESSION.pid"; fi`,
+    `if [ "$1" = close ]; then /bin/rm -f '${home}/running/'"$AGENT_BROWSER_SESSION" '${runDirectory}/'"$AGENT_BROWSER_SESSION.pid"; fi`,
     "exit 0",
   ].join("\n"), { mode: 0o755 });
   writeFileSync(join(home, "config.json"), JSON.stringify({
@@ -47,7 +54,7 @@ function engineHome(config: Record<string, unknown> = {}) {
   let started = 0;
   const run = (session: string) => {
     writeFileSync(join(home, "running", session), "");
-    writeFileSync(join(home, ".agent-browser", `${session}.pid`), String(2_147_483_000 + started++));
+    writeFileSync(join(runDirectory, `${session}.pid`), String(2_147_483_000 + started++));
   };
   const commands = () => existsSync(log) ? readFileSync(log, "utf8").trim().split("\n") : [];
   return { home, log, engine, run, commands };

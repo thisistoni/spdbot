@@ -6,7 +6,11 @@ import { join, resolve } from "node:path";
 import { homedir } from "node:os";
 import { DATA_DIR } from "./config.ts";
 
-export const BROWSER_NAMESPACE = `spd-${createHash("sha256").update(resolve(DATA_DIR)).digest("hex").slice(0, 20)}`;
+export function browserNamespace(dataDir: string): string {
+  return `spd-${createHash("sha256").update(resolve(dataDir)).digest("hex").slice(0, 20)}`;
+}
+
+export const BROWSER_NAMESPACE = browserNamespace(DATA_DIR);
 
 /** Keep the namespace plus a normal 40-character session below Unix's 103-byte socket limit. */
 export function browserSocketRoot(): string {

@@ -61,7 +61,7 @@ describe("harness MCP capability proxy", () => {
   it("sends the cloud computer's calls to its own harness route", async () => {
     status = 200;
     payload = { result: { tools: [{ name: "screenshot" }] } };
-    await expect(harnessMcpRequest(frame("initialize"), connection("computer"))).resolves.toMatchObject({ result: { serverInfo: { name: "spdbot-computer" } } });
+    await expect(harnessMcpRequest(frame("initialize"), connection("computer"))).resolves.toMatchObject({ result: { serverInfo: { name: "openmausbot-computer" } } });
     await expect(harnessMcpRequest(frame("tools/list"), connection("computer"))).resolves.toEqual({ jsonrpc: "2.0", id: 1, result: { tools: [{ name: "screenshot" }] } });
     expect(requests.at(-1)).toEqual({ path: "/api/internal/computer/mcp", auth: "Bearer scoped-capability", body: { method: "tools/list", params: {} } });
     status = 401;

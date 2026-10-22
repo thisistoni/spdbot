@@ -179,13 +179,13 @@ describe("local computer descriptor", () => {
     expect(readCuaUnavailableReason({ platform: "darwin", userData, home })).toBeNull();
   });
 
-  it.skipIf(process.platform === "win32")("treats the first present legacy descriptor as authoritative", () => {
+  it.skipIf(process.platform === "win32")("treats the first present SPDBot descriptor as authoritative", () => {
     const root = privateUserData("legacy-mac-home");
-    const first = join(root, "Library", "Application Support", "OpenMausBot");
-    const stale = join(root, "Library", "Application Support", "OpenGrokBot");
+    const first = join(root, "Library", "Application Support", "SPDBot");
+    const stale = join(root, "Library", "Application Support", "spdbot");
     mkdirSync(first, { recursive: true, mode: 0o700 });
     mkdirSync(stale, { recursive: true, mode: 0o700 });
-    const reason = "Accessibility required; grant access in System Settings and restart OpenMausBot";
+    const reason = "Accessibility required; grant access in System Settings and restart SPDBot";
     writeFileSync(join(first, "cua-connection.json"), JSON.stringify({ mode: "unavailable", reason }), { mode: 0o600 });
     writeFileSync(join(stale, "cua-connection.json"), JSON.stringify({
       mode: "embedded", socketPath: "/fixture/stale.sock", mcpCommand: "/fixture/stale-driver",
@@ -193,6 +193,17 @@ describe("local computer descriptor", () => {
     }), { mode: 0o600 });
     expect(readCuaConnection({ platform: "darwin", home: root, userData: "" })).toBeNull();
     expect(readCuaUnavailableReason({ platform: "darwin", home: root, userData: "" })).toBe(reason);
+  });
+
+  it.skipIf(process.platform === "win32")("never discovers a MausBot descriptor as the SPDBot host", () => {
+    const home = privateUserData("foreign-mac-home");
+    for (const app of ["OpenMausBot", "openmausbot", "OpenGrokBot", "opengrokbot"]) {
+      const directory = join(home, "Library", "Application Support", app);
+      mkdirSync(directory, { recursive: true, mode: 0o700 });
+      writeFileSync(join(directory, "cua-connection.json"), JSON.stringify({ mode: "unavailable", reason: "Foreign application's private status" }), { mode: 0o600 });
+    }
+    expect(readCuaConnection({ platform: "darwin", home, userData: "" })).toBeNull();
+    expect(readCuaUnavailableReason({ platform: "darwin", home, userData: "" })).toBeNull();
   });
 
   it("accepts only the exact certified Linux X11 descriptor", () => {

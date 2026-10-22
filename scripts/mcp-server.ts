@@ -97,8 +97,7 @@ export async function probeBaseUrls(candidates: string[]): Promise<string> {
       const response = await fetch(`${candidate}/api/health`, {
         signal: AbortSignal.timeout(Math.min(requestTimeoutMs(), 2_000)), redirect: "error",
       });
-      const health = response.ok ? await response.json() as { app?: unknown } : null;
-      if (health?.app !== "spdbot") {
+      if (!response.ok || (await response.json() as { app?: unknown } | null)?.app !== "spdbot") {
         failures.push(`${candidate} answered, but it was not SPDBot`);
         continue;
       }
