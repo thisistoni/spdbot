@@ -403,13 +403,13 @@ export function createProxyHandler(options: ProxyOptions) {
             if (
               (harness.statusCode ?? 500) < 200 ||
               (harness.statusCode ?? 500) >= 300 ||
-              (identity as { app?: unknown } | null)?.app !== "openmausbot"
+              (identity as { app?: unknown } | null)?.app !== "spdbot"
             ) {
               fail();
               return;
             }
             finished = true;
-            sendJson(res, 200, { app: "openmausbot" });
+            sendJson(res, 200, { app: "spdbot" });
           });
           return;
         }

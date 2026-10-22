@@ -15,6 +15,7 @@ import {
   type RemoteVoiceProvider,
 } from "@/lib/local-voice";
 import { t } from "@/lib/i18n";
+import { desktopErrorMessage } from "@/lib/desktop-errors";
 import { cn } from "@/lib/cn";
 import { voiceKeyDraftValue, type VoiceKeyDraft } from "@/lib/voice-key-draft";
 import { Select } from "./Select";
@@ -150,7 +151,7 @@ export function VoiceSettings({
     setError(null);
     api("/api/config", { method: "PUT", body: JSON.stringify({ tts: { provider: next } }) })
       .then((status: ConfigStatus) => dispatch({ type: "configStatus", config: status }))
-      .catch((e: Error) => setError(e.message))
+      .catch((e: Error) => setError(desktopErrorMessage(e)))
       .finally(() => setSwitching(false));
   };
 
@@ -170,7 +171,7 @@ export function VoiceSettings({
         dispatch({ type: "configStatus", config: status });
         setKeyDraft({ provider: null, value: "" });
       })
-      .catch((e: Error) => setError(e.message))
+      .catch((e: Error) => setError(desktopErrorMessage(e)))
       .finally(() => setSaving(false));
   };
 
@@ -185,7 +186,7 @@ export function VoiceSettings({
     setError(null);
     return api("/api/config", { method: "PUT", body: JSON.stringify({ tts: { baseUrl: next, model: model.trim() } }) })
       .then((status: ConfigStatus) => dispatch({ type: "configStatus", config: status }))
-      .catch((e: Error) => setError(e.message))
+      .catch((e: Error) => setError(desktopErrorMessage(e)))
       .finally(() => setSavingServer(false));
   };
 
@@ -195,7 +196,7 @@ export function VoiceSettings({
     setError(null);
     api("/api/config", { method: "PUT", body: JSON.stringify({ tts: { fishModel: next } }) })
       .then((status: ConfigStatus) => dispatch({ type: "configStatus", config: status }))
-      .catch((e: Error) => setError(e.message))
+      .catch((e: Error) => setError(desktopErrorMessage(e)))
       .finally(() => setSavingFishModel(false));
   };
 

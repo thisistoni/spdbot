@@ -116,7 +116,7 @@ export function SoulField({
           {!simple && <>{t("botIdentity.soul.contextHelp")}{info?.file ? <> {t("botIdentity.soul.mirroredTo")} <span className="break-all">{info.file}</span>.</> : null}</>}
         </span>
         <span className={cn("shrink-0 tabular-nums", over && "font-medium text-red-500")}>
-          {bytes.toLocaleString()} / {limit.toLocaleString()} bytes{over ? " — not saved" : ""}
+          {t("botIdentity.soul.bytes", { bytes: bytes.toLocaleString(), limit: limit.toLocaleString() })}{over ? t("botIdentity.soul.notSaved") : ""}
         </span>
       </div>}
     </div>

@@ -31,13 +31,13 @@ fi
 # remove an unrelated file that now happens to use the same command name.
 if [ "$TEST_MODE" -eq 0 ]; then
   if command -v update-alternatives >/dev/null 2>&1; then
-    update-alternatives --remove openmausbot /opt/OpenMausBot/openmausbot
-  elif [ -L /usr/bin/openmausbot ] && [ "$(readlink /usr/bin/openmausbot)" = /opt/OpenMausBot/openmausbot ]; then
-    rm -- /usr/bin/openmausbot
+    update-alternatives --remove spdbot /opt/SPDBot/spdbot
+  elif [ -L /usr/bin/spdbot ] && [ "$(readlink /usr/bin/spdbot)" = /opt/SPDBot/spdbot ]; then
+    rm -- /usr/bin/spdbot
   fi
 fi
 
-profile=$APPARMOR_DIR/openmausbot-browser
+profile=$APPARMOR_DIR/spdbot-browser
 if [ ! -e "$profile" ] && [ ! -L "$profile" ]; then exit 0; fi
 if [ -L "$APPARMOR_DIR" ] || [ -L "$profile" ] || [ ! -f "$profile" ]; then
   echo "OpenMausBot AppArmor profile is unsafe; refusing to remove it: $profile" >&2
@@ -47,7 +47,7 @@ if [ "$TEST_MODE" -eq 0 ] && [ -x /usr/bin/ischroot ] && /usr/bin/ischroot; then
   : # Removing from an image must not change the host's loaded profiles.
 elif [ -x "$APPARMOR_STATUS" ] && ! "$APPARMOR_STATUS" --enabled >/dev/null 2>&1; then
   : # No live policy exists when AppArmor is disabled; remove the staged file.
-elif [ -r "$APPARMOR_PROFILES" ] && ! grep -q '^openmausbot-browser ' "$APPARMOR_PROFILES"; then
+elif [ -r "$APPARMOR_PROFILES" ] && ! grep -q '^spdbot-browser ' "$APPARMOR_PROFILES"; then
   : # Already unloaded; purge must also work after an earlier removal.
 elif [ -x "$APPARMOR_PARSER" ]; then
   # A profile may already be unloaded (for example during purge after remove).

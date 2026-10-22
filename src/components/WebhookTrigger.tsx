@@ -15,7 +15,7 @@ import { api, useStore, type Bot } from "@/state/store";
 /** A name when the person gives none: the instructions' first words, or the bot's. */
 export function suggestedName(prompt: string, bot?: Bot) {
   const first = prompt.trim().split(/[.!?\n]/)[0]?.trim().slice(0, 60);
-  return first || `${bot?.name ?? "Bot"} automation`;
+  return first || t("automations.editor.suggestedName", { bot: bot?.name ?? "Bot" });
 }
 
 const FIELD = "w-full rounded-xl border border-hairline/60 bg-panel px-3.5 py-2.5 text-[13px] text-ink outline-none placeholder:text-ink-tertiary focus:border-accent/70";

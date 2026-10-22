@@ -1,3 +1,4 @@
+import { t } from "@/lib/i18n";
 import { normalizeCronSchedule, nextCronRuns, type RoutineCronSchedule } from "../../../shared/routine-schedule";
 
 export type CronChoice = "monthly" | "yearly" | "cron";
@@ -39,9 +40,29 @@ export function cronDraftFor(schedule: RoutineCronSchedule | undefined, at: numb
   };
 }
 
+const CRON_ERRORS = {
+  "Choose a valid cron schedule": "schedule.error.valid",
+  "Cron schedules accept only type, expression and timeZone; start/end dates and other restrictions are not supported": "schedule.error.fields",
+  "Cron must have five fields: minute hour day-of-month month weekday (no seconds, year, or macros)": "schedule.error.fiveFields",
+  "Choose an IANA timezone such as America/New_York, Asia/Kolkata, or UTC": "schedule.error.zone",
+  "Choose a valid IANA timezone such as America/New_York, Asia/Kolkata, or UTC": "schedule.error.validZone",
+  "Choose a valid cron preview date": "schedule.error.previewDate",
+  "The cron schedule produced an invalid date": "schedule.error.invalidDate",
+  "This cron expression has no future runs. Choose dates that exist.": "schedule.error.future",
+  "Choose between 1 and 1000 cron preview runs": "schedule.error.previewCount",
+} as const;
+
+function localizedCronError(error: unknown): string {
+  const message = error instanceof Error ? error.message : String(error);
+  const key = CRON_ERRORS[message as keyof typeof CRON_ERRORS];
+  if (key) return t(key);
+  const invalid = /^Invalid cron expression: (.+)$/.exec(message);
+  return invalid ? t("schedule.error.invalidExpression", { error: invalid[1]! }) : message;
+}
+
 export function cronEditorValue(choice: CronChoice, draft: CronDraft, after: number, unchanged?: RoutineCronSchedule) {
   try {
-    if (choice !== "cron" && !/^\d{2}:\d{2}$/.test(draft.time)) throw new Error("Choose a time for this routine.");
+    if (choice !== "cron" && !/^\d{2}:\d{2}$/.test(draft.time)) throw new Error(t("routines.calendar.chooseTime"));
     const [hour, minute] = draft.time.split(":");
     const proposed: RoutineCronSchedule = unchanged ?? {
       type: "cron", timeZone: draft.timeZone,
@@ -51,6 +72,6 @@ export function cronEditorValue(choice: CronChoice, draft: CronDraft, after: num
     // Unrelated edits must preserve arbitrary expressions and their zone exactly.
     return { schedule: unchanged ?? normalized, runs: nextCronRuns(normalized, after, 3), error: "" };
   } catch (error) {
-    return { schedule: null, runs: [], error: error instanceof Error ? error.message : String(error) };
+    return { schedule: null, runs: [], error: localizedCronError(error) };
   }
 }

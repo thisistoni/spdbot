@@ -1,16 +1,13 @@
 import { useEffect, useRef } from "react";
 import { t } from "@/lib/i18n";
 import {
-  Cloud,
   Loader2,
-  LogOut,
   ShieldCheck,
   Smartphone,
   Trash2,
   Wifi,
 } from "lucide-react";
 import {
-  PhoneSetupFlowView,
   companionAccountActionError,
   companionBridge,
   loadCompanionBridgeState,
@@ -112,7 +109,7 @@ export function deriveCompanionPanelStatus(
   const pairedCount = state.devices.length;
   if (!pairedCount) return null;
   return {
-    label: `${pairedCount} ${pairedCount === 1 ? "device" : "devices"} paired`,
+    label: t(pairedCount === 1 ? "remote.status.pairedOne" : "remote.status.pairedMany", { count: pairedCount }),
     good: true,
   };
 }
@@ -127,16 +124,11 @@ const relative = (at: number) => {
   return t("remote.time.days", { count: Math.round(hours / 24) });
 };
 
-const endpointHost = (url: string): string => {
-  try {
-    return new URL(url).host;
-  } catch {
-    return url;
-  }
-};
+// SPDBot offers direct local pairing, not the upstream hosted relay account.
+const noHostedAccount = () => null;
 
 export function CompanionSection({ profileEmail = "", focusRequest = 0 }: { profileEmail?: string; focusRequest?: number }) {
-  const c = usePhoneSetupController(profileEmail);
+  const c = usePhoneSetupController(profileEmail, noHostedAccount);
   const state = c.state;
   const pairingFlow = useRef<HTMLDivElement>(null);
   const revealed = useRef(0);
@@ -168,10 +160,7 @@ export function CompanionSection({ profileEmail = "", focusRequest = 0 }: { prof
 
   const pairedCount = state.devices.length;
   const panelStatus = deriveCompanionPanelStatus(state);
-  const accountActionError = companionAccountActionError(c.account, c.accountError);
-  const pairingCopy = pairingSurfaceCopy(c);
   const tailscaleStatus = deriveTailscalePairingStatus(state, c.tailscaleAvailable);
-  const hosted = state.endpoints?.find((endpoint) => endpoint.kind === "hosted");
   const localRoutes = [
     state.tailnetName ? { label: "Tailscale", value: `${state.tailnetName}:${state.port}` } : null,
     state.lan ? { label: t("remote.connection.wifi"), value: `${state.lan}:${state.port}` } : null,
@@ -190,8 +179,8 @@ export function CompanionSection({ profileEmail = "", focusRequest = 0 }: { prof
     <div className="flex flex-col gap-4">
       {remoteBlocked && <p role="status" className="text-[13px] leading-relaxed text-ink-secondary">{remoteBlocked}</p>}
       <div ref={pairingFlow} tabIndex={-1} data-phone-pairing="computer" className="scroll-mt-4 rounded-xl ring-1 ring-accent/40 focus:outline-none">
-        <Card title={pairingCopy.title} subtitle={pairingCopy.subtitle}>
-          {(panelStatus || (pairedCount > 0 && c.hostedReady)) && (
+        <Card title={t("remote.local.title")} subtitle={t("remote.local.subtitle")}>
+          {panelStatus && (
             <div className="mb-4 flex items-center justify-between gap-3">
               {panelStatus && (
                 <div
@@ -203,14 +192,25 @@ export function CompanionSection({ profileEmail = "", focusRequest = 0 }: { prof
                   {panelStatus.label}
                 </div>
               )}
-              {pairedCount > 0 && c.hostedReady && (
-                <div className="flex items-center gap-1.5 text-[11.5px] text-ink-secondary">
-                  <ShieldCheck size={13} className="text-accent" /> {t("remote.worksAway")}
-                </div>
-              )}
+
             </div>
           )}
-          <PhoneSetupFlowView controller={c} variant="settings" />
+          <div className="flex flex-col gap-3">
+            <div className="flex flex-wrap gap-2">
+              <button type="button" className="ui-button" disabled={c.busy || Boolean(managedBy)} onClick={c.useLocal}>{t("remote.local.openCode")}</button>
+              {c.tailscaleAvailable && <button type="button" className="ui-button" disabled={c.busy || Boolean(managedBy)} onClick={c.useTailscale}>{t("remote.local.tailscaleCode")}</button>}
+            </div>
+            {state.pairing && (c.localFallback || c.tailscaleFallback) && !c.pairingExpired && (
+              <div className="flex flex-col gap-2 rounded-lg bg-inset p-3">
+                <p className="text-[12.5px] text-ink-secondary">{t("remote.local.codeHelp")}</p>
+                <code className="select-all text-[24px] tracking-[0.2em]">{state.pairing.code}</code>
+                {c.addressText && <code className="select-all break-all text-[12px]">{c.addressText}</code>}
+                <button type="button" className="ui-button self-start" disabled={c.busy} onClick={c.cancel}>{t("remote.local.closeCode")}</button>
+              </div>
+            )}
+            {c.pairingExpired && <p className="text-[12.5px] text-ink-secondary">{t("remote.local.expired")}</p>}
+            {c.error && <p role="alert" className="text-[12.5px] text-danger">{c.error}</p>}
+          </div>
         </Card>
       </div>
 
@@ -356,55 +356,13 @@ export function CompanionSection({ profileEmail = "", focusRequest = 0 }: { prof
           </div>
 
           <div className="border-t border-hairline/30 pt-4">
-            <div className="flex items-start justify-between gap-3">
-              <div className="flex min-w-0 items-start gap-2.5">
-                <Cloud size={15} className="mt-0.5 shrink-0 text-accent" />
-                <div className="min-w-0">
-                  <div className="text-[13px] text-ink">{t("remote.account.title")}</div>
-                  <div className="mt-0.5 text-[11.5px] leading-relaxed text-ink-secondary">
-                    {c.account?.status === "ready"
-                      ? t("remote.account.signedIn", {
-                          email: c.account.email ?? t("remote.account.yourAccount"),
-                        })
-                      : c.account?.status === "connecting"
-                        ? t("remote.account.connecting")
-                        : c.account?.status === "error"
-                          ? c.account.message ?? t("remote.account.error")
-                          : t("remote.account.idle")}
-                  </div>
-                </div>
-              </div>
-              {(c.account?.status === "ready" || c.account?.status === "connecting" || c.account?.status === "error") && (
-                <button
-                  disabled={c.accountBusy}
-                  onClick={() => void c.accountAct((remote) => remote.signOut())}
-                  className="flex shrink-0 items-center gap-1.5 rounded-lg border border-hairline/40 px-2.5 py-1.5 text-[11.5px] text-ink-secondary hover:bg-control hover:text-ink disabled:opacity-40"
-                >
-                  <LogOut size={12} /> {t("remote.account.signOut")}
-                </button>
-              )}
-            </div>
-            {c.account?.status === "error" && (
-              <button
-                disabled={c.accountBusy}
-                onClick={c.retryAccount}
-                className="mt-3 rounded-lg border border-hairline/40 px-3 py-1.5 text-[12px] text-ink hover:bg-control disabled:opacity-40"
-              >
-                {c.accountBusy ? t("remote.account.retrying") : t("remote.account.retry")}
-              </button>
-            )}
-            {accountActionError && <div className="mt-2 text-[12px] text-danger">{accountActionError}</div>}
-          </div>
-
-          <div className="border-t border-hairline/30 pt-4">
             <div className="text-[13px] text-ink">{t("remote.connection.title")}</div>
             <div className="mt-0.5 text-[11.5px] text-ink-secondary">
               {t("remote.connection.detail")}
             </div>
             <div className="mt-3 flex flex-col gap-2">
-              {hosted && <ConnectionDetail label={t("remote.connection.secureRoute")} value={endpointHost(hosted.url)} />}
               {localRoutes.map((route) => <ConnectionDetail key={`${route.label}:${route.value}`} {...route} />)}
-              {!hosted && localRoutes.length === 0 && (
+              {localRoutes.length === 0 && (
                 <div className="text-[12px] text-ink-secondary">{t("remote.connection.none")}</div>
               )}
             </div>
@@ -429,7 +387,7 @@ export function CompanionSection({ profileEmail = "", focusRequest = 0 }: { prof
             </button>
           </div>
 
-          {state.enabled && !hosted && !state.tailscale && (
+          {state.enabled && !state.tailscale && (
             <div className="rounded-lg bg-inset px-3 py-2 text-[11.5px] leading-relaxed text-ink-secondary">
               {t("remote.localOnly")}
             </div>

@@ -1,3 +1,4 @@
+import { configureProductIdentity } from "./product-identity.mjs";
 import { app, autoUpdater as nativeAutoUpdater, BrowserWindow, Tray, WebContentsView, clipboard, desktopCapturer, dialog, ipcMain, Menu, nativeImage, Notification, powerMonitor, powerSaveBlocker, safeStorage, screen, session, shell, systemPreferences, utilityProcess } from "electron";
 import { createRequire } from "node:module";
 import { randomBytes, randomUUID } from "node:crypto";
@@ -117,7 +118,7 @@ const { MIN_BOUNDS, normalizeUnreadCount, parseWindowState, resolveWindowState }
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 // vite binds IPv4; a bare "localhost" can resolve to ::1.
 const DEV_URL = process.env.ELECTRON_START_URL ?? "http://127.0.0.1:5199";
-let SERVER_PORT = 8799;
+let SERVER_PORT = 8899;
 const APP_ICON = path.join(__dirname, "resources/app-icon.png");
 let desktopViewerWindow = null;
 let desktopViewerOwner = null;
@@ -214,11 +215,14 @@ function applyUnreadBadge(win = mainWindow) {
   if (process.platform === "darwin" || process.platform === "linux") app.setBadgeCount(count);
 }
 
+// Keep Chromium profiles, encrypted credentials and the instance lock separate from MausBot.
+configureProductIdentity(app);
+
 // GNOME groups the window with its desktop entry only when both identities match; set before ready.
 // Chromium's GPU process crashed on NVIDIA/libGLES and left an invisible window intercepting input.
 if (process.platform === "linux") {
   app.disableHardwareAcceleration();
-  app.setDesktopName("com.openmausbot.app.desktop");
+  app.setDesktopName("de.spdlabs.spdbot.desktop");
 }
 
 if (!app.requestSingleInstanceLock()) {
@@ -287,7 +291,7 @@ app.on("open-url", (event, url) => {
 
 app.on("second-instance", (_event, commandLine) => {
   if (takeOrganizationDeepLink(commandLine)) {
-    queueOrganizationEntry("openmausbot://organization");
+    queueOrganizationEntry("spdbot://organization");
     return;
   }
   if (cloudEntry.fromArgs(commandLine)) return;
@@ -364,9 +368,9 @@ const serverSupervisor = createServerSupervisor({
   onExhausted() {
     slog("server recovery paused after repeated failures; quit and reopen to retry");
     dialog.showErrorBox(
-      "The bot server stopped",
-      "Automatic recovery could not restart the background server. Quit and reopen SPDBot to try again. Interrupted chat turns were not resent.\n\n" +
-        `Server log: ${path.join(LOG_DIR, "server.log")}`,
+      "Der Bot-Server wurde beendet",
+      "Der Hintergrundserver konnte nicht automatisch neu gestartet werden. Beende SPDBot und öffne die App erneut. Unterbrochene Chatnachrichten wurden nicht erneut gesendet.\n\n" +
+        `Serverprotokoll: ${path.join(LOG_DIR, "server.log")}`,
     );
   },
   log: slog,
@@ -374,7 +378,7 @@ const serverSupervisor = createServerSupervisor({
 
 function desktopDataDir() {
   // An empty OMB_DATA_DIR falls back here too; server/config.ts would not, so the child gets this path.
-  return process.env.OMB_DATA_DIR || path.join(app.getPath("home"), ".openmausbot");
+  return process.env.OMB_DATA_DIR || path.join(app.getPath("home"), ".spdbot");
 }
 
 async function stopUtilityServer(proc, timeoutMs = UTILITY_SERVER_STOP_TIMEOUT_MS) {
@@ -1280,12 +1284,12 @@ function buildErrorPage({ allPortsOccupied }) {
   const serverLogPath = path.join(LOG_DIR, "server.log");
   const serverLogHref = pathToFileURL(serverLogPath).href;
   const reason = allPortsOccupied
-    ? "Every SPDBot port answered health checks from another process — likely a second copy of the app, or another program on ports 8799–28799. Quit that program, then quit and reopen SPDBot."
-    : "The background server didn't come up in time — this is usually slow startup, not a port conflict. Quit and reopen SPDBot.";
+    ? "An allen SPDBot-Ports antwortet bereits ein anderer Prozess, vermutlich eine zweite App-Instanz oder ein anderes Programm auf den Ports 8899–28899. Beende dieses Programm und starte SPDBot danach neu."
+    : "Der Hintergrundserver ist nicht rechtzeitig gestartet. Meist dauert der Start nur länger und es liegt kein Portkonflikt vor. Beende SPDBot und öffne die App erneut.";
   return (
     "data:text/html;charset=utf-8," +
     encodeURIComponent(
-      `<body style="margin:0;display:flex;align-items:center;justify-content:center;height:100vh;background:#070707;color:#fcfcfc;font:15px -apple-system,system-ui"><div style="text-align:center;max-width:360px"><div style="font-size:40px">🐭</div><h2 style="font-weight:600;margin:12px 0 6px">Couldn't start the bot server</h2><p style="color:#fcfcfc99;line-height:1.5">${escapeHtml(reason)} If it keeps happening, check <a target="_blank" rel="noopener" href="${serverLogHref}" style="color:#fcfcfc">${escapeHtml(serverLogPath)}</a>.</p></div></body>`,
+      `<body lang="de" style="margin:0;display:flex;align-items:center;justify-content:center;height:100vh;background:#070707;color:#fcfcfc;font:15px -apple-system,system-ui"><div style="text-align:center;max-width:360px"><div style="font-size:40px">🤖</div><h2 style="font-weight:600;margin:12px 0 6px">Der Bot-Server konnte nicht gestartet werden</h2><p style="color:#fcfcfc99;line-height:1.5">${escapeHtml(reason)} Falls das wiederholt passiert, prüfe <a target="_blank" rel="noopener" href="${serverLogHref}" style="color:#fcfcfc">${escapeHtml(serverLogPath)}</a>.</p></div></body>`,
     )
   );
 }
@@ -1324,20 +1328,20 @@ function desktopViewerErrorPage(message, retryUrl) {
       .replaceAll(">", "&gt;");
   return (
     "data:text/html;charset=utf-8," +
-    encodeURIComponent(`<!doctype html><meta name="color-scheme" content="dark"><title>Desktop unavailable</title>
+    encodeURIComponent(`<!doctype html><meta name="color-scheme" content="dark"><title>Desktop nicht verfügbar</title>
       <body style="margin:0;display:grid;place-items:center;height:100vh;background:#070707;color:#f5f5f5;font:14px -apple-system,BlinkMacSystemFont,Segoe UI,sans-serif">
-        <main style="max-width:420px;padding:32px;text-align:center"><h2 style="margin:0 0 10px;font-size:18px">Couldn't open the live desktop</h2>
+        <main style="max-width:420px;padding:32px;text-align:center"><h2 style="margin:0 0 10px;font-size:18px">Der Live-Desktop konnte nicht geöffnet werden</h2>
         <p style="margin:0 0 20px;color:#a1a1aa;line-height:1.5">${escape(message)}</p>
-        <a href="${escape(retryUrl)}" target="_blank" rel="noreferrer" style="display:inline-block;border-radius:9px;background:#fff;color:#111;padding:9px 14px;text-decoration:none;font-weight:600">Open in browser</a></main>
+        <a href="${escape(retryUrl)}" target="_blank" rel="noreferrer" style="display:inline-block;border-radius:9px;background:#fff;color:#111;padding:9px 14px;text-decoration:none;font-weight:600">Im Browser öffnen</a></main>
       </body>`)
   );
 }
 
 function openDesktopViewer(owner, rawUrl, rawTitle, contextId) {
-  if (!owner || owner.isDestroyed()) throw new Error("The SPDBot window is unavailable");
+  if (!owner || owner.isDestroyed()) throw new Error("Das SPDBot-Fenster ist nicht verfügbar");
   const url = desktopViewerUrl(rawUrl);
   const titleCandidate = Object.prototype.toString.call(rawTitle) === "[object String]" ? rawTitle.trim() : "";
-  const title = titleCandidate ? titleCandidate.slice(0, 80) : "Live desktop";
+  const title = titleCandidate ? titleCandidate.slice(0, 80) : "Live-Desktop";
 
   const nextContextId =
     Object.prototype.toString.call(contextId) === "[object String]" ? contextId.slice(0, 120) : null;
@@ -1422,19 +1426,19 @@ function openDesktopViewer(owner, rawUrl, rawTitle, contextId) {
   });
   viewer.webContents.on("did-fail-load", (_event, code, description, failedUrl, isMainFrame) => {
     if (!isMainFrame || code === -3 || viewer.isDestroyed() || failedUrl.startsWith("data:")) return;
-    void viewer.loadURL(desktopViewerErrorPage(description || "The viewer did not respond.", url.toString()));
+    void viewer.loadURL(desktopViewerErrorPage(description || "Die Ansicht hat nicht geantwortet.", url.toString()));
   });
 
   notifyDesktopViewer(true);
   void viewer.loadURL(url.toString()).catch((error) => {
     if (viewer.isDestroyed()) return;
-    void viewer.loadURL(desktopViewerErrorPage(error?.message ?? "The viewer did not respond.", url.toString()));
+    void viewer.loadURL(desktopViewerErrorPage(error?.message ?? "Die Ansicht hat nicht geantwortet.", url.toString()));
   });
   return true;
 }
 
 function ensureDesktopWorkspace(owner) {
-  if (!owner || owner.isDestroyed()) throw new Error("The SPDBot window is unavailable");
+  if (!owner || owner.isDestroyed()) throw new Error("Das SPDBot-Fenster ist nicht verfügbar");
   if (desktopWorkspaceManager) {
     if (desktopWorkspaceOwner !== owner) {
       throw new Error("The two-desktop view belongs to another app window");
@@ -1591,9 +1595,9 @@ async function offerComputerSharing(win) {
     const info = await sharingController().observe(env);
     if (!info || win.isDestroyed() || activeEnvironment(environmentsState)?.id !== env.id || new URL(win.webContents.getURL()).origin !== env.origin) return;
     const choice = await dialog.showMessageBox(win, {
-      type: "question", message: `Share this computer with ${env.name}?`,
-      detail: "Let this server’s bots use folders and capabilities you choose while this desktop app is running. Nothing is shared unless you enable it. You can change this later in Settings → Servers.",
-      buttons: ["Choose access", "Not now"], defaultId: 1, cancelId: 1,
+      type: "question", message: `Diesen Computer mit ${env.name} teilen?`,
+      detail: "Erlaube den Bots dieses Servers, ausgewählte Ordner und Funktionen zu verwenden, während diese Desktop-App läuft. Ohne deine Freigabe wird nichts geteilt. Du kannst dies später unter Einstellungen → Server ändern.",
+      buttons: ["Zugriff auswählen", "Jetzt nicht"], defaultId: 1, cancelId: 1,
     });
     sharingController().decline(env, info);
     if (choice.response === 0) openWorkspaceSettings(env.id);
@@ -1647,7 +1651,7 @@ function refreshApplicationMenu() {
       onSwitch: (id) => void workspaceMenuAction(() => switchEnvironment(id)),
       onAddFromClipboard: () => void addServerFromClipboard(),
       onConnect: () => void workspaceMenuAction(openWorkspaceSettings),
-      onOrganizationSignIn: () => queueOrganizationEntry("openmausbot://organization"),
+      onOrganizationSignIn: () => queueOrganizationEntry("spdbot://organization"),
       onForget: (id) => void workspaceMenuAction(() => forgetEnvironment(id)),
       onOpenSettings: () => {
         if (mainWindow && !mainWindow.isDestroyed()) mainWindow.webContents.send("app:open-settings");
@@ -1666,7 +1670,7 @@ function persistEnvironments(next) {
 
 async function workspaceMenuAction(action) {
   try { await action(); } catch (error) {
-    await dialog.showMessageBox({ type: "error", message: "Could not update servers", detail: error.message });
+    await dialog.showMessageBox({ type: "error", message: "Server konnten nicht aktualisiert werden", detail: error.message });
   }
 }
 
@@ -1678,9 +1682,7 @@ function navigateMainWindow(url) {
 let rememberedHome = null;
 
 function acquireDataDirLeaseFor(dir) {
-  return dir === desktopDataDir()
-    ? acquireDataDirLease(dir, { legacyDataDir: path.join(app.getPath("home"), ".opengrokbot") })
-    : acquireDataDirLease(dir);
+  return acquireDataDirLease(dir);
 }
 
 /** Pause the supervisor first, or its recovery forks on the wrong data dir; resume() stays in the finally. */
@@ -1693,8 +1695,8 @@ async function switchLocalEnvironmentTo(targetDir, targetId) {
   let switchSucceeded = false;
   const failedSwitch = () => {
     dialog.showErrorBox(
-      "Could not switch environments",
-      "SPDBot could not switch to that environment. The app log has the details.",
+      "Arbeitsbereich konnte nicht gewechselt werden",
+      "SPDBot konnte nicht zu diesem Arbeitsbereich wechseln. Einzelheiten findest du im App-Protokoll.",
     );
     return { ok: false, error: "switch-failed" };
   };
@@ -1805,7 +1807,7 @@ function createLocalEnvironment(name, dataDir) {
       ? name.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "")
       : "";
     if (typeof name !== "string" || !name.trim()) return { ok: false, error: "name", state };
-    candidateDir = path.join(os.homedir(), `.openmausbot-${slug || randomUUID().slice(0, 8)}`);
+    candidateDir = path.join(os.homedir(), `.spdbot-${slug || randomUUID().slice(0, 8)}`);
   } else {
     candidateDir = typeof dataDir === "string" ? dataDir.trim() : "";
     if (
@@ -1828,10 +1830,10 @@ const organizationEntry = createOrganizationEntry({
   confirm: async ({ kind, name, origin }) => {
     const { response } = await dialog.showMessageBox({
       type: "question",
-      buttons: [kind === "companion" ? "Disconnect and restart locally" : "Use this computer", "Cancel"],
+      buttons: [kind === "companion" ? "Trennen und lokal neu starten" : "Diesen Computer verwenden", "Abbrechen"],
       defaultId: 1, cancelId: 1,
-      message: kind === "companion" ? `Disconnect from ${name} to sign in locally?` : `Leave ${name} and sign in on this computer?`,
-      detail: `${origin}\n\nOrganization sign-in connects company models to this computer. ${kind === "companion" ? "This disconnects desktop companion access and restarts the app. You can pair again later." : "The hosted connection stays saved and can be selected again from the Server menu."} No remote bots, conversations or provider accounts are moved or deleted.`,
+      message: kind === "companion" ? `Verbindung mit ${name} trennen, um dich lokal anzumelden?` : `${name} verlassen und auf diesem Computer anmelden?`,
+      detail: `${origin}\n\nDie Organisationsanmeldung verbindet Unternehmensmodelle mit diesem Computer. ${kind === "companion" ? "Dadurch wird der Desktop-Fernzugriff getrennt und die App neu gestartet. Du kannst sie später erneut koppeln." : "Die Serververbindung bleibt gespeichert und kann im Servermenü wieder ausgewählt werden."} Entfernte Bots, Gespräche und Anbieterkonten werden weder verschoben noch gelöscht.`,
     });
     return response === 0;
   },
@@ -1914,7 +1916,7 @@ async function addServerFromClipboard() {
   try {
     return await connectHostedWorkspace(clipboard.readText());
   } catch (error) {
-    await dialog.showMessageBox({ type: "info", message: "Could not connect to the server", detail: `${error.message}\nYou can also choose Connect to a server to enter an address in Settings.` });
+    await dialog.showMessageBox({ type: "info", message: "Verbindung zum Server fehlgeschlagen", detail: `${error.message}\nDu kannst auch „Mit einem Server verbinden“ wählen, um in den Einstellungen eine Adresse einzugeben.` });
     return false;
   }
 }
@@ -1927,13 +1929,13 @@ async function connectHostedWorkspace(input, name) {
   const host = new URL(link.origin).host;
   const { response } = await dialog.showMessageBox({
     type: "question",
-    buttons: ["Connect", "Cancel"],
+    buttons: ["Verbinden", "Abbrechen"],
     defaultId: 0,
     cancelId: 1,
-    message: `Connect to ${host}?`,
+    message: `Mit ${host} verbinden?`,
     detail: link.code
-      ? "The pairing code in the link is used once, then this app stays signed in to that server."
-      : "The link has no pairing code; the server will ask for one.",
+      ? "Der Kopplungscode im Link wird einmal verwendet. Danach bleibt diese App bei dem Server angemeldet."
+      : "Der Link enthält keinen Kopplungscode. Der Server wird danach fragen.",
   });
   if (response !== 0) return false;
   let next = withEnvironment(environmentsState, { origin: link.origin, name }, () => randomUUID());
@@ -1986,11 +1988,11 @@ function askRemoteMicrophone(origin) {
     const ask = (async () => {
       const options = {
         type: "question",
-        buttons: ["Allow", "Don’t Allow"],
+        buttons: ["Erlauben", "Nicht erlauben"],
         defaultId: 1,
         cancelId: 1,
-        message: `Allow “${env.name}” to use the microphone?`,
-        detail: `${new URL(origin).host} wants to hear you for a Live call. Allow only a server you trust; this app remembers your answer for this server until you forget it.`,
+        message: `„${env.name}“ den Mikrofonzugriff erlauben?`,
+        detail: `${new URL(origin).host} möchte dich für einen Live-Anruf hören. Erlaube dies nur einem vertrauenswürdigen Server. Diese App merkt sich deine Antwort für diesen Server, bis du ihn entfernst.`,
       };
       const parent = mainWindow && !mainWindow.isDestroyed() ? mainWindow : null;
       const { response } = parent ? await dialog.showMessageBox(parent, options) : await dialog.showMessageBox(options);
@@ -2009,11 +2011,11 @@ async function forgetEnvironment(id, purge = false) {
   if (env.kind !== "local") {
     const { response } = await dialog.showMessageBox({
       type: "warning",
-      buttons: ["Forget", "Cancel"],
+      buttons: ["Entfernen", "Abbrechen"],
       defaultId: 1,
       cancelId: 1,
-      message: `Forget “${env.name}”?`,
-      detail: "This app signs out of that server. The server keeps its own session list; revoke it there too if the device is gone.",
+      message: `„${env.name}“ entfernen?`,
+      detail: "Diese App meldet sich von dem Server ab. Der Server führt eine eigene Sitzungsliste. Widerrufe die Sitzung dort ebenfalls, falls das Gerät nicht mehr vorhanden ist.",
     });
     if (response !== 0) return;
   }
@@ -2030,7 +2032,7 @@ async function forgetEnvironment(id, purge = false) {
     const resolvedCanon = canonical(resolved);
     const rootCanon = canonical(root);
     if (runningDataDir && canonical(runningDataDir) === resolvedCanon) return { ok: false, error: "active" };
-    if (path.basename(resolved).startsWith(".openmausbot") && resolvedCanon !== rootCanon && !resolvedCanon.startsWith(rootCanon + path.sep)) {
+    if (path.basename(resolved).startsWith(".spdbot") && resolvedCanon !== rootCanon && !resolvedCanon.startsWith(rootCanon + path.sep)) {
       try {
         await fs.promises.rm(resolved, { recursive: true, force: true });
       } catch (error) {
@@ -2050,7 +2052,7 @@ async function forgetEnvironment(id, purge = false) {
     if (!response.ok) throw new Error(`HTTP ${response.status}`);
   } catch (error) {
     slog(`forget server: logout skipped (${error?.message ?? error})`);
-    await dialog.showMessageBox({ type: "warning", message: "Connection forgotten; server sign-out could not be confirmed", detail: "Computer sharing is stopped. Revoke this desktop’s session on that server when it is reachable again." });
+    await dialog.showMessageBox({ type: "warning", message: "Verbindung entfernt. Die Abmeldung beim Server konnte nicht bestätigt werden", detail: "Die Computerfreigabe ist beendet. Widerrufe die Sitzung dieses Desktops auf dem Server, sobald er wieder erreichbar ist." });
   }
   try {
     // Not cookies: Chromium's cookie storage is host-wide, not port-scoped, so other saved servers would sign out.
@@ -2075,20 +2077,20 @@ function showContextMenu(win, params) {
   }
   if (params.linkURL) {
     menuItems.push(
-      { label: "Copy Link", click: () => clipboard.writeText(params.linkURL) },
+      { label: "Link kopieren", click: () => clipboard.writeText(params.linkURL) },
       { type: "separator" },
     );
   }
   menuItems.push(
-    { label: "Undo", role: "undo", enabled: params.editFlags.canUndo },
-    { label: "Redo", role: "redo", enabled: params.editFlags.canRedo },
+    { label: "Rückgängig", role: "undo", enabled: params.editFlags.canUndo },
+    { label: "Wiederholen", role: "redo", enabled: params.editFlags.canRedo },
     { type: "separator" },
-    { label: "Cut", role: "cut", enabled: params.editFlags.canCut },
-    { label: "Copy", role: "copy", enabled: params.editFlags.canCopy },
+    { label: "Ausschneiden", role: "cut", enabled: params.editFlags.canCut },
+    { label: "Kopieren", role: "copy", enabled: params.editFlags.canCopy },
     pasteMenuItem(params, clipboard, win.webContents),
-    { label: "Paste and Match Style", role: "pasteAndMatchStyle", enabled: params.editFlags.canPaste },
+    { label: "Einfügen und Stil anpassen", role: "pasteAndMatchStyle", enabled: params.editFlags.canPaste },
     { type: "separator" },
-    { label: "Select All", role: "selectAll", enabled: params.editFlags.canSelectAll },
+    { label: "Alles auswählen", role: "selectAll", enabled: params.editFlags.canSelectAll },
   );
   Menu.buildFromTemplate(menuItems).popup({ window: win, frame: params.frame });
 }
@@ -2194,8 +2196,8 @@ function createWindow({ deferNavigation = false } = {}) {
     slog(`remote server unreachable (${errorDescription}); back to Local`);
     void dialog.showMessageBox({
       type: "warning",
-      message: `${remote.name} is not reachable`,
-      detail: `${cloudUnreachableText(cloudAccount?.state(), remote.origin) ?? `${errorDescription}.`} Showing the local server instead; choose it again from the Server menu when it is back.`,
+      message: `${remote.name} ist nicht erreichbar`,
+      detail: `${cloudUnreachableText(cloudAccount?.state(), remote.origin) ?? `${errorDescription}.`} Stattdessen wird der lokale Server angezeigt. Wähle den entfernten Server im Servermenü erneut, sobald er wieder erreichbar ist.`,
     });
     void workspaceMenuAction(() => switchEnvironment(LOCAL_ID));
   });
@@ -2354,7 +2356,7 @@ ipcMain.handle("clipboard:write-text", localOnly("clipboard:write-text", (_event
 ipcMain.handle("desktop:pick-folder", localOnly("desktop:pick-folder", async (event, current) => {
   const win = BrowserWindow.fromWebContents(event.sender) ?? undefined;
   const result = await dialog.showOpenDialog(win, {
-    title: "Choose a working folder",
+    title: "Arbeitsordner auswählen",
     properties: ["openDirectory", "createDirectory"],
     ...(typeof current === "string" && current ? { defaultPath: current } : {}),
   });
@@ -2366,7 +2368,7 @@ ipcMain.handle("desktop:export-diagnostics", localOnly("desktop:export-diagnosti
   const owner = BrowserWindow.fromWebContents(event.sender) ?? undefined;
   const report = await gatherDiagnostics();
   const result = await dialog.showSaveDialog(owner, {
-    title: "Export diagnostics",
+    title: "Diagnose exportieren",
     defaultPath: diagnosticsFileName(),
     filters: [{ name: "Text", extensions: ["txt"] }],
   });
@@ -2386,14 +2388,14 @@ ipcMain.handle("desktop:export-diagnostics", localOnly("desktop:export-diagnosti
   return result.filePath;
 }));
 
-// The path is renderer-controlled: it must resolve inside ~/.openmausbot to a regular file, never a symlink escape.
+// The path is renderer-controlled: it must resolve inside ~/.spdbot to a regular file, never a symlink escape.
 ipcMain.handle("desktop:save-file", localOnly("desktop:save-file", async (event, rawPath) => {
   return withSavableFile(rawPath, { home: os.homedir() }, async ({ defaultName, copyTo }) => {
     const parent = BrowserWindow.fromWebContents(event.sender);
     const defaultPath = await defaultSaveName(app.getPath("downloads"), defaultName);
     const choice = await dialog.showSaveDialog(parent ?? undefined, {
-      title: "Where do you want to save it?",
-      message: "Where do you want to save it?",
+      title: "Wo möchtest du die Datei speichern?",
+      message: "Wo möchtest du die Datei speichern?",
       defaultPath,
       buttonLabel: "Save",
       properties: ["createDirectory", "showOverwriteConfirmation"],
@@ -2887,7 +2889,7 @@ ipcMain.handle("sharing:state", localWorkspaceOnly("sharing:state", async (_even
 }));
 ipcMain.handle("sharing:folder", localWorkspaceOnly("sharing:folder", async () => {
   await requireSharedComputers();
-  const picked = await dialog.showOpenDialog(mainWindow, { title: "Choose a folder to share", properties: ["openDirectory"] });
+  const picked = await dialog.showOpenDialog(mainWindow, { title: "Ordner zum Teilen auswählen", properties: ["openDirectory"] });
   if (picked.canceled || !picked.filePaths[0]) return null;
   return (await validateSharedFolders([{ id: randomUUID(), path: picked.filePaths[0], write: false }]))[0];
 }));
@@ -2907,12 +2909,12 @@ ipcMain.handle("sharing:save", localWorkspaceOnly("sharing:save", async (_event,
   const folders = await validateSharedFolders(input?.folders);
   const detail = [
     `Server: ${env.origin}`,
-    ...folders.map(folder => `${folder.write ? "Read and write" : "Read only"}: ${folder.path}`),
-    input?.terminal === true ? "Terminal: UNRESTRICTED commands as your user. Can access files outside the folders above, including credentials." : "Terminal: off",
-    input?.computer === true ? "Computer control: can view your screen and operate logged-in apps. Can access information outside the folders above." : "Computer control: off",
-    "Shared content is sent to this server and may reach its model provider. Bots on this server can use these permissions until you revoke them. Closing the desktop stops access.",
+    ...folders.map(folder => `${folder.write ? "Lesen und Schreiben" : "Nur Lesen"}: ${folder.path}`),
+    input?.terminal === true ? "Terminal: UNBESCHRÄNKTE Befehle als dein Benutzer. Kann auf Dateien außerhalb der oben genannten Ordner zugreifen, einschließlich Zugangsdaten." : "Terminal: aus",
+    input?.computer === true ? "Computersteuerung: Kann deinen Bildschirm sehen und angemeldete Apps bedienen. Kann auf Informationen außerhalb der oben genannten Ordner zugreifen." : "Computersteuerung: aus",
+    "Geteilte Inhalte werden an diesen Server gesendet und können seinen Modellanbieter erreichen. Bots dieses Servers können die Berechtigungen nutzen, bis du sie widerrufst. Das Beenden der Desktop-App stoppt den Zugriff.",
   ].join("\n\n");
-  const confirmation = await dialog.showMessageBox(mainWindow, { type: "warning", message: `Allow computer access for ${env.name}?`, detail, buttons: ["Allow access", "Cancel"], defaultId: 1, cancelId: 1 });
+  const confirmation = await dialog.showMessageBox(mainWindow, { type: "warning", message: `Computerzugriff für ${env.name} erlauben?`, detail, buttons: ["Zugriff erlauben", "Abbrechen"], defaultId: 1, cancelId: 1 });
   if (confirmation.response !== 0) return null;
   savedWorkspace(id);
   return sharingController().save(env, { folders, terminal: input?.terminal === true, computer: input?.computer === true }, info);
@@ -2962,7 +2964,7 @@ ipcMain.handle("dialog:confirm", localWorkspaceOnly("dialog:confirm", async (_ev
   const { response } = await dialog.showMessageBox(mainWindow, {
     type: "warning",
     message,
-    buttons: ["OK", "Cancel"],
+    buttons: ["OK", "Abbrechen"],
     defaultId: 1,
     cancelId: 1,
   });
@@ -3137,8 +3139,8 @@ app.whenReady().then(async () => {
       slog(`boot environment ${boot.missingDir} is missing; falling back to the default data dir`);
       persistEnvironments({ ...environmentsState, activeId: LOCAL_ID });
       dialog.showErrorBox(
-        "The environment's folder is missing",
-        `${boot.missingDir} is not there anymore, so SPDBot came up on this computer's default data folder instead. Restore or remount that folder, then choose the environment again from the Server menu.`,
+        "Der Ordner des Arbeitsbereichs fehlt",
+        `${boot.missingDir} ist nicht mehr verfügbar. SPDBot verwendet deshalb den Standard-Datenordner dieses Computers. Stelle den Ordner wieder her oder binde ihn erneut ein. Wähle den Arbeitsbereich danach wieder im Servermenü aus.`,
       );
     }
     bootDataDir = boot.dataDir;
@@ -3146,14 +3148,12 @@ app.whenReady().then(async () => {
   if (app.isPackaged) {
     try {
       // Acquire before either plaintext credential migration touches config.json.
-      desktopDataDirLease = acquireDataDirLease(bootDataDir, {
-        legacyDataDir: path.join(app.getPath("home"), ".opengrokbot"),
-      });
+      desktopDataDirLease = acquireDataDirLease(bootDataDir);
       runningDataDir = bootDataDir;
     } catch (error) {
       dialog.showErrorBox(
-        "SPDBot could not start safely",
-        error?.message ?? "Another process is using this SPDBot data folder.",
+        "SPDBot konnte nicht sicher gestartet werden",
+        error?.message ?? "Ein anderer Prozess verwendet diesen SPDBot-Datenordner.",
       );
       app.quit();
       return;
@@ -3161,7 +3161,7 @@ app.whenReady().then(async () => {
   }
   installServerSessions({ app, defaultSession: session.defaultSession, serverPort: () => SERVER_PORT,
     ownerToken: () => (app.isPackaged && serverReady ? desktopMutationToken : null) });
-  if (app.isPackaged) app.setAsDefaultProtocolClient("openmausbot");
+  if (app.isPackaged) app.setAsDefaultProtocolClient("spdbot");
   if (process.platform === "darwin") app.dock.setIcon(APP_ICON);
   secureCredentials = await loadSecureCredentials();
   // An orphaned third-party key with no clear handler left: drop it rather than keep it at rest.
@@ -3274,14 +3274,12 @@ app.whenReady().then(async () => {
       }
       desktopDataDirLease = null;
       try {
-        desktopDataDirLease = acquireDataDirLease(desktopDataDir(), {
-          legacyDataDir: path.join(app.getPath("home"), ".opengrokbot"),
-        });
+        desktopDataDirLease = acquireDataDirLease(desktopDataDir());
         runningDataDir = desktopDataDir();
       } catch (error) {
         dialog.showErrorBox(
-          "SPDBot could not start safely",
-          error?.message ?? "Another process is using this SPDBot data folder.",
+          "SPDBot konnte nicht sicher gestartet werden",
+          error?.message ?? "Ein anderer Prozess verwendet diesen SPDBot-Datenordner.",
         );
         app.quit();
         return;
@@ -3289,13 +3287,13 @@ app.whenReady().then(async () => {
       const retried = await startServerPackaged();
       if (retried) {
         dialog.showErrorBox(
-          "The environment was unhealthy",
-          `SPDBot could not start on ${bootDataDir} and came up on this computer's default data folder instead. Choose that environment again from the Server menu once it is available.`,
+          "Der Arbeitsbereich war nicht funktionsfähig",
+          `SPDBot konnte mit ${bootDataDir} nicht starten und verwendet deshalb den Standard-Datenordner dieses Computers. Wähle den Arbeitsbereich wieder im Servermenü aus, sobald er verfügbar ist.`,
         );
       } else {
         dialog.showErrorBox(
-          "SPDBot could not start",
-          `SPDBot could not start on ${bootDataDir} or on this computer's default data folder. Check that both folders are readable, then start the app again.`,
+          "SPDBot konnte nicht gestartet werden",
+          `SPDBot konnte weder mit ${bootDataDir} noch mit dem Standard-Datenordner dieses Computers starten. Prüfe, ob beide Ordner lesbar sind, und starte die App erneut.`,
         );
         app.quit();
       }

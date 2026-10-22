@@ -1,3 +1,4 @@
+import { t } from "./i18n";
 import type { Bot, InstanceInfo } from "@/state/store";
 
 export function instanceSupportsLocalComputer(
@@ -30,28 +31,28 @@ export function localComputerDisabledReason({
   providerSupportsLocal: boolean;
 }): string | null {
   if (!providerSupportsLocal) {
-    return "The selected provider cannot request approvals for local computer actions.";
+    return t("computer.localProblem.provider");
   }
   if (capabilities.localComputer.available) return null;
   if (capabilities.host.platform === "linux") {
     if (capabilities.localComputer.reasonCode === "linux-wayland-seat-safety-blocked") {
-      return "Local computer control is not available on Wayland yet. Sign out and choose Ubuntu on Xorg to use This computer.";
+      return t("computer.localProblem.waylandSeat");
     }
     if (capabilities.localComputer.reasonCode === "wayland-compositor-unsupported") {
-      return "Wayland local control is currently limited to GNOME. Xorg remains available on supported desktops.";
+      return t("computer.localProblem.waylandDesktop");
     }
     if (!capabilities.localComputer.enabled) {
-      return "Enable the local control beta and complete the Cua Driver checks first.";
+      return t("computer.localProblem.enableBeta");
     }
-    return capabilities.localComputer.message ?? "Cua Driver is not ready for local control.";
+    return capabilities.localComputer.message ?? t("computer.localProblem.driverNotReady");
   }
   if (capabilities.host.label === "Browser") {
-    return "Local computer control requires the desktop app.";
+    return t("computer.localProblem.desktopRequired");
   }
   if (capabilities.host.platform === "win32") {
-    return "The bundled Cua Driver could not start. Restart OpenMausBot and check Diagnostics if it still fails.";
+    return t("computer.localProblem.windowsDriver");
   }
-  return "CUA Driver is not ready for local computer control.";
+  return t("computer.localProblem.cuaNotReady");
 }
 
 export type BoatPanelAction =

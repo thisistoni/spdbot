@@ -3,6 +3,7 @@ import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it, vi } from "vitest";
 
 import { StoreProvider, type Bot } from "@/state/store";
+import { setLocale } from "@/lib/i18n";
 import { stateForBot } from "@/lib/mascot";
 import { BotProfileAvatarCard } from "./BotProfileAvatarCard";
 import { PanelHero } from "./bot-panel/PanelHero";
@@ -100,4 +101,21 @@ describe.each(["identity", "panel", "editor"] as const)("%s portrait activity", 
     expect(working).toContain("ring-inset");
     expect(stopped).not.toContain("ring-inset");
   });
+});
+
+it("localizes avatar controls and framing while preserving an explicit English selection", () => {
+  const bot = makeBot({ avatarUrl: "/api/attachments/cat.webp", avatarCrop: "circle", avatarZoom: 1.5 });
+  try {
+    setLocale("de");
+    const german = renderCard(bot);
+    expect(german).toContain("Bild hochladen");
+    expect(german).toContain('aria-label="Avatar zoomen"');
+    expect(german).toContain("Bildausschnitt zurücksetzen");
+    expect(german).toContain('aria-label="Eigenes Avatarbild entfernen"');
+    expect(german).toContain("/api/attachments/cat.webp");
+    expect(german).toContain("150%");
+    setLocale("en");
+    expect(renderCard(bot)).toContain('aria-label="Zoom avatar"');
+    expect(renderCard(bot)).toContain("Upload image");
+  } finally { setLocale("en"); }
 });

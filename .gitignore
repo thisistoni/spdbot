@@ -40,3 +40,7 @@ deploy/podman/.env
 deploy/podman/.env.*
 !deploy/podman/.env.example
 /.env
+
+electron/resources/SPDBot Speech.app
+electron/resources/SPDBot Recorder.app
+/work/

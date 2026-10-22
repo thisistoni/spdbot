@@ -1,3 +1,4 @@
+import { BROWSER_NAMESPACE, browserSocketRoot } from "./browser-identity.ts";
 import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
@@ -244,8 +245,11 @@ describe("closing this data dir's browsers nothing uses", () => {
   function home(daemons: string[]) {
     const folder = mkdtempSync(join(tmpdir(), "openmaus-browser-sweep-"));
     folders.push(folder);
-    mkdirSync(join(folder, "agent-browser"));
-    for (const session of daemons) writeFileSync(join(folder, "agent-browser", `${session}.pid`), "0");
+    const run = join(browserSocketRoot(), "namespaces", BROWSER_NAMESPACE, "run");
+    rmSync(run, { recursive: true, force: true });
+    mkdirSync(run, { recursive: true });
+    folders.push(run);
+    for (const session of daemons) writeFileSync(join(run, `${session}.pid`), "0");
     vi.stubEnv("XDG_RUNTIME_DIR", folder);
     vi.mocked(runningBrowserSessionNames).mockClear().mockResolvedValue(daemons);
     vi.mocked(closeBrowserSession).mockClear().mockResolvedValue(true);
@@ -291,7 +295,7 @@ describe("closing this data dir's browsers nothing uses", () => {
 
   it("asks the engine nothing while no daemon has a pid file, or there is no engine", async () => {
     home([]);
-    writeFileSync(join(process.env.XDG_RUNTIME_DIR!, "agent-browser", "dashboard.pid"), "0");
+    writeFileSync(join(browserSocketRoot(), "namespaces", BROWSER_NAMESPACE, "run", "dashboard.pid"), "0");
     await sweep().value.sweep();
     expect(runningBrowserSessionNames).not.toHaveBeenCalled();
     home(["bot-a"]);
@@ -341,7 +345,7 @@ describe("closing this data dir's browsers nothing uses", () => {
     const running = sweep({ live: ["bot-b"] }).value;
     await running.sweep();
     expect(vi.mocked(stopBrowserProcesses).mock.calls).toEqual([[orphan("guest-0f0f0f0f-1").tree]]);
-    rmSync(join(process.env.XDG_RUNTIME_DIR!, "agent-browser", "bot-b.pid"));
+    rmSync(join(browserSocketRoot(), "namespaces", BROWSER_NAMESPACE, "run", "bot-b.pid"));
     await running.sweep();
     expect(orphanedBrowsers).toHaveBeenCalledTimes(2);
     await running.sweep();

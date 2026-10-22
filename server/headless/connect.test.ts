@@ -23,7 +23,7 @@ beforeAll(async () => {
     for await (const chunk of req) raw += chunk;
     requests.push({ path: req.url ?? "", body: raw ? JSON.parse(raw) : undefined });
     const send = (status: number, body: unknown) => { res.writeHead(status, { "content-type": "application/json" }); res.end(JSON.stringify(body)); };
-    if (req.url === "/.well-known/openmausbot/environment") return send(200, { environmentId: "env-1", label: "Sandbox", version: "0.1.109" });
+    if (req.url === "/.well-known/spdbot/environment") return send(200, { environmentId: "env-1", label: "Sandbox", version: "0.1.109" });
     if (req.url === "/api/auth/pairing") return send(200, { code: "ABCD1234" });
     if (req.url === "/api/auth/pair") {
       const body = JSON.parse(raw);
@@ -58,7 +58,7 @@ describe("connect", () => {
     const result = JSON.parse(out[0]!);
     expect(result).toMatchObject({ ok: true, tokenFile: file, workspace: { label: "Sandbox", environmentId: "env-1" }, session: { label: "CI runner", scopes: ["admin", "client"] } });
     expect(JSON.stringify([out, err])).not.toContain("omb_sess_secret_token_value");
-    expect(requests.map((request) => request.path)).toEqual(["/.well-known/openmausbot/environment", "/api/auth/pairing", "/api/auth/pair"]);
+    expect(requests.map((request) => request.path)).toEqual(["/.well-known/spdbot/environment", "/api/auth/pairing", "/api/auth/pair"]);
     expect(requests[1]!.body).toEqual({ label: "CI runner" });
   });
 
@@ -67,20 +67,20 @@ describe("connect", () => {
     writeFileSync(file, "old\n");
     const refused = capture();
     expect(await runHeadless(["connect", origin, "--code", "ABCD 1234", "--out", file], { io: refused.io, env: {} })).toBe(2);
-    expect(refused.err[0]).toContain("already exists");
+    expect(refused.err[0]).toContain("existiert bereits");
     expect(await runHeadless(["connect", origin, "--code", "ABCD 1234", "--out", file, "--force"], { io: capture().io, env: {} })).toBe(0);
     expect(readFileSync(file, "utf8")).toBe("omb_sess_secret_token_value\n");
     // the file it replaced was readable by others; the token in it is not
     if (process.platform !== "win32") expect(statSync(file).mode & 0o777).toBe(0o600);
     const wrong = capture();
     expect(await runHeadless(["connect", origin, "--code", "NOPE", "--out", join(dir, "token-3")], { io: wrong.io, env: {} })).toBe(5);
-    expect(wrong.err[0]).toBe("error: the code was not accepted: invalid or expired pairing code");
+    expect(wrong.err[0]).toBe("Fehler: Der Code wurde nicht akzeptiert: invalid or expired pairing code.");
   });
 
   it("needs a code for a workspace elsewhere, and never writes a token to the terminal", async () => {
     const remote = capture();
     expect(await runHeadless(["connect", "https://maus.example.com", "--out", join(dir, "t")], { io: remote.io, env: {} })).toBe(2);
-    expect(remote.err[0]).toBe("error: a workspace elsewhere needs a pairing code");
+    expect(remote.err[0]).toBe("Fehler: Ein Arbeitsbereich auf einem anderen Computer benötigt einen Kopplungscode.");
     expect(() => writeTokenFile("-", "x", false)).toThrow("never to the terminal");
     expect(() => writeTokenFile("/dev/stdout", "x", true)).toThrow("never to the terminal");
   });

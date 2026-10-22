@@ -2,6 +2,7 @@
 // goes to stderr, dropped by --quiet. Every printed string passes through the transcript's secret redaction.
 import { redactSecretsInText } from "../../shared/redact.ts";
 import type { HeadlessError } from "./args.ts";
+import { humanCliMessage } from "./human-copy.ts";
 
 export interface HeadlessIo {
   out(text: string): void;
@@ -54,8 +55,8 @@ export class Output {
     const body = { ok: false, error: error.message, ...(error.hint ? { hint: error.hint } : {}), exitCode: error.exitCode };
     if (this.json) this.io.out(JSON.stringify(redactDeep(body), null, 2));
     else {
-      this.io.err(redactSecretsInText(`error: ${error.message}`));
-      if (error.hint) this.io.err(redactSecretsInText(`hint: ${error.hint}`));
+      this.io.err(redactSecretsInText(`Fehler: ${humanCliMessage(error.message)}`));
+      if (error.hint) this.io.err(redactSecretsInText(`Hinweis: ${humanCliMessage(error.hint)}`));
     }
   }
 }

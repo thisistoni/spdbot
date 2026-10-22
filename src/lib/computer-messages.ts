@@ -9,11 +9,13 @@ import type { LocaleKey } from "@/locales";
 export function localizeComputerProblem(problem: string | null | undefined): string | null {
   if (!problem) return problem ?? null;
   const exact: Record<string, Parameters<typeof t>[0]> = {
+    "Install a supported container runtime first": "computer.problem.installRuntime",
     "Create the Local VM": "computer.problem.createVm",
     "The Local VM is stopped; start it to continue": "computer.problem.vmStopped",
     "The Local VM started, but Cua Driver is not ready yet": "computer.problem.cuaNotReady",
     "The existing Local VM uses an older desktop or Cua Driver; recreate it": "computer.problem.oldImage",
     "The existing container was not created by OpenMausBot; recreate it": "computer.problem.unmanaged",
+    "The existing container was not created by SPDBot; recreate it": "computer.problem.unmanaged",
     "The existing Local VM exposes its viewer publicly; recreate it": "computer.problem.publicViewer",
     "The existing Local VM is missing safety limits; recreate it": "computer.problem.missingLimits",
     "The existing Local VM is missing its durable folder; recreate it": "computer.problem.missingDurableFolder",
@@ -21,6 +23,10 @@ export function localizeComputerProblem(problem: string | null | undefined): str
   };
   const key = exact[problem];
   if (key) return t(key);
+  const runtime = /^Start (docker|podman|container) first$/.exec(problem);
+  if (runtime) return t("computer.problem.startRuntime", { runtime: runtime[1]! });
+  const image = /^Prepare the Cua desktop image with Driver ([\w.-]+)$/.exec(problem);
+  if (image) return t("computer.problem.prepareImage", { version: image[1]! });
   const desktopFailure = /^The Local VM desktop failed to start: (.+)$/.exec(problem);
   if (desktopFailure) return t("computer.problem.desktopFailed", { detail: desktopFailure[1]! });
   return problem;

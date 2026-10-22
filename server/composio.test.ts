@@ -850,7 +850,7 @@ describe.sequential("Composio Sessions", () => {
 
   it("does not offer Twitter through the official managed broker without an owned OAuth app", async () => {
     setManagedBrokerAccess({
-      url: "https://broker.openmausbot.test",
+      url: "https://broker.spdbot.test",
       token: "a".repeat(64),
     });
     try {

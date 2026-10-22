@@ -27,21 +27,21 @@ export const BASE_IMAGE_DIGEST = "sha256:274eb636f5cf3fc58f705916ee72b7a701270b3
 export const BASE_IMAGE = `${BASE_IMAGE_REPOSITORY}@${BASE_IMAGE_DIGEST}`;
 // localhost/ is explicit: Podman prepends it to unqualified build tags and may then resolve the name on Docker Hub.
 // Image and container labels, not this mutable tag, decide compatibility.
-export const IMAGE_REPOSITORY = "localhost/openmausbot/cua-local-vm";
+export const IMAGE_REPOSITORY = "localhost/spdbot/cua-local-vm";
 export const IMAGE_LAYER_VERSION = "5";
-export const IMAGE_LAYER_LABEL = "com.openmausbot.image-layer";
+export const IMAGE_LAYER_LABEL = "de.spdlabs.spdbot.image-layer";
 export const IMAGE = `${IMAGE_REPOSITORY}:driver-${CUA_DRIVER_VERSION}-v${IMAGE_LAYER_VERSION}`;
-export const CONTAINER = "openmausbot-computer";
-export const MANAGED_LABEL = "com.openmausbot.local-vm";
-export const DRIVER_LABEL = "com.openmausbot.cua-driver";
-export const BASE_IMAGE_LABEL = "com.openmausbot.cua-base";
-export const WORKSPACE_LABEL = "com.openmausbot.workspace";
-export const TARGET_LABEL = "com.openmausbot.local-vm-target";
+export const CONTAINER = "spdbot-computer";
+export const MANAGED_LABEL = "de.spdlabs.spdbot.local-vm";
+export const DRIVER_LABEL = "de.spdlabs.spdbot.cua-driver";
+export const BASE_IMAGE_LABEL = "de.spdlabs.spdbot.cua-base";
+export const WORKSPACE_LABEL = "de.spdlabs.spdbot.workspace";
+export const TARGET_LABEL = "de.spdlabs.spdbot.local-vm-target";
 export const VM_WORKSPACE_DIR = join(DATA_DIR, "vm-home");
 export const VM_WORKSPACE_GUEST = "/home/cua/workspace";
 export const DISPLAY = ":1";
-export const CUA_SOCKET = "/run/user/1000/openmausbot-cua.sock";
-export const CUA_EXECUTABLE = "/usr/local/libexec/openmausbot/cua-driver";
+export const CUA_SOCKET = "/run/user/1000/spdbot-cua.sock";
+export const CUA_EXECUTABLE = "/usr/local/libexec/spdbot/cua-driver";
 
 const RUNTIMES = ["docker", "podman", "container"] as const;
 export type Runtime = (typeof RUNTIMES)[number];
@@ -174,11 +174,11 @@ RUN printf '%s\\n' \\
       'migrate_profile google-chrome' \\
       'migrate_profile chromium' \\
       'find "$profiles" \\( -name SingletonLock -o -name SingletonSocket -o -name SingletonCookie -o -name .parentlock \\) -delete' \\
-      > /usr/local/bin/prepare-openmausbot-workspace.sh \\
-    && chmod 0755 /usr/local/bin/prepare-openmausbot-workspace.sh
+      > /usr/local/bin/prepare-spdbot-workspace.sh \\
+    && chmod 0755 /usr/local/bin/prepare-spdbot-workspace.sh
 RUN printf '%s\\n' \\
       '#!/bin/sh' \\
-      '/usr/local/bin/prepare-openmausbot-workspace.sh' \\
+      '/usr/local/bin/prepare-spdbot-workspace.sh' \\
       'attempt=0' \\
       'until DISPLAY=:1 xset q >/dev/null 2>&1; do' \\
       '  attempt=$((attempt + 1))' \\
@@ -186,12 +186,12 @@ RUN printf '%s\\n' \\
       '  sleep 1' \\
       'done' \\
       'exec env CUA_DRIVER_INSTALL_CHANNEL=python_package CUA_DRIVER_RS_TELEMETRY_ENABLED=0 ${CUA_EXECUTABLE} serve --socket ${CUA_SOCKET} --permission-mode standard' \\
-      > /usr/local/bin/start-openmausbot-cua-driver.sh \\
-    && chmod 0755 /usr/local/bin/start-openmausbot-cua-driver.sh
+      > /usr/local/bin/start-spdbot-cua-driver.sh \\
+    && chmod 0755 /usr/local/bin/start-spdbot-cua-driver.sh
 RUN printf '%s\\n' \\
       '' \\
-      '[program:openmausbot-cua-driver]' \\
-      'command=/usr/local/bin/start-openmausbot-cua-driver.sh' \\
+      '[program:spdbot-cua-driver]' \\
+      'command=/usr/local/bin/start-spdbot-cua-driver.sh' \\
       'user=cua' \\
       'environment=HOME="/home/cua",USER="cua",DISPLAY=":1"' \\
       'autorestart=true' \\
@@ -622,7 +622,7 @@ export async function containerComputerStatus(
       ) {
         throw new Error(`Cua health report is ${report.overall ?? "invalid"}`);
       }
-      const readinessShot = "/tmp/openmausbot-readiness.png";
+      const readinessShot = "/tmp/spdbot-readiness.png";
       await runner(
         status.runtime,
         cuaExecArgs([
@@ -944,7 +944,7 @@ function baseImagePullArgs(runtime: Runtime): string[] {
 
 async function prepareManagedImage(runtime: Runtime, runner: CommandRunner): Promise<void> {
   await runner(runtime, baseImagePullArgs(runtime), 10 * 60_000);
-  const context = await mkdtemp(join(tmpdir(), "openmausbot-cua-image-"));
+  const context = await mkdtemp(join(tmpdir(), "spdbot-cua-image-"));
   try {
     await writeFile(join(context, "Dockerfile"), managedImageDockerfile(), { mode: 0o600 });
     await runner(runtime, ["build", "-t", IMAGE, context], 10 * 60_000);
@@ -1055,7 +1055,7 @@ export async function containerComputerFrame(
   }
   if (cacheable) screenshotStatusCache.set(target.key, { status, expiresAt: now + SCREENSHOT_STATUS_TTL_MS });
   try {
-    const screenshot = "/tmp/openmausbot-preview.png";
+    const screenshot = "/tmp/spdbot-preview.png";
     await runner(
       status.runtime,
       cuaExecArgs([

@@ -14,6 +14,7 @@ import {
   type BotAvatarCrop,
 } from "../../shared/bot-avatar";
 import { BotAvatar } from "./Avatar";
+import { t } from "@/lib/i18n";
 import { useBotEditor } from "./bot-settings/BotEditorContext";
 
 export type AvatarPatch = Partial<
@@ -78,7 +79,7 @@ export function AvatarFraming({
         onPointerCancel={endDrag}
         onWheel={onWheel}
       >
-        <BotAvatar bot={bot} size={FRAME_SIZE} animated={false} label={t("botttsAvatar.preview", { name: bot.name })} />
+        <BotAvatar bot={bot} size={FRAME_SIZE} animated={false} label={t("botIdentity.framing.preview", { name: bot.name })} />
       </div>
       <div className="mb-1.5 mt-4 flex items-baseline justify-between">
         <span className="text-[12px] font-medium uppercase tracking-[0.08em] text-ink-secondary">{t("botttsAvatar.zoom")}</span>
@@ -91,7 +92,7 @@ export function AvatarFraming({
         step={0.01}
         value={zoom}
         disabled={disabled}
-        aria-label={t("botttsAvatar.zoomAvatar")}
+        aria-label={t("botIdentity.framing.zoom")}
         aria-valuemin={AVATAR_ZOOM_MIN}
         aria-valuemax={AVATAR_ZOOM_MAX}
         aria-valuenow={zoom}
@@ -100,7 +101,7 @@ export function AvatarFraming({
         className="w-full accent-accent"
       />
       <div className="mt-1.5 flex items-center justify-between gap-3 text-[11.5px] text-ink-secondary">
-        <span>{t("botttsAvatar.framingHint")}</span>
+        <span>{t("botIdentity.framing.help")}</span>
         {framed && (
           <button
             type="button"
@@ -108,7 +109,7 @@ export function AvatarFraming({
             onClick={() => onPatch({ avatarZoom: AVATAR_ZOOM_MIN, avatarFocusX: AVATAR_FOCUS_CENTER, avatarFocusY: AVATAR_FOCUS_CENTER })}
             className="shrink-0 rounded-md px-2 py-1 text-ink hover:bg-control disabled:opacity-50"
           >
-            {t("botttsAvatar.resetFraming")}
+            {t("botIdentity.framing.reset")}
           </button>
         )}
       </div>
@@ -121,8 +122,8 @@ export function OrganizationAvatarIcons({ busy, onUpload }: { busy: boolean; onU
   if (!organization?.icons.length) return null;
   return (
     <div className="mb-3 border-b border-hairline/40 pb-3">
-      <div className="mb-2 text-[13px] font-medium text-ink-secondary">{organization.name} icons</div>
-      <div className="flex flex-wrap gap-2">{organization.icons.map(icon => <button key={icon.id} type="button" disabled={busy} title={icon.name} aria-label={`Use ${icon.name} icon`} className="flex size-12 items-center justify-center rounded-lg border border-hairline/40 hover:bg-control disabled:opacity-50" onClick={() => {
+      <div className="mb-2 text-[13px] font-medium text-ink-secondary">{t("botIdentity.organizationIcons", { name: organization.name })}</div>
+      <div className="flex flex-wrap gap-2">{organization.icons.map(icon => <button key={icon.id} type="button" disabled={busy} title={icon.name} aria-label={t("botIdentity.useIcon", { name: icon.name })} className="flex size-12 items-center justify-center rounded-lg border border-hairline/40 hover:bg-control disabled:opacity-50" onClick={() => {
         const bytes = Uint8Array.from(atob(icon.image.slice(22)), byte => byte.charCodeAt(0));
         onUpload(new File([bytes], `${icon.id}.png`, { type: "image/png" }));
       }}><img src={icon.image} alt="" className="size-10 rounded-md object-contain" /></button>)}</div>
@@ -150,7 +151,7 @@ export function useAvatarImage(bot: Bot, onPatch: (patch: AvatarPatch) => void) 
     try {
       const saved = uploadAvatar ? null : await imageAttachmentFromFile(file);
       const avatarUrl = uploadAvatar ? await uploadAvatar(file) : saved ? botAvatarUrlFromStoredPath(saved.path) : null;
-      if (!avatarUrl) throw new Error(t("botttsAvatar.uploadError"));
+      if (!avatarUrl) throw new Error(t("botIdentity.uploadFailed"));
       const latestCrop = cropRef.current;
       onPatch({
         avatarUrl,

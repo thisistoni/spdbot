@@ -401,33 +401,19 @@ describe("Settings → Appearance", () => {
     expect(local).toContain("Server address or pairing link");
     expect(local).toContain("Name (optional)");
     expect(local).toContain("Your servers");
-    expect(local).toContain("npx openmausbot pair --label");
+    expect(local).toContain("pnpm spdbot pair --label");
     fixture.section = "general";
     vi.stubGlobal("window", { ogb: { workspaces: {} } });
     expect(render()).not.toContain('<option value="desktopWorkspaces"');
   });
 
-  it("offers optional Organisation settings only through the local desktop bridge", () => {
-    fixture.section = "organization";
-    vi.stubGlobal("window", { ogb: { organization: {} } });
+  it.each(["organization", "cloudAccount"] as const)("hides upstream %s even when the desktop exposes its bridge", (section) => {
+    fixture.section = section;
+    vi.stubGlobal("window", { ogb: { organization: {}, cloudAccount: {} } });
     const local = render();
-    expect(local).toContain('<option value="organization" selected="">Organization</option>');
-    expect(local).toContain("personal and local models");
-    fixture.section = "appearance";
-    vi.stubGlobal("window", {});
-    expect(render()).not.toContain('<option value="organization"');
-    vi.stubGlobal("window", { ogb: { organization: {}, remoteClient: { active: true } } });
-    expect(render()).not.toContain('<option value="organization"');
-    expect(render()).toContain("Midnight");
-  });
-  it("offers personal Cloud separately and only through the local desktop bridge", () => {
-    fixture.section = "cloudAccount";
-    vi.stubGlobal("window", { ogb: { cloudAccount: {} } });
-    expect(render()).toContain('<option value="cloudAccount" selected="">MausBot Cloud</option>');
-    expect(render()).toContain("Free local use");
-    fixture.section = "appearance";
-    vi.stubGlobal("window", {}); expect(render()).not.toContain('<option value="cloudAccount"');
-    vi.stubGlobal("window", { ogb: { cloudAccount: {}, remoteClient: { active: true } } });
-    expect(render()).not.toContain('<option value="cloudAccount"');
+    expect(local).not.toContain('<option value="organization"');
+    expect(local).not.toContain('<option value="cloudAccount"');
+    expect(local).not.toContain("MausBot Cloud");
+    expect(local).toContain('<option value="general" selected="">General</option>');
   });
 });

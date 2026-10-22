@@ -225,7 +225,7 @@ test("repeated quit requests join the exact same child cleanup", async (t) => {
   assert.equal(f.children.length, 1);
 });
 
-const LOCAL_FIXTURE = { id: "l1", kind: "local", name: "Work", dataDir: "/Users/me/.openmausbot-work", missing: false };
+const LOCAL_FIXTURE = { id: "l1", kind: "local", name: "Work", dataDir: "/Users/me/.spdbot-work", missing: false };
 
 function runForget(state) {
   const start = MAIN_SOURCE.indexOf("async function forgetEnvironment(");
@@ -250,7 +250,7 @@ function runForget(state) {
     path,
     AbortSignal,
     remoteMicrophoneRefused: new Set(),
-    desktopDataDir: () => "/Users/me/.openmausbot",
+    desktopDataDir: () => "/Users/me/.spdbot",
     slog: () => {},
     session: { defaultSession: { fetch: async () => ({ ok: true }), clearStorageData: async () => {} } },
   };
@@ -293,7 +293,10 @@ test("forgetting a remote environment keeps its sign-out confirmation and answer
   const { calls, context } = runForget({ environments: [remote], activeId: "r1" });
   assert.deepEqual(plain(await context.forgetEnvironment("r1")), { ok: true });
   assert.equal(calls.dialogs.length, 1, "the remote dialog stays");
-  assert.match(calls.dialogs[0].detail, /signs out of that server/);
+  assert.match(calls.dialogs[0].detail, /meldet sich von dem Server ab/);
+  assert.deepEqual(Array.from(calls.dialogs[0].buttons), ["Entfernen", "Abbrechen"]);
+  assert.equal(calls.dialogs[0].defaultId, 1);
+  assert.equal(calls.dialogs[0].cancelId, 1);
   assert.deepEqual(plain(calls.persisted[0].environments), []);
 });
 
@@ -351,7 +354,7 @@ function switchFixture(t, { startResults = [], releaseLeaseThrows = false, stopU
       return outcome === undefined ? { proc: { pid: 4000 + forkIndex } } : outcome;
     },
     environmentsState: { environments: [{ id: "l1", kind: "local", name: "Work", dataDir: targetDir }], activeId: "local" },
-    desktopDataDir: () => "/Users/me/.openmausbot",
+    desktopDataDir: () => "/Users/me/.spdbot",
     startupEnvironmentDir: env.startupEnvironmentDir,
     withActive: env.withActive,
     persistEnvironments: (next) => { context.environmentsState = next; },
@@ -406,5 +409,5 @@ test("boot reads the environment decision before the boot lease and never create
   const lease = boot.indexOf("acquireDataDirLease(");
   assert.ok(decision > 0 && decision < lease, "the missing-dir decision must precede the boot lease");
   assert.match(boot, /activeId: LOCAL_ID/);
-  assert.match(boot, /showErrorBox\(\s*"[^"]*missing[^"]*"/i);
+  assert.match(boot, /showErrorBox\(\s*"Der Ordner des Arbeitsbereichs fehlt"/);
 });

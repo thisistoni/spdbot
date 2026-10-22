@@ -4,6 +4,7 @@ import { api, useStore, type ConfigStatus } from "@/state/store";
 import { liveDisclosure } from "@/lib/call-mode";
 import { cn } from "@/lib/cn";
 import { t } from "@/lib/i18n";
+import { desktopErrorMessage } from "@/lib/desktop-errors";
 
 export function LiveKeySetup({ onSaved, compact = false }: { onSaved: () => void; compact?: boolean }) {
   const { state, dispatch } = useStore();
@@ -30,7 +31,7 @@ export function LiveKeySetup({ onSaved, compact = false }: { onSaved: () => void
       setKey("");
       onSaved();
     } catch (saveError) {
-      if (mounted.current) setError(saveError instanceof Error ? saveError.message : String(saveError));
+      if (mounted.current) setError(desktopErrorMessage(saveError));
     } finally {
       if (mounted.current) setSaving(false);
     }

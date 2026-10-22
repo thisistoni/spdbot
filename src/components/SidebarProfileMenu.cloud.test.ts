@@ -3,6 +3,9 @@ import { renderToStaticMarkup } from "react-dom/server";
 import { afterEach, beforeEach, expect, it, vi } from "vitest";
 import type { CloudAccountBridge, CloudAccountState } from "../../electron/cloud-account.mjs";
 
+const offers = vi.hoisted(() => ({ available: true }));
+vi.mock("@/lib/cloud-offers", () => ({ cloudOffersAvailable: () => offers.available }));
+
 // React's hooks are replayed by hand.
 const f = vi.hoisted(() => ({ values: [] as unknown[], index: 0, effects: [] as EffectCallback[] }));
 vi.mock("react", async (original) => ({
@@ -22,6 +25,7 @@ function render(enabled: boolean) {
 const flush = async () => { for (let i = 0; i < 5; i++) await Promise.resolve(); };
 
 beforeEach(() => {
+  offers.available = true;
   f.values = []; f.index = 0; f.effects = []; push = () => {};
   bridge = { state: vi.fn().mockResolvedValue(readyCloud), onState: vi.fn((callback) => { push = callback; return () => {}; }), connectHomeForPhone: vi.fn() } as unknown as CloudAccountBridge;
   vi.stubGlobal("window", { ogb: { cloudAccount: bridge } });
@@ -53,4 +57,13 @@ it("is not read anywhere but this computer's own window", async () => {
   f.values = []; render(true); f.effects[0]!(); await flush(); render(true);
   expect(result).toEqual({ cloud: null });
   expect(bridge.state).not.toHaveBeenCalled();
+});
+
+
+it("SPDBot does not read or advertise a hosted phone destination", async () => {
+  offers.available = false;
+  render(true); f.effects[0]!(); await flush(); render(true);
+  expect(result).toEqual({ cloud: null });
+  expect(bridge.state).not.toHaveBeenCalled();
+  expect(bridge.onState).not.toHaveBeenCalled();
 });

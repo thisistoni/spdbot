@@ -1,4 +1,4 @@
-import { mkdirSync, mkdtempSync, writeFileSync } from "node:fs";
+import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { createServer, type AddressInfo } from "node:net";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
@@ -13,10 +13,10 @@ const noScans = { streamPorts: () => [], devToolsPorts: () => [] };
 describe("OpenMausBot's own listeners", () => {
   it("lists the default ports everywhere, and a server's edge, Caddy admin and fleet ports on servers", () => {
     const desktop = staticOwnPorts("desktop", {});
-    for (const port of [8799, 18799, 28799, 8800, 8798, 18798, 28798, 8810, 8811, 8812, 5199, 6080]) expect(desktop.has(port), String(port)).toBe(true);
+    for (const port of [8899, 18899, 28899, 8900, 18900, 28900, 8898, 18898, 28898, 8910, 8911, 8912, 8799, 18799, 28799, 8800, 8798, 18798, 28798, 8810, 8811, 8812, 5199, 6080]) expect(desktop.has(port), String(port)).toBe(true);
     for (const port of [8080, 2019, 8820, 8821]) expect(desktop.has(port), String(port)).toBe(false);
     const server = staticOwnPorts("server", { OMB_PORT: "9100", OMB_WEBHOOK_PORT: "9101", OMB_COMPANION_PORT: "nope" });
-    for (const port of [8080, 2019, 8810, 8820, 8821, 9800, 9801, 9100, 9101]) expect(server.has(port), String(port)).toBe(true);
+    for (const port of [28810, 28811, 29800, 29801, 8080, 2019, 8810, 8820, 8821, 9800, 9801, 9100, 9101]) expect(server.has(port), String(port)).toBe(true);
     expect(staticOwnPorts("cloud", {}).has(2019)).toBe(true);
   });
 
@@ -48,6 +48,31 @@ describe("OpenMausBot's own listeners", () => {
     now = 2_000;
     expect(listeners.has(42001)).toBe(true);
     expect(listeners.has(3000)).toBe(false);
+  });
+
+  it("protects legacy and other workspace stream ports without sharing daemon ownership", () => {
+    const home = mkdtempSync(join(tmpdir(), "spdbot-stream-ports-"));
+    const custom = join(home, "sockets");
+    const runtime = join(home, "xdg");
+    const fixtures: [string, number][] = [
+      [join(home, ".agent-browser"), 51001],
+      [join(home, ".agent-browser", "namespaces", "other-product", "run"), 51002],
+      [custom, 51003],
+      [join(custom, "namespaces", "spd-own", "run"), 51004],
+      [join(custom, "namespaces", "spd-other", "run"), 51005],
+      [join(runtime, "agent-browser"), 51006],
+    ];
+    try {
+      for (const [directory, port] of fixtures) {
+        mkdirSync(directory, { recursive: true });
+        writeFileSync(join(directory, "browser.stream"), `${port}\n`);
+      }
+      const env = { HOME: home, USERPROFILE: home, XDG_RUNTIME_DIR: runtime, AGENT_BROWSER_SOCKET_DIR: custom, AGENT_BROWSER_NAMESPACE: "spd-own", AGENT_BROWSER_SESSION: "browser" };
+      expect(agentBrowserStreamPorts(env).sort()).toEqual(fixtures.map(([, port]) => port));
+      const listeners = new OwnListeners("desktop", { env: {}, streamPorts: () => agentBrowserStreamPorts(env), devToolsPorts: () => [] });
+      for (const [, port] of fixtures) expect(listeners.has(port)).toBe(true);
+      expect(listeners.has(51007)).toBe(false);
+    } finally { rmSync(home, { recursive: true, force: true }); }
   });
 
   it("finds the ports agent-browser's daemons and Chrome profiles name", () => {

@@ -10,7 +10,7 @@ import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { removeTempDir, waitForExit } from "./testing/cleanup.ts";
 
 const SERVER_DIR = dirname(fileURLToPath(import.meta.url));
-const ENTRY = join(SERVER_DIR, "openmausbot.ts");
+const ENTRY = join(SERVER_DIR, "spdbot.ts");
 const PORT = 38800 + Math.floor(Math.random() * 5_000);
 const run = promisify(execFile);
 
@@ -33,7 +33,7 @@ const cli = async (args: string[]) => {
   }
 };
 
-describe.skipIf(process.platform === "win32")("openmausbot serve under service loopback trust", () => {
+describe.skipIf(process.platform === "win32")("spdbot serve under service loopback trust", () => {
   beforeAll(async () => {
     home = mkdtempSync(join(tmpdir(), "omb-cli-service-"));
     serve = spawn(process.execPath, ["--experimental-strip-types", ENTRY, "serve", "--port", String(PORT), "--data-dir", join(home, "data")], {
@@ -42,7 +42,7 @@ describe.skipIf(process.platform === "win32")("openmausbot serve under service l
     serve.stdout!.on("data", (chunk) => (output += chunk));
     serve.stderr!.on("data", (chunk) => (output += chunk));
     const deadline = Date.now() + 40_000;
-    while (!output.includes("stop with Ctrl+C")) {
+    while (!output.includes("Mit Ctrl+C stoppen")) {
       if (serve.exitCode !== null) throw new Error(`serve exited:\n${output}`);
       if (Date.now() > deadline) throw new Error(`serve never finished starting:\n${output}`);
       await new Promise((resolve) => setTimeout(resolve, 200));
@@ -56,14 +56,14 @@ describe.skipIf(process.platform === "win32")("openmausbot serve under service l
 
   it("prints a pairing code for the CLI that started the server and keeps running", async () => {
     expect(output).toContain("local requests: service trust (OMB_LOOPBACK_TRUST)");
-    expect(output).toMatch(/pairing code: {2}[A-Z0-9]{4}-[A-Z0-9]{4}-[A-Z0-9]{4}/);
-    expect(output).not.toContain("no pairing code");
+    expect(output).toMatch(/Kopplungscode: [A-Z0-9]{4}-[A-Z0-9]{4}-[A-Z0-9]{4}/);
+    expect(output).not.toContain("Kein Kopplungscode");
     expect(serve.exitCode).toBeNull();
     expect((await fetch(`http://127.0.0.1:${PORT}/api/health`)).status).toBe(200);
   });
 
   it("refuses everyone else on this machine the pairing route", async () => {
-    for (const headers of [{}, { "x-openmausbot-cli-owner": "x".repeat(43) }]) {
+    for (const headers of [{}, { "x-spdbot-cli-owner": "x".repeat(43) }]) {
       const minted = await fetch(`http://127.0.0.1:${PORT}/api/auth/pairing`, { method: "POST", headers: { "content-type": "application/json", ...headers }, body: "{}" });
       expect(minted.status).toBe(403);
     }
@@ -73,8 +73,8 @@ describe.skipIf(process.platform === "win32")("openmausbot serve under service l
     for (const args of [["sessions"], ["sessions", "revoke", "sess-1"], ["pair", "--label", "Kitchen iPad"]]) {
       const result = await cli(args);
       expect(result.code, args.join(" ")).toBe(1);
-      expect(result.stderr, args.join(" ")).toContain("does not treat commands on this computer as its owner");
-      expect(result.stdout).not.toContain("no paired devices yet");
+      expect(result.stderr, args.join(" ")).toContain("behandelt Befehle auf diesem Computer nicht als Eigentümerzugriff");
+      expect(result.stdout).not.toContain("Noch keine gekoppelten Geräte");
     }
   }, 60_000);
 });

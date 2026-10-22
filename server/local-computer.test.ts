@@ -1,11 +1,14 @@
 import {
   appendFileSync,
   chmodSync,
+  existsSync,
   mkdirSync,
   mkdtempSync,
   realpathSync,
+  readFileSync,
   rmSync,
   statSync,
+  symlinkSync,
   writeFileSync,
 } from "node:fs";
 import { createServer } from "node:net";
@@ -76,7 +79,7 @@ function linuxDescriptor(userData: string, { session = "x11" }: { session?: "x11
       args: ["mcp", "--embedded", "--socket", socket],
       env: {
         CUA_DRIVER_EMBEDDED: "1",
-        CUA_DRIVER_HOST_BUNDLE_ID: "com.openmausbot.app",
+        CUA_DRIVER_HOST_BUNDLE_ID: "de.spdlabs.spdbot",
         CUA_DRIVER_RS_UPDATE_CHECK: "false",
         CUA_DRIVER_RS_TELEMETRY_ENABLED: "false",
         ...(session === "wayland" ? { CUA_DRIVER_RS_ENABLE_WAYLAND: "1" } : {}),
@@ -179,20 +182,39 @@ describe("local computer descriptor", () => {
     expect(readCuaUnavailableReason({ platform: "darwin", userData, home })).toBeNull();
   });
 
-  it.skipIf(process.platform === "win32")("treats the first present legacy descriptor as authoritative", () => {
+  it.skipIf(process.platform === "win32").each([false, true])("treats the first present SPDBot descriptor as authoritative (alias fixture: %s)", (alias) => {
     const root = privateUserData("legacy-mac-home");
-    const first = join(root, "Library", "Application Support", "OpenMausBot");
-    const stale = join(root, "Library", "Application Support", "OpenGrokBot");
+    const first = join(root, "Library", "Application Support", "SPDBot");
+    const stale = join(root, "Library", "Application Support", "spdbot");
     mkdirSync(first, { recursive: true, mode: 0o700 });
-    mkdirSync(stale, { recursive: true, mode: 0o700 });
-    const reason = "Accessibility required; grant access in System Settings and restart OpenMausBot";
-    writeFileSync(join(first, "cua-connection.json"), JSON.stringify({ mode: "unavailable", reason }), { mode: 0o600 });
+    if (!existsSync(stale)) {
+      if (alias) symlinkSync(first, stale, "dir");
+      else mkdirSync(stale, { recursive: true, mode: 0o700 });
+    }
+    const a = statSync(first, { bigint: true });
+    const b = statSync(stale, { bigint: true });
+    const sameDirectory = a.dev === b.dev && a.ino === b.ino;
+    const reason = "Accessibility required; grant access in System Settings and restart SPDBot";
+    // Write the fallback first: APFS can resolve both spellings to this one file.
     writeFileSync(join(stale, "cua-connection.json"), JSON.stringify({
       mode: "embedded", socketPath: "/fixture/stale.sock", mcpCommand: "/fixture/stale-driver",
       mcpArgs: ["mcp"], mcpEnv: {},
     }), { mode: 0o600 });
+    writeFileSync(join(first, "cua-connection.json"), JSON.stringify({ mode: "unavailable", reason }), { mode: 0o600 });
+    expect(JSON.parse(readFileSync(join(stale, "cua-connection.json"), "utf8")).mode).toBe(sameDirectory ? "unavailable" : "embedded");
     expect(readCuaConnection({ platform: "darwin", home: root, userData: "" })).toBeNull();
     expect(readCuaUnavailableReason({ platform: "darwin", home: root, userData: "" })).toBe(reason);
+  });
+
+  it.skipIf(process.platform === "win32")("never discovers a MausBot descriptor as the SPDBot host", () => {
+    const home = privateUserData("foreign-mac-home");
+    for (const app of ["OpenMausBot", "openmausbot", "OpenGrokBot", "opengrokbot"]) {
+      const directory = join(home, "Library", "Application Support", app);
+      mkdirSync(directory, { recursive: true, mode: 0o700 });
+      writeFileSync(join(directory, "cua-connection.json"), JSON.stringify({ mode: "unavailable", reason: "Foreign application's private status" }), { mode: 0o600 });
+    }
+    expect(readCuaConnection({ platform: "darwin", home, userData: "" })).toBeNull();
+    expect(readCuaUnavailableReason({ platform: "darwin", home, userData: "" })).toBeNull();
   });
 
   it("accepts only the exact certified Linux X11 descriptor", () => {

@@ -97,8 +97,8 @@ it("a server's own Copy brings the person here, on that server's copy, to start 
   expect(render().html).toContain("from this computer to VPS");
 });
 
-const LOCAL_ENV = { id: "env-1", kind: "local", name: "Work", dataDir: "/home/me/.openmausbot-work", missing: false };
-const GONE_ENV = { id: "env-2", kind: "local", name: "Old", dataDir: "/home/me/.openmausbot-old", missing: true };
+const LOCAL_ENV = { id: "env-1", kind: "local", name: "Work", dataDir: "/home/me/.spdbot-work", missing: false };
+const GONE_ENV = { id: "env-2", kind: "local", name: "Old", dataDir: "/home/me/.spdbot-old", missing: true };
 const envState = (overrides: Record<string, unknown> = {}) => ({
   localOrigin: "http://127.0.0.1:1", remote: false, packaged: true, activeId: "local",
   environments: [LOCAL_ENV, GONE_ENV, VPS], ...overrides,
@@ -120,7 +120,7 @@ it("lists local environments with their folders above the servers, marking a mis
   expect(html).toContain("Environments on this computer");
   expect(html).toContain("Your servers");
   expect(html.indexOf("Environments on this computer")).toBeLessThan(html.indexOf("Your servers"));
-  expect(html).toContain("/home/me/.openmausbot-work");
+  expect(html).toContain("/home/me/.spdbot-work");
   expect(html.match(/>missing</g)).toHaveLength(1);
   expect(html).toContain("https://bots.example.test");
 });
@@ -130,7 +130,7 @@ it("hides local environments and the create form in a dev build", async () => {
   const { html } = render();
   expect(html).not.toContain("Environments on this computer");
   expect(html).not.toContain("Choose…");
-  expect(html).not.toContain("/home/me/.openmausbot-work");
+  expect(html).not.toContain("/home/me/.spdbot-work");
 });
 
 it("creates an environment with the chosen folder — and without one when the field is left empty", async () => {
@@ -226,7 +226,7 @@ it("offers no Forget for the environment this app is on", async () => {
 });
 
 // Two controls over one record let the Cloud switch read off while Computer access lent apps and screen to the same Cloud.
-it("My Cloud's entry has one lending control, Let My Cloud use this computer; other servers keep Computer access", async () => {
+it("unsupported cloud lending stays hidden; generic servers keep Computer access", async () => {
   config.value = { features: { sharedComputers: true } };
   const open = vi.fn().mockResolvedValue(undefined);
   const cloud = { id: "cloud", name: "My Cloud", origin: "https://omb-u-1.fly.dev", home: true };
@@ -237,6 +237,17 @@ it("My Cloud's entry has one lending control, Let My Cloud use this computer; ot
   const labels = render().nodes.filter(node => node.type === "button").map(node => node.props["aria-label"] ?? Children.toArray(node.props.children).join(""));
   expect(labels).toContain("Computer access for VPS");
   expect(labels).not.toContain("Computer access for My Cloud");
-  render().nodes.find(node => node.type === "button" && Children.toArray(node.props.children).join("") === "Let My Cloud use this computer")!.props.onClick!();
-  expect(open).toHaveBeenCalledOnce();
+  expect(render().html).not.toContain("data-cloud-lending-link");
+  expect(open).not.toHaveBeenCalled();
+});
+
+
+it("does not offer hosted Cloud lending, even for an existing home entry", async () => {
+  const open = vi.fn();
+  stub({ cloudLending: { open } });
+  await mount();
+  const saved = f.values.find(value => value && typeof value === "object" && "environments" in value) as { environments: unknown[] };
+  saved.environments = [{ ...VPS, home: true }];
+  expect(render().html).not.toContain("data-cloud-lending-link");
+  expect(open).not.toHaveBeenCalled();
 });

@@ -20,12 +20,13 @@ import { SidebarPopoverMenu, type SidebarMenuItem } from "./SidebarPopoverMenu";
 import { ShortcutHint } from "./ShortcutHint";
 import { useSidebarPhoneStatus } from "./SidebarPhoneButton";
 import { api, useStore, type Action } from "@/state/store";
-import { serverCheckPhase, serverUpdateRow, type ServerUpdateCheck, type ServerUpdatePhase } from "@/lib/server-update";
+import { serverCheckPhase, serverUpdateDestination, serverUpdateRow, type ServerUpdateCheck, type ServerUpdatePhase } from "@/lib/server-update";
 import type { CloudAccountBridge, CloudAccountState } from "../../electron/cloud-account.mjs";
 import { useUpdaterState, type UpdaterState } from "@/lib/updater";
 import { brand } from "../lib/brand";
 import { cn } from "@/lib/cn";
 import { t } from "@/lib/i18n";
+import { cloudOffersAvailable } from "@/lib/cloud-offers";
 import { HELP_CENTER_URL, openExternalLink } from "@/lib/app-links";
 import {
   cloudPhoneDestination,
@@ -202,7 +203,8 @@ function useServerUpdateItem(enabled: boolean): UpdateEntry | null {
       attention: phase === "available" || phase === "reload" || phase === "error",
       attentionTone: phase === "error" ? "danger" : "accent",
       onSelect: () => {
-        if (phase === "available" && check?.releaseUrl) return void openExternalLink(check.releaseUrl);
+        const destination = serverUpdateDestination(check);
+        if (phase === "available" && destination) return void openExternalLink(destination);
         if (phase === "reload") return window.location.reload();
         setPhase("checking");
         void api<ServerUpdateCheck>("/api/updates/check", { timeoutMs: 20_000 })
@@ -229,11 +231,12 @@ function useConnectPhoneEntry(cloudHome: boolean): ConnectPhoneEntry | null {
       alive = false;
     };
   }, [target]);
-  return connectPhoneEntry(target, access);
+  // Local desktop pairing is available in Settings; no native mobile app is offered.
+  return target === "computer" ? null : connectPhoneEntry(target, access);
 }
 
 export function useCloudPhoneDestination(enabled: boolean): { cloud: CloudPhoneDestination; bridge?: CloudAccountBridge } {
-  const bridge = enabled && !window.ogb?.remoteClient?.active ? window.ogb?.cloudAccount : undefined;
+  const bridge = cloudOffersAvailable() && enabled && !window.ogb?.remoteClient?.active ? window.ogb?.cloudAccount : undefined;
   const [account, setAccount] = useState<CloudAccountState | null>(null);
   useEffect(() => {
     if (!bridge) return;
@@ -338,7 +341,7 @@ export function SidebarProfileMenu({ iconOnly = false, rail = false }: { iconOnl
   const name = profileLabel(profile);
   const connectTo = (destination: PhoneDestination) => selectPhoneDestination(destination, { bridge: cloudPhone.bridge, dispatch });
   const remote = window.ogb?.remoteClient?.active === true;
-  const cloudAccount = !remote && Boolean(window.ogb?.cloudAccount || (window.ogb?.cloudPlan && state.config?.cloudHome === true));
+  const cloudAccount = cloudOffersAvailable() && !remote && Boolean(window.ogb?.cloudAccount || (window.ogb?.cloudPlan && state.config?.cloudHome === true));
 
   const items = profileMenuItems({
     phone: phoneMenuItems({

@@ -49,7 +49,7 @@ const internal = async (method: string, path: string, body?: unknown): Promise<A
 };
 
 const descriptorCapabilities = async (): Promise<Record<string, unknown>> =>
-  ((await api("GET", "/.well-known/openmausbot/environment")).body.capabilities ?? {}) as Record<string, unknown>;
+  ((await api("GET", "/.well-known/spdbot/environment")).body.capabilities ?? {}) as Record<string, unknown>;
 
 const PUBLIC_ROUTES = [
   "/api/shared-computers/connect",
@@ -66,9 +66,9 @@ beforeAll(async () => {
   WEBHOOK_PORT = base + 1;
   BASE = `http://127.0.0.1:${PORT}`;
   home = mkdtempSync(join(tmpdir(), "omb-shared-computer-gate-"));
-  mkdirSync(join(home, ".openmausbot"), { recursive: true });
+  mkdirSync(join(home, ".spdbot"), { recursive: true });
   // No `features` block at all: the shipped default.
-  writeFileSync(join(home, ".openmausbot", "config.json"), JSON.stringify({
+  writeFileSync(join(home, ".spdbot", "config.json"), JSON.stringify({
     instances: { claude: { driver: "claudeAgent", displayName: "Gate fixture", config: { cli: FAKE_CLAUDE_CLI } } },
   }));
   child = spawn(process.execPath, [join(SERVER_DIR, "index.ts")], {

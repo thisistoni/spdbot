@@ -8,7 +8,7 @@ export const API_ENDPOINTS = [
 
 export function normalizeApiUrl(value: string): string {
   const input = value.trim();
-  const invalid = () => new Error("Enter an HTTPS API base URL without credentials, a query, or a fragment. HTTP is allowed only for localhost.");
+  const invalid = () => new Error("Gib eine HTTPS-API-Basis-URL ohne Zugangsdaten, Suchparameter oder Fragment ein. HTTP ist nur für localhost erlaubt.");
   let url: URL;
   try { url = new URL(input); } catch { throw invalid(); }
   const local = ["localhost", "127.0.0.1", "[::1]"].includes(url.hostname);
@@ -25,15 +25,15 @@ export function normalizeApiUrl(value: string): string {
 class SetupApiError extends Error {}
 
 function httpFailure(status: number, completion: boolean): SetupApiError {
-  const prefix = `API returned HTTP ${status}.`;
-  if (status === 401 || status === 403) return new SetupApiError(`${prefix} Check the API key and its access permissions.`);
-  if (status === 402) return new SetupApiError(`${prefix} Check the provider's credits and billing settings.`);
-  if (status === 429) return new SetupApiError(`${prefix} A rate or quota limit was reached. Check credits and limits, then try again later.`);
-  if (status >= 300 && status < 400) return new SetupApiError(`${prefix} Redirects are not followed. Use the provider's direct API base URL.`);
-  if (completion && [400, 404, 422].includes(status)) return new SetupApiError(`${prefix} Check the model ID and access, or choose a model that supports Chat Completions at this API URL.`);
-  if (status === 404) return new SetupApiError(`${prefix} Check the API base URL: it must provide a /models endpoint.`);
-  if (status >= 500) return new SetupApiError(`${prefix} The provider is unavailable. Try again later.`);
-  return new SetupApiError(`${prefix} Check the API URL and provider settings, then try again.`);
+  const prefix = `Die API antwortete mit HTTP ${status}.`;
+  if (status === 401 || status === 403) return new SetupApiError(`${prefix} Prüfe den API-Schlüssel und seine Zugriffsrechte.`);
+  if (status === 402) return new SetupApiError(`${prefix} Prüfe das Guthaben und die Abrechnungseinstellungen beim Anbieter.`);
+  if (status === 429) return new SetupApiError(`${prefix} Ein Anfrage- oder Kontingentlimit wurde erreicht. Prüfe Guthaben und Limits und versuche es später erneut.`);
+  if (status >= 300 && status < 400) return new SetupApiError(`${prefix} Weiterleitungen werden nicht verfolgt. Verwende die direkte API-Basis-URL des Anbieters.`);
+  if (completion && [400, 404, 422].includes(status)) return new SetupApiError(`${prefix} Prüfe Modell-ID und Zugriffsrechte oder wähle ein Modell, das Chat Completions unter dieser API-URL unterstützt.`);
+  if (status === 404) return new SetupApiError(`${prefix} Prüfe die API-Basis-URL: Sie muss einen /models-Endpunkt bereitstellen.`);
+  if (status >= 500) return new SetupApiError(`${prefix} Der Anbieter ist nicht verfügbar. Versuche es später erneut.`);
+  return new SetupApiError(`${prefix} Prüfe die API-URL und die Anbietereinstellungen und versuche es erneut.`);
 }
 
 async function setupJson(url: string, key: string, body?: Record<string, unknown>): Promise<unknown> {
@@ -42,9 +42,9 @@ async function setupJson(url: string, key: string, body?: Record<string, unknown
   const token = key;
   // Header credentials must not contain control characters or whitespace.
   // eslint-disable-next-line no-control-regex
-  if (!token || /[\u0000-\u0020\u007f]/u.test(token)) throw new SetupApiError("Enter a non-empty API key without spaces or line breaks.");
+  if (!token || /[\u0000-\u0020\u007f]/u.test(token)) throw new SetupApiError("Gib einen nicht leeren API-Schlüssel ohne Leerzeichen oder Zeilenumbrüche ein.");
   const completion = body !== undefined;
-  const operation = completion ? "The test reply" : "The model list";
+  const operation = completion ? "Die Testantwort" : "Die Modellliste";
   const timeoutMs = completion ? 30_000 : 8_000;
   const abort = new AbortController();
   let timer: ReturnType<typeof setTimeout> | undefined;
@@ -63,19 +63,19 @@ async function setupJson(url: string, key: string, body?: Record<string, unknown
           throw httpFailure(response.status, completion);
         }
         try { return await response.json(); }
-        catch { throw new SetupApiError(`${operation} returned invalid JSON. Check that the API URL supports the OpenAI-compatible API.`); }
+        catch { throw new SetupApiError(`${operation} enthielt ungültiges JSON. Prüfe, ob die API-URL die OpenAI-kompatible API unterstützt.`); }
       })(),
       new Promise<never>((_resolve, reject) => {
         timer = setTimeout(() => {
           abort.abort();
-          reject(new SetupApiError(`${operation} timed out after ${timeoutMs / 1000} seconds. Check the connection and try again.`));
+          reject(new SetupApiError(`${operation} hat nach ${timeoutMs / 1000} Sekunden das Zeitlimit überschritten. Prüfe die Verbindung und versuche es erneut.`));
         }, timeoutMs);
       }),
     ]);
   } catch (error) {
     if (error instanceof SetupApiError) throw error;
     // fetch errors can carry a URL, echoed credentials or provider content: expose neither message nor cause.
-    throw new SetupApiError("Could not reach the API. Check the network and direct API URL; redirects are not followed.");
+    throw new SetupApiError("Die API ist nicht erreichbar. Prüfe das Netzwerk und die direkte API-URL; Weiterleitungen werden nicht verfolgt.");
   } finally {
     clearTimeout(timer);
   }
@@ -97,7 +97,7 @@ export async function fetchSetupModels(url: string, key: string): Promise<Array<
     const name = typeof item?.name === "string" ? item.name.replace(/[\u0000-\u001f\u007f]/gu, "").trim() : "";
     models.set(id, { id, label: name || id });
   }
-  if (!models.size) throw new SetupApiError("The API returned no usable models. Check the API URL and model access, or enter a model ID from your provider manually.");
+  if (!models.size) throw new SetupApiError("Die API hat keine nutzbaren Modelle geliefert. Prüfe API-URL und Modellzugriff oder gib eine Modell-ID deines Anbieters manuell ein.");
   return [...models.values()];
 }
 
@@ -106,7 +106,7 @@ export async function verifySetupCompletion(url: string, key: string, model: str
   const id = model.trim();
   // Keep manually entered IDs safe to show in the terminal and saved setup.
   // eslint-disable-next-line no-control-regex
-  if (!id || /[\u0000-\u001f\u007f]/u.test(id)) throw new SetupApiError("Choose a non-empty model ID without control characters.");
+  if (!id || /[\u0000-\u001f\u007f]/u.test(id)) throw new SetupApiError("Wähle eine nicht leere Modell-ID ohne Steuerzeichen.");
   const host = new URL(normalizeApiUrl(url)).hostname.toLowerCase();
   // The same OpenRouter-only provider pin as OpenAICompatDriver, without its environment overrides.
   const pinProvider = provider && (host === "openrouter.ai" || host.endsWith(".openrouter.ai"));
@@ -119,6 +119,6 @@ export async function verifySetupCompletion(url: string, key: string, model: str
   const choice = record(Array.isArray(json?.choices) ? json.choices[0] : undefined);
   const message = record(choice?.message);
   if (message?.role !== "assistant" || typeof message.content !== "string" || !message.content.trim()) {
-    throw new SetupApiError("The API did not return an assistant text reply. Choose a model that supports Chat Completions, then try again.");
+    throw new SetupApiError("Die API hat keine Textantwort des Assistenten geliefert. Wähle ein Modell, das Chat Completions unterstützt, und versuche es erneut.");
   }
 }

@@ -1,3 +1,4 @@
+import { t } from "@/lib/i18n";
 // What a person can do to an automation, the same from the page, its panel and the chat card.
 import { useState } from "react";
 
@@ -40,7 +41,7 @@ export function useAutomationActions() {
 
   const runNow = (automation: Automation) => attempt(`run:${automation.id}`, () => automation.kind === "schedule"
     ? new Promise<void>((resolve, reject) => dispatch({ type: "runRoutine", routineId: automation.id, onStarted: () => resolve(), onError: reject }))
-    : api(`/api/webhooks/${automation.id}/test`, { method: "POST", body: JSON.stringify({ event: "openmaus.test", message: "A test run from Automations" }) }));
+    : api(`/api/webhooks/${automation.id}/test`, { method: "POST", body: JSON.stringify({ event: "openmaus.test", message: t("routines.calendar.testRun") }) }));
 
   /** Asks once (a person deleting their own automation), then deletes it. */
   const remove = async (automation: Automation, question: string): Promise<boolean> => {
@@ -66,7 +67,7 @@ export function useAutomationActions() {
       dispatch({ type: "webhookPatched", webhook: response.webhook });
       saveWebhookCredential(webhookCredentialStore(), webhookId, credential);
     }
-    if (await copyText(credential.url) !== "copied") throw new Error("Couldn't copy the address");
+    if (await copyText(credential.url) !== "copied") throw new Error(t("routines.calendar.copyAddressFailed"));
     setCopied(webhookId);
     setTimeout(() => setCopied((current) => (current === webhookId ? null : current)), 1_800);
   });

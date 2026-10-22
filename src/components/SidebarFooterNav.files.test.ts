@@ -7,7 +7,8 @@ import { setLocale } from "@/lib/i18n";
 import type { SidebarDensity } from "@/lib/sidebar-preferences";
 import { BotEditorStore, initialState, type AppState, type useStore } from "@/state/store";
 
-const mode = vi.hoisted(() => ({ advanced: false }));
+const mode = vi.hoisted(() => ({ advanced: false, offers: true }));
+vi.mock("@/lib/cloud-offers", () => ({ cloudOffersAvailable: () => mode.offers }));
 vi.mock("@/lib/interface-mode", () => ({ useAdvancedMode: () => mode.advanced, setAdvancedMode: () => {} }));
 import { SidebarFooterNav } from "./SidebarFooterNav";
 
@@ -29,6 +30,7 @@ const row = () => host.querySelector<HTMLButtonElement>('[data-sidebar-nav="file
 
 beforeEach(() => {
   setLocale("en");
+  mode.offers = true;
   mode.advanced = false; dispatch.mockReset(); off.mockReset();
   host = document.createElement("div"); document.body.append(host); root = createRoot(host);
 });
@@ -75,4 +77,14 @@ it("in Advanced mode, Files is a row under Tools after Team map, highlighted whi
   expect(row()!.getAttribute("aria-current")).toBe("page");
   act(() => root.unmount());
   expect(off).toHaveBeenCalledOnce();
+});
+
+
+it.each([false, true])("SPDBot hides the unsupported Cloud Files entry (advanced=%s)", async (advanced) => {
+  mode.offers = false;
+  mode.advanced = advanced;
+  bridge("idle");
+  await render();
+  expect(row()).toBeNull();
+  expect(window.ogb?.cloudAccount?.files?.state).not.toHaveBeenCalled();
 });

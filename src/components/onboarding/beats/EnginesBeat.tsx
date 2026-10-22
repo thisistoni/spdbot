@@ -7,7 +7,6 @@ import { cn } from "@/lib/cn";
 import { t } from "@/lib/i18n";
 import { engineSummary, organisationSignIn } from "@/lib/onboarding";
 import { api, useStore, type InstanceInfo } from "@/state/store";
-import { OrganisationRow } from "./OrganisationRow";
 import { PrimaryButton, staggerIndex, type BeatProps } from "./shared";
 
 function version(instance: InstanceInfo): string | null {
@@ -43,7 +42,6 @@ export function EnginesBeat({
   setMascot,
   bump,
   hosted = false,
-  onOpenOrganisation,
 }: BeatProps & {
   hosted?: boolean;
   onOpenOrganisation?: () => void;
@@ -103,13 +101,7 @@ export function EnginesBeat({
     <div className="flex min-h-0 flex-col">
       <p className="animate-rise mt-1 text-[13.5px] text-ink-secondary">{t("onboarding.engines.intro")}</p>
 
-      {organisation && (
-        <OrganisationRow
-          bridge={organisation}
-          onOpenSettings={() => (onOpenOrganisation ? onOpenOrganisation() : dispatch({ type: "toggleAppSettings", open: true, section: "organization" }))}
-          onConnected={() => void refresh()}
-        />
-      )}
+
 
       <div className="animate-rise mt-4 flex items-center justify-between gap-3" style={staggerIndex(1)}>
         <div className={cn("flex items-center gap-2 text-[12.5px]", allReady ? "text-success" : "text-ink-secondary")} aria-live="polite">

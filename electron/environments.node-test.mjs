@@ -133,7 +133,7 @@ test("native workspace choices use saved IDs and connect opens settings without 
   const calls = [];
   const items = env.workspaceMenuTemplate(state, { onSwitch: (id) => calls.push(["switch", id]), onConnect: () => calls.push(["settings"]), onForget: (id) => calls.push(["forget", id]) });
   assert.equal(items.find((item) => item.id === "workspace-cloud").checked, true);
-  assert.equal(items.find((item) => item.id === "workspace-connect").label, "Connect to a server…");
+  assert.equal(items.find((item) => item.id === "workspace-connect").label, "Mit einem Server verbinden…");
   items.find((item) => item.id === "workspace-local").click();
   items.find((item) => item.id === "workspace-connect").click();
   items.find((item) => item.id === "workspace-forget").click();
@@ -217,17 +217,17 @@ test("version 2 keeps locals with an absolute dataDir and drops relative, dir-le
   const parsed = env.parseEnvironments(JSON.stringify({
     version: 2,
     environments: [
-      { id: "l1", kind: "local", name: "APRS Chat", dataDir: "/Users/me/.openmausbot-aprs" },
+      { id: "l1", kind: "local", name: "APRS Chat", dataDir: "/Users/me/.spdbot-aprs" },
       { id: "l2", kind: "local", name: "relative", dataDir: "bots/relative" },
       { id: "l3", kind: "local", name: "no dir at all" },
       { id: "r1", kind: "remote", name: "Office", origin: "https://box.example" },
-      { id: "l4", kind: "local", name: "same dir again", dataDir: "/Users/me/.openmausbot-aprs" },
+      { id: "l4", kind: "local", name: "same dir again", dataDir: "/Users/me/.spdbot-aprs" },
     ],
     activeId: "l1",
   }));
   assert.deepEqual(parsed, {
     environments: [
-      { id: "l1", kind: "local", name: "APRS Chat", dataDir: "/Users/me/.openmausbot-aprs" },
+      { id: "l1", kind: "local", name: "APRS Chat", dataDir: "/Users/me/.spdbot-aprs" },
       { id: "r1", kind: "remote", name: "Office", origin: "https://box.example" },
     ],
     activeId: "l1",
@@ -237,57 +237,57 @@ test("version 2 keeps locals with an absolute dataDir and drops relative, dir-le
 });
 
 test("withLocalEnvironment registers absolute, non-default, non-nested directories only", () => {
-  const DEFAULT = "/Users/me/.openmausbot";
-  const added = env.withLocalEnvironment({ environments: [], activeId: "local" }, { name: "APRS Chat", dataDir: "/Users/me/.openmausbot-aprs" }, () => "id1", DEFAULT);
+  const DEFAULT = "/Users/me/.spdbot";
+  const added = env.withLocalEnvironment({ environments: [], activeId: "local" }, { name: "APRS Chat", dataDir: "/Users/me/.spdbot-aprs" }, () => "id1", DEFAULT);
   assert.equal(added.ok, true);
-  assert.deepEqual(added.state.environments, [{ id: "id1", kind: "local", name: "APRS Chat", dataDir: "/Users/me/.openmausbot-aprs" }]);
+  assert.deepEqual(added.state.environments, [{ id: "id1", kind: "local", name: "APRS Chat", dataDir: "/Users/me/.spdbot-aprs" }]);
   assert.equal(added.state.activeId, "local");
   const error = (name, dataDir) => env.withLocalEnvironment(added.state, { name, dataDir }, () => "unused", DEFAULT).error;
   assert.equal(error("APRS", "bots/relative"), "path");
-  assert.equal(error("   ", "/Users/me/.openmausbot-x"), "name");
-  assert.equal(error("x".repeat(61), "/Users/me/.openmausbot-x"), "name");
+  assert.equal(error("   ", "/Users/me/.spdbot-x"), "name");
+  assert.equal(error("x".repeat(61), "/Users/me/.spdbot-x"), "name");
   assert.equal(error("Same as default", DEFAULT), "nested");
   assert.equal(error("Inside default", `${DEFAULT}/nested`), "nested");
-  assert.equal(error("Same as entry", "/Users/me/.openmausbot-aprs"), "duplicate");
-  assert.equal(error("Same entry with a slash", "/Users/me/.openmausbot-aprs/"), "duplicate");
-  assert.equal(error("Inside the entry", "/Users/me/.openmausbot-aprs/sub"), "nested");
-  assert.equal(error("Almost a sibling", "/Users/me/.openmausbot-aprsx"), undefined);
+  assert.equal(error("Same as entry", "/Users/me/.spdbot-aprs"), "duplicate");
+  assert.equal(error("Same entry with a slash", "/Users/me/.spdbot-aprs/"), "duplicate");
+  assert.equal(error("Inside the entry", "/Users/me/.spdbot-aprs/sub"), "nested");
+  assert.equal(error("Almost a sibling", "/Users/me/.spdbot-aprsx"), undefined);
 });
 
 test("activeLocalDataDir reports only an active local environment's directory", () => {
-  const DEFAULT = "/Users/me/.openmausbot";
+  const DEFAULT = "/Users/me/.spdbot";
   const state = {
     environments: [
-      { id: "l1", kind: "local", name: "APRS", dataDir: "/Users/me/.openmausbot-aprs" },
+      { id: "l1", kind: "local", name: "APRS", dataDir: "/Users/me/.spdbot-aprs" },
       { id: "r1", kind: "remote", name: "Office", origin: "https://box.example" },
     ],
     activeId: "l1",
   };
-  assert.equal(env.activeLocalDataDir(state, DEFAULT), "/Users/me/.openmausbot-aprs");
+  assert.equal(env.activeLocalDataDir(state, DEFAULT), "/Users/me/.spdbot-aprs");
   assert.equal(env.activeLocalDataDir({ ...state, activeId: "local" }, DEFAULT), null);
   assert.equal(env.activeLocalDataDir({ ...state, activeId: "r1" }, DEFAULT), null);
 });
 
 test("startupEnvironmentDir boots on the active local dir and falls back to the default", () => {
-  const DEFAULT = "/Users/me/.openmausbot";
+  const DEFAULT = "/Users/me/.spdbot";
   const state = {
     environments: [
-      { id: "l1", kind: "local", name: "APRS", dataDir: "/Users/me/.openmausbot-aprs" },
+      { id: "l1", kind: "local", name: "APRS", dataDir: "/Users/me/.spdbot-aprs" },
       { id: "r1", kind: "remote", name: "Office", origin: "https://box.example" },
     ],
     activeId: "l1",
   };
-  assert.equal(env.startupEnvironmentDir(state, DEFAULT), "/Users/me/.openmausbot-aprs");
+  assert.equal(env.startupEnvironmentDir(state, DEFAULT), "/Users/me/.spdbot-aprs");
   assert.equal(env.startupEnvironmentDir({ ...state, activeId: "r1" }, DEFAULT), DEFAULT);
   assert.equal(env.startupEnvironmentDir({ environments: [], activeId: "local" }, DEFAULT), DEFAULT);
 });
 
 test("bootEnvironmentDir refuses to boot onto a missing named env dir — the default dir instead, flagged", () => {
-  const DEFAULT = "/Users/me/.openmausbot";
-  const gone = { environments: [{ id: "l1", kind: "local", name: "APRS", dataDir: "/Volumes/gone/.openmausbot-aprs", missing: true }], activeId: "l1" };
-  assert.deepEqual(env.bootEnvironmentDir(gone, DEFAULT), { dataDir: DEFAULT, fellBack: true, missingDir: "/Volumes/gone/.openmausbot-aprs" });
+  const DEFAULT = "/Users/me/.spdbot";
+  const gone = { environments: [{ id: "l1", kind: "local", name: "APRS", dataDir: "/Volumes/gone/.spdbot-aprs", missing: true }], activeId: "l1" };
+  assert.deepEqual(env.bootEnvironmentDir(gone, DEFAULT), { dataDir: DEFAULT, fellBack: true, missingDir: "/Volumes/gone/.spdbot-aprs" });
   const present = { environments: [{ ...gone.environments[0], missing: false }], activeId: "l1" };
-  assert.deepEqual(env.bootEnvironmentDir(present, DEFAULT), { dataDir: "/Volumes/gone/.openmausbot-aprs", fellBack: false, missingDir: null });
+  assert.deepEqual(env.bootEnvironmentDir(present, DEFAULT), { dataDir: "/Volumes/gone/.spdbot-aprs", fellBack: false, missingDir: null });
   assert.deepEqual(env.bootEnvironmentDir({ environments: [], activeId: "local" }, DEFAULT), { dataDir: DEFAULT, fellBack: false, missingDir: null });
   const remote = { environments: [{ id: "r1", kind: "remote", name: "Office", origin: "https://box.example", missing: false }], activeId: "r1" };
   assert.deepEqual(env.bootEnvironmentDir(remote, DEFAULT), { dataDir: DEFAULT, fellBack: false, missingDir: null });
@@ -299,16 +299,16 @@ test("data dirs are absolute in POSIX, drive-letter and UNC shape; relative and 
     environments: [{ id: "l1", kind: "local", name: "n", dataDir }],
     activeId: "local",
   })).environments.length;
-  for (const good of ["/Users/me/.openmausbot-aprs", "C:\\Users\\me\\.openmausbot-aprs", "D:/envs/aprs", "\\\\nas\\share\\.openmausbot-x"]) {
+  for (const good of ["/Users/me/.spdbot-aprs", "C:\\Users\\me\\.spdbot-aprs", "D:/envs/aprs", "\\\\nas\\share\\.spdbot-x"]) {
     assert.equal(kept(good), 1, good);
   }
-  for (const bad of ["bots/relative", "C:bots", "~/.openmausbot-x", "\\single\\backslash", "./x", ""]) {
+  for (const bad of ["bots/relative", "C:bots", "~/.spdbot-x", "\\single\\backslash", "./x", ""]) {
     assert.equal(kept(bad), 0, bad);
   }
 });
 
 test("withLocalEnvironment rejects a candidate that contains a registered local dir, accepts siblings", () => {
-  const DEFAULT = "/Users/me/.openmausbot";
+  const DEFAULT = "/Users/me/.spdbot";
   const added = env.withLocalEnvironment({ environments: [], activeId: "local" }, { name: "APRS", dataDir: "/Users/me/bots/aprs" }, () => "id1", DEFAULT);
   assert.equal(added.ok, true);
   const error = (dataDir) => env.withLocalEnvironment(added.state, { name: "x", dataDir }, () => "unused", DEFAULT).error;
@@ -322,11 +322,11 @@ test("withLocalEnvironment rejects a candidate that contains a registered local 
 });
 
 test("a named local environment is this computer with its path, and gets its own menu row", () => {
-  const localEntry = { id: "l1", kind: "local", name: "APRS Chat", dataDir: "/Users/me/.openmausbot-aprs" };
+  const localEntry = { id: "l1", kind: "local", name: "APRS Chat", dataDir: "/Users/me/.spdbot-aprs" };
   const state = { environments: [localEntry, { id: "r1", kind: "remote", name: "Office", origin: "https://box.example" }], activeId: "l1" };
-  assert.deepEqual(env.workspaceSummary(state), { local: true, name: "APRS Chat", localPath: "/Users/me/.openmausbot-aprs", missing: false });
+  assert.deepEqual(env.workspaceSummary(state), { local: true, name: "APRS Chat", localPath: "/Users/me/.spdbot-aprs", missing: false });
   assert.deepEqual(env.workspaceSummary({ ...state, environments: [{ ...localEntry, missing: true }, ...state.environments.slice(1)] }),
-    { local: true, name: "APRS Chat", localPath: "/Users/me/.openmausbot-aprs", missing: true });
+    { local: true, name: "APRS Chat", localPath: "/Users/me/.spdbot-aprs", missing: true });
   assert.deepEqual(env.workspaceSummary({ ...state, activeId: "local" }), { local: true, name: "This computer" });
   assert.deepEqual(env.workspaceSummary({ ...state, activeId: "r1" }), { local: false, name: "Office", origin: "https://box.example" });
   const calls = [];
@@ -343,14 +343,14 @@ test("a named local environment is this computer with its path, and gets its own
 
 
 test("withLocalEnvironment compares Windows-shaped paths by separators and case", () => {
-  const winDefault = "C:\\Users\\me\\.openmausbot";
+  const winDefault = "C:\\Users\\me\\.spdbot";
   const state = env.withLocalEnvironment({ environments: [], activeId: "local" }, { name: "Site", dataDir: "C:\\Bots\\Site" }, () => "site", winDefault);
   assert.equal(state.ok, true);
   const again = (name, dataDir) => env.withLocalEnvironment(state.state, { name, dataDir }, () => "x", winDefault).error;
   assert.equal(again("Copy", "c:/bots/site/"), "duplicate");
   assert.equal(again("Child", "C:\\Bots\\Site\\sub"), "nested");
   assert.equal(again("Child2", "C:/BOTS/SITE/sub"), "nested");
-  assert.equal(again("Inside default", "c:\\users\\me\\.openmausbot\\envs\\x"), "nested");
+  assert.equal(again("Inside default", "c:\\users\\me\\.spdbot\\envs\\x"), "nested");
   const unc = env.withLocalEnvironment({ environments: [], activeId: "local" }, { name: "Share", dataDir: "\\\\NAS\\omb" }, () => "share", "\\\\nas\\other");
   assert.equal(unc.ok, true);
   assert.equal(env.withLocalEnvironment(unc.state, { name: "Under", dataDir: "\\\\NAS\\omb\\deep" }, () => "x", "\\\\NAS\\elsewhere").error, "nested");
@@ -359,15 +359,15 @@ test("withLocalEnvironment compares Windows-shaped paths by separators and case"
 test("parseEnvironments dedups local dirs on the same normalized key", () => {
   const parse = (entries) => env.parseEnvironments(JSON.stringify({ version: 2, environments: entries, activeId: "local" })).environments;
   assert.deepEqual(parse([
-    { id: "l1", kind: "local", name: "A", dataDir: "/Users/me/.openmausbot-aprs" },
-    { id: "l2", kind: "local", name: "B", dataDir: "/Users/me/.openmausbot-aprs/" },
+    { id: "l1", kind: "local", name: "A", dataDir: "/Users/me/.spdbot-aprs" },
+    { id: "l2", kind: "local", name: "B", dataDir: "/Users/me/.spdbot-aprs/" },
   ]).map((entry) => entry.id), ["l1"]);
   assert.deepEqual(parse([
     { id: "l1", kind: "local", name: "A", dataDir: "C:\\Bots\\Site" },
     { id: "l2", kind: "local", name: "B", dataDir: "c:/bots/site" },
   ]).map((entry) => entry.id), ["l1"]);
   assert.equal(parse([
-    { id: "l1", kind: "local", name: "A", dataDir: "/Users/me/.openmausbot-a" },
-    { id: "l2", kind: "local", name: "B", dataDir: "/Users/me/.openmausbot-b" },
+    { id: "l1", kind: "local", name: "A", dataDir: "/Users/me/.spdbot-a" },
+    { id: "l2", kind: "local", name: "B", dataDir: "/Users/me/.spdbot-b" },
   ]).length, 2);
 });

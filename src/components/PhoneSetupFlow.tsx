@@ -63,7 +63,9 @@ import {
   companionStateRefreshIsCurrent,
   mutateCompanionBridgeState,
   phonePairingManualCodeMode,
+  companionAccountActionError,
 } from "../lib/companion-state";
+export { companionAccountActionError } from "../lib/companion-state";
 import { ConnectionDetail } from "./ConnectionDetail";
 import { brand } from "../lib/brand";
 
@@ -153,14 +155,6 @@ export const shouldHydrateCompanionEmail = (
   account: CompanionAccountState,
 ): boolean => !userEdited && Boolean(account.email);
 
-export const companionAccountActionError = (
-  account: CompanionAccountState | null,
-  actionError: string | null,
-): string | null => {
-  if (actionError) return actionError;
-  return account?.status === "signed-out" ? account.message ?? null : null;
-};
-
 export interface PhoneSetupController {
   state: CompanionState | null;
   account: CompanionAccountState | null;
@@ -201,7 +195,10 @@ export interface PhoneSetupController {
   accountAct: (call: (remote: AccountBridge) => Promise<CompanionAccountState>) => Promise<void>;
 }
 
-export function usePhoneSetupController(profileEmail = ""): PhoneSetupController {
+export function usePhoneSetupController(
+  profileEmail = "",
+  accountBridge: typeof companionAccountBridge = companionAccountBridge,
+): PhoneSetupController {
   const [state, setState] = useState<CompanionState | null>(null);
   const [account, setAccount] = useState<CompanionAccountState | null>(null);
   const [email, setEmailState] = useState(profileEmail);
@@ -250,7 +247,7 @@ export function usePhoneSetupController(profileEmail = ""): PhoneSetupController
     if (loadInFlight.current) return loadInFlight.current;
     const refreshEpoch = companionMutationEpoch.current;
     const pending = (async () => {
-      const next = await loadCompanionBridgeState(companionBridge(), companionAccountBridge());
+      const next = await loadCompanionBridgeState(companionBridge(), accountBridge());
       if (!mounted.current) return;
       if (
         next.companion
@@ -269,7 +266,7 @@ export function usePhoneSetupController(profileEmail = ""): PhoneSetupController
     });
     loadInFlight.current = pending;
     return pending;
-  }, []);
+  }, [accountBridge]);
 
   useEffect(() => {
     void load();
@@ -304,7 +301,7 @@ export function usePhoneSetupController(profileEmail = ""): PhoneSetupController
 
   const accountAct = useCallback(
     async (call: (remote: AccountBridge) => Promise<CompanionAccountState>) => {
-      const remote = companionAccountBridge();
+      const remote = accountBridge();
       if (!remote) return;
       setAccountBusy(true);
       setAccountError(null);
@@ -325,7 +322,7 @@ export function usePhoneSetupController(profileEmail = ""): PhoneSetupController
         if (mounted.current) setAccountBusy(false);
       }
     },
-    [load],
+    [accountBridge, load],
   );
 
   const runPairingAttempt = useCallback(
@@ -390,7 +387,7 @@ export function usePhoneSetupController(profileEmail = ""): PhoneSetupController
         }
         const explicitRoute = routeMode !== "automatic";
         const gate = phonePairingGate(accountOverride ?? account, started, explicitRoute);
-        const remote = companionAccountBridge();
+        const remote = accountBridge();
         const prepare = remote?.prepare && shouldPrepareSecureAddress(routeMode, gate, accountOverride ?? account)
           ? remote.prepare
           : null;
@@ -482,7 +479,7 @@ export function usePhoneSetupController(profileEmail = ""): PhoneSetupController
         finishAttempt();
       }
     },
-    [account, publishPairingRoutePin, state],
+    [account, accountBridge, publishPairingRoutePin, state],
   );
 
   useLayoutEffect(() => {
@@ -552,7 +549,7 @@ export function usePhoneSetupController(profileEmail = ""): PhoneSetupController
   }, [act]);
 
   const requestCode = useCallback(() => {
-    const remote = companionAccountBridge();
+    const remote = accountBridge();
     const normalized = email.trim().toLowerCase();
     if (!remote || !normalized) return;
     const generation = setupGeneration.current;
@@ -574,10 +571,10 @@ export function usePhoneSetupController(profileEmail = ""): PhoneSetupController
       .finally(() => {
         if (mounted.current && setupGeneration.current === generation) setAccountBusy(false);
       });
-  }, [email]);
+  }, [accountBridge, email]);
 
   const verifyCode = useCallback(() => {
-    const remote = companionAccountBridge();
+    const remote = accountBridge();
     const normalized = email.trim().toLowerCase();
     if (!remote || code.length !== 8) return;
     const generation = setupGeneration.current;
@@ -606,10 +603,10 @@ export function usePhoneSetupController(profileEmail = ""): PhoneSetupController
       .finally(() => {
         if (mounted.current && setupGeneration.current === generation) setAccountBusy(false);
       });
-  }, [code, email, openPairing]);
+  }, [accountBridge, code, email, openPairing]);
 
   const retryAccount = useCallback(() => {
-    const remote = companionAccountBridge();
+    const remote = accountBridge();
     if (!remote) return;
     const baseline = flow.active ? phoneSetupBaseline(state?.devices ?? null) : null;
     const generation = ++setupGeneration.current;
@@ -641,7 +638,7 @@ export function usePhoneSetupController(profileEmail = ""): PhoneSetupController
       .finally(() => {
         if (mounted.current && setupGeneration.current === generation) setAccountBusy(false);
       });
-  }, [flow.active, load, openPairing, state?.devices]);
+  }, [accountBridge, flow.active, load, openPairing, state?.devices]);
 
   const phase = derivePhoneSetupPhase(flow, {
     accountStatus: account?.available ? account.status : "unavailable",

@@ -17,7 +17,7 @@ const RISE_AT = 4200;
 
 export function Terminal({ playing, onCue, onEnded, label }: SceneProps) {
   const SCRIPT: Array<{ at: number; line: Line }> = [
-    { at: 300, line: { kind: "cmd", text: "npx openmausbot" } },
+    { at: 300, line: { kind: "cmd", text: "pnpm spdbot" } },
     { at: 1150, line: { kind: "out", text: t("onboarding.reel.demo.terminal.welcome"), tone: "ink" } },
     { at: 1350, line: { kind: "out", text: t("onboarding.reel.demo.terminal.connect"), tone: "dim" } },
     { at: 1800, line: { kind: "pick", label: t("onboarding.reel.demo.terminal.connection"), options: ["Claude Code", "ChatGPT / Codex", t("onboarding.reel.demo.terminal.apiKey")], chosen: 0 } },
@@ -148,7 +148,7 @@ export function Terminal({ playing, onCue, onEnded, label }: SceneProps) {
             <div className="flex flex-1 items-center gap-1.5 rounded-full bg-[#202124] px-2.5 py-1 text-[9.5px] tabular-nums text-[#e8eaed]">
               <span className="text-[8px] text-[#9aa0a6]">🔒</span>
               <span className="text-[#9aa0a6]">127.0.0.1</span>
-              <span className="text-[#9aa0a6]">:8799</span>
+              <span className="text-[#9aa0a6]">:8899</span>
             </div>
             <span className="text-[11px] leading-none tracking-[0.15em] text-[#9aa0a6]">⋮</span>
           </div>

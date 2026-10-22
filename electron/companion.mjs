@@ -10,9 +10,9 @@ import {
   createCompanionOriginEndpoint,
 } from "./companion-origin-gateway.mjs";
 
-// Must stay clear of the harness's 8799 and its webhook receiver's 8800.
-const CONTROL_PORT = 8811;
-const COMPANION_PORT = 8810;
+// Must stay clear of the harness's 8899 and its webhook receiver's 8900.
+const CONTROL_PORT = 8911;
+const COMPANION_PORT = 8910;
 
 let proc = null;
 // New for each sidecar launch and held only by main and the sidecar, so a page served from the control port cannot drive it.

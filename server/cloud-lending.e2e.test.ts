@@ -58,7 +58,7 @@ async function adminPairing(): Promise<string> {
 async function leftBehind(of: { threadIds?: string[]; routineIds?: string[] }) {
   for (const proxy of proxies.splice(0)) proxy.kill();
   await waitForExit(child, { signal: "SIGTERM" });
-  markLeftBehind(join(home, ".openmausbot"), of);
+  markLeftBehind(join(home, ".spdbot"), of);
   await boot();
 }
 
@@ -92,7 +92,7 @@ async function proxyFor(start: () => Promise<void>, botId?: string) {
 
 beforeAll(async () => {
   home = mkdtempSync(join(tmpdir(), "omb-cloud-lending-"));
-  const dataDir = join(home, ".openmausbot");
+  const dataDir = join(home, ".spdbot");
   mkdirSync(dataDir, { recursive: true });
   const cli = join(home, "fixture-claude.mjs");
   writeFileSync(cli, `#!/usr/bin/env node
@@ -119,7 +119,7 @@ await import(${JSON.stringify(pathToFileURL(join(SERVER_DIR, "testing", "fake-cl
 
 let port = 0;
 async function boot() {
-  const dataDir = join(home, ".openmausbot");
+  const dataDir = join(home, ".spdbot");
   const offlinePrelude = `data:text/javascript,${encodeURIComponent('const real = globalThis.fetch; globalThis.fetch = async (url, init) => String(url).startsWith("http://127.0.0.1:") ? real(url, init) : new Response("offline fixture", { status: 503 });')}`;
   child = spawn(process.execPath, ["--import", offlinePrelude, join(SERVER_DIR, "index.ts")], {
     cwd: join(SERVER_DIR, ".."),
@@ -150,7 +150,7 @@ afterAll(async () => {
 });
 
 it("offers lending on a Cloud home with the maintainer flag still off", async () => {
-  expect((await api("GET", "/.well-known/openmausbot/environment")).body.capabilities).toMatchObject({ sharedComputers: true });
+  expect((await api("GET", "/.well-known/spdbot/environment")).body.capabilities).toMatchObject({ sharedComputers: true });
   expect((await api("GET", "/api/config", { token: owner })).body.features.sharedComputers).toBe(false);
   expect(await api("GET", "/api/shared-computers", { token: owner })).toEqual({ status: 200, body: { computers: [], known: [] } });
 });
@@ -377,7 +377,7 @@ it("on a Cloud home the owner's answer to an options card is recorded as the own
   const made = (await api("POST", "/api/bots", { token: owner, body: { name: "Watcher", modelSelection: { instanceId: "claude", model: "claude-sonnet-5" } } })).body.bot;
   for (const proxy of proxies.splice(0)) proxy.kill();
   await waitForExit(child, { signal: "SIGTERM" });
-  const botsFile = join(home, ".openmausbot", "bots.json");
+  const botsFile = join(home, ".spdbot", "bots.json");
   writeFileSync(botsFile, readFileSync(botsFile, "utf8").replaceAll(made.id, WATCHER_OPTIONS_CARD_BOT_ID));
   await boot();
   const agents = await agentsFor(async () => {

@@ -88,12 +88,12 @@ describe("login and logout against the control plane", () => {
   it("an emailed code signs this machine in and reserves its public address; logout releases it", async () => {
     const wrong = fakeIo(["00000000"]);
     expect(await runLogin(options(dir, { email: "milind@example.test" }), wrong.io)).toBe(1);
-    expect(wrong.err.join("\n")).toMatch(/sign-in failed/);
+    expect(wrong.err.join("\n")).toMatch(/Anmeldung fehlgeschlagen/);
     expect(describeTunnelAccount(openTunnelCredentials(dir).read()).email).toBeNull();
 
     const right = fakeIo([stub.otp]);
     expect(await runLogin(options(dir, { email: "milind@example.test" }), right.io)).toBe(0);
-    expect(right.out.join("\n")).toContain(`This machine's public address: ${stub.endpointUrl}`);
+    expect(right.out.join("\n")).toContain(`Öffentliche Adresse dieses Computers: ${stub.endpointUrl}`);
     const doc = openTunnelCredentials(dir).read();
     expect(describeTunnelAccount(doc)).toMatchObject({ email: "milind@example.test", address: stub.endpointUrl });
     expect(tunnelAccess(doc)?.token).toBe(stub.connectorToken);
@@ -104,11 +104,11 @@ describe("login and logout against the control plane", () => {
 
     const status = fakeIo([]);
     await runStatus(options(dir, { command: "status" }), status.io);
-    expect(status.out.join("\n")).toContain(`public address: ${stub.endpointUrl}`);
+    expect(status.out.join("\n")).toContain(`Öffentliche Adresse: ${stub.endpointUrl}`);
 
     const bye = fakeIo([]);
     expect(await runLogout(options(dir, { command: "logout" }), bye.io)).toBe(0);
-    expect(bye.out.join("\n")).toContain("is released");
+    expect(bye.out.join("\n")).toContain("wird freigegeben");
     expect(describeTunnelAccount(openTunnelCredentials(dir).read()).email).toBeNull();
     expect(stub.calls).toContain("DELETE /v1/installations/self/endpoint");
     expect(stub.calls).toContain("POST /api/auth/sign-out");
@@ -179,6 +179,19 @@ describe("login and logout against the control plane", () => {
     expect(await runLogin(options(dir, { email: "a@b.test" }), io.io)).toBe(1);
     expect(io.err.join("\n")).toMatch(/OMB_CONTROL_PLANE_URL/);
   });
+
+  it("the SPDBot control-plane override signs in and an invalid value wins over the legacy alias", async () => {
+    vi.stubEnv("SPDBOT_CONTROL_PLANE_URL", stub.url);
+    vi.stubEnv("OMB_CONTROL_PLANE_URL", "ftp://nope");
+    expect(await runLogin(options(dir, { email: "spdbot@example.test" }), fakeIo([stub.otp]).io)).toBe(0);
+    const calls = stub.calls.length;
+    vi.stubEnv("SPDBOT_CONTROL_PLANE_URL", "ftp://nope");
+    vi.stubEnv("OMB_CONTROL_PLANE_URL", stub.url);
+    const io = fakeIo([]);
+    expect(await runLogin(options(dir, { email: "spdbot@example.test" }), io.io)).toBe(1);
+    expect(io.err.join("\n")).toMatch(/SPDBOT_CONTROL_PLANE_URL/);
+    expect(stub.calls).toHaveLength(calls);
+  });
 });
 
 describe("where the pieces are", () => {
@@ -219,11 +232,11 @@ describe.skipIf(!posix)("startTunnel: guardian, gateway and connector, verified 
     writeFileSync(fake, `#!/bin/sh\necho $$ > "${pidFile}"\nexec sleep 300\n`, { mode: 0o755 });
     const harness = createServer((req, res) => {
       res.writeHead(200, { "content-type": "application/json" });
-      res.end(JSON.stringify({ app: "openmausbot", url: req.url, peer: req.socket.remoteAddress ?? null }));
+      res.end(JSON.stringify({ app: "spdbot", url: req.url, peer: req.socket.remoteAddress ?? null }));
     });
     await new Promise<void>((done) => harness.listen(origin.socketPath, done));
     const originPort = await freePortBlock([0], 29_600);
-    const endpoint = "https://c-stub.openmausbot.invalid";
+    const endpoint = "https://c-stub.spdbot.invalid";
     const guardian = guardianEntry();
     expect(guardian).toBeTruthy();
     const states: string[] = [];
@@ -241,7 +254,7 @@ describe.skipIf(!posix)("startTunnel: guardian, gateway and connector, verified 
       const settled = await tunnel.started;
       expect(settled.status, states.join(",")).toBe("ready");
       const viaGateway: any = await (await fetch(`http://127.0.0.1:${originPort}/api/health`)).json();
-      expect(viaGateway.app).toBe("openmausbot");
+      expect(viaGateway.app).toBe("spdbot");
       expect(viaGateway.peer).toBeNull();
       // the connector is spawned right after the gateway binds; its shell writes the pid a moment later
       const connectorPidOtherThan = async (previous: number) => {

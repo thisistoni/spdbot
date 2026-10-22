@@ -5,7 +5,8 @@ import { join } from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
 import { WebSocketServer } from "ws";
 
-import { browserRestoreKey } from "./browser-engine.ts";
+import { browserRuntimeEnv } from "./browser-runtime.ts";
+import { browserRestoreKey, browserSessionsDirectory } from "./browser-engine.ts";
 import { connectCdp, decryptBrowserState, encryptBrowserState, listSignedInSites, signOutOfSites, signedInSites, type BrowserSitesTarget, type CdpEvent } from "./browser-sites.ts";
 import { removeTempDir } from "./testing/cleanup.ts";
 
@@ -39,7 +40,7 @@ afterEach(async () => {
 function profile(session = "work") {
   const home = mkdtempSync(join(tmpdir(), "omb-browser-sites-"));
   scratch.push(home);
-  const directory = join(home, ".agent-browser", "sessions");
+  const directory = browserSessionsDirectory(browserRuntimeEnv({ HOME: home, USERPROFILE: home }));
   mkdirSync(directory, { recursive: true });
   const current = join(directory, `${browserRestoreKey(session)}-${session}.json.enc`);
   const target: BrowserSitesTarget = { binaryPath: "/fake/agent-browser", session, env: { HOME: home, USERPROFILE: home }, encryptionKey: KEY };

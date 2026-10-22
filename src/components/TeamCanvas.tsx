@@ -32,6 +32,7 @@ function BotCard({ bot, selected, moving, connected, onComputer, onArrange }: {
   const { state, dispatch } = useStore();
   const showThreads = useShowThreads();
   const status = teamMapStatus(bot);
+  const statusLabel = t(status.tone === "warning" ? "canvas.status.waiting" : status.tone === "danger" ? "canvas.status.noSignal" : status.tone === "success" ? "canvas.status.working" : "canvas.status.ready");
   const instance = state.instances.find((item) => item.instanceId === bot.modelSelection.instanceId);
   const model = instance?.models.options.find((item) => item.id === bot.modelSelection.model)?.label ?? bot.modelSelection.model;
   return <article className={cn("relative h-[126px] w-[236px] shrink-0 rounded-xl border bg-card shadow-sm transition-colors",
@@ -55,9 +56,9 @@ function BotCard({ bot, selected, moving, connected, onComputer, onArrange }: {
     <div className="flex h-[43px] items-center gap-1 border-t border-hairline/30 px-2">
       <button className={cn(iconButton, "size-8")} aria-label={t("canvas.openBotChat", { name: bot.name })} title={t("canvas.openChat")}
         onClick={() => openBot(dispatch, bot, showThreads)}><MessageCircle size={13} /></button>
-      {status.tone !== "idle" && <span className="flex items-center gap-1.5 text-[10px] text-ink-secondary" title={status.label}>
+      {status.tone !== "idle" && <span className="flex items-center gap-1.5 text-[10px] text-ink-secondary" title={statusLabel}>
         <span className={cn("size-1.5 rounded-full", status.tone === "success" ? "bg-success" : status.tone === "warning" ? "bg-warning" : status.tone === "danger" ? "bg-danger" : "bg-ink-secondary/35")} />
-        {status.label}
+        {statusLabel}
       </span>}
       {selected && onComputer && <button className={cn(iconButton, "size-8")} aria-label={t("canvas.botComputer", { name: bot.name })} title={t("computer.tab.computer")}
         onClick={() => onComputer(bot)}><Monitor size={13} /></button>}
@@ -112,7 +113,7 @@ export function TeamCanvas({ sections, canManage, onMove, onInstructions, onMemo
   // Keyed to the workspace's identity, so switching hosted workspaces never shares a layout.
   useEffect(() => {
     let active = true;
-    void api("/.well-known/openmausbot/environment", { signal: AbortSignal.timeout(5_000) }).then((environment) => {
+    void api("/.well-known/spdbot/environment", { signal: AbortSignal.timeout(5_000) }).then((environment) => {
       if (!active || typeof environment.environmentId !== "string") return;
       storageKey.current = `omb-team-canvas:${environment.environmentId}`;
       try {

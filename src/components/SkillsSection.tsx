@@ -1,7 +1,7 @@
 // Security: local browse only, with no registry and no network fetch, so an import is exactly the bytes pasted here.
 import { Search, X } from "lucide-react";
 import { useEffect, useMemo, useRef, useState } from "react";
-import { t } from "@/lib/i18n";
+import { activeLocale, t } from "@/lib/i18n";
 import { useModalDialog } from "@/hooks/use-modal-dialog";
 import { useStore } from "@/state/store";
 import { Card, Switch } from "./SettingsPrimitives";
@@ -24,9 +24,9 @@ export function filterLibrarySkills(
 export function LibrarySkillMeta({ skill }: { skill: SkillsLibrarySkillWire }) {
   return (
     <div className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1 text-[10.5px] text-ink-secondary">
-      <span className="truncate" title={skill.source}>Source: {skill.source}</span>
+      <span className="truncate" title={skill.source}>{t("skills.library.source", { source: skill.source })}</span>
       <span>{skill.version ? t("skills.library.version", { version: skill.version }) : t("skills.library.noVersion")}</span>
-      <span>{t("skills.library.importedAt", { date: new Date(skill.importedAt).toLocaleDateString() })}</span>
+      <span>{t("skills.library.importedAt", { date: new Date(skill.importedAt).toLocaleDateString(activeLocale()) })}</span>
       {skill.tags.map((tag) => (
         <span key={tag} className="rounded bg-control px-1.5 py-0.5 font-mono">{tag}</span>
       ))}
@@ -360,7 +360,7 @@ function SkillSourceDialog({ viewing, error, working, onClose, onEnable }: {
         >
           <div className="flex max-h-[min(760px,90vh)] w-full max-w-2xl flex-col rounded-2xl bg-card p-5 shadow-2xl">
             <div className="flex items-center justify-between gap-3">
-              <div id="skills-library-view-title" className="text-[16px] font-semibold text-ink">{viewing.review ? `Review ${viewing.skill.name} before enabling` : viewing.skill.name}</div>
+              <div id="skills-library-view-title" className="text-[16px] font-semibold text-ink">{viewing.review ? t("skills.library.reviewBeforeEnable", { name: viewing.skill.name }) : viewing.skill.name}</div>
               <button
                 type="button"
                 disabled={working}
@@ -380,7 +380,7 @@ function SkillSourceDialog({ viewing, error, working, onClose, onEnable }: {
               {viewing.text}
             </pre>
             {error && <div role="alert" className="mt-2 text-[12px] text-danger">{error}</div>}
-            {viewing.review && <button type="button" disabled={working} onClick={onEnable} className="mt-4 self-end rounded-lg bg-accent px-4 py-2 text-[13px] font-semibold text-white disabled:opacity-40">Enable reviewed skill</button>}
+            {viewing.review && <button type="button" disabled={working} onClick={onEnable} className="mt-4 self-end rounded-lg bg-accent px-4 py-2 text-[13px] font-semibold text-white disabled:opacity-40">{t("skills.library.enableReviewed")}</button>}
           </div>
         </div>
   );

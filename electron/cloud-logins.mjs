@@ -34,14 +34,14 @@ export function createLoginHandoffClient({ timeoutMs = 10_000, randomId = random
   };
   return {
     request(proc, what) {
-      if (!proc) return Promise.reject(new Error("OpenMausBot on this computer is not running. Try again in a moment."));
+      if (!proc) return Promise.reject(new Error("SPDBot läuft auf diesem Computer nicht. Versuche es gleich erneut."));
       const requestId = randomId();
       return new Promise((resolve, reject) => {
-        const timer = setTimeout(() => settle(requestId, () => reject(new Error("OpenMausBot on this computer did not answer. Try again."))), timeoutMs);
+        const timer = setTimeout(() => settle(requestId, () => reject(new Error("SPDBot auf diesem Computer hat nicht geantwortet. Versuche es erneut."))), timeoutMs);
         timer.unref?.();
         pending.set(requestId, { proc, resolve, reject, timer });
         try { proc.postMessage({ type: REQUEST, requestId, what }); }
-        catch { settle(requestId, () => reject(new Error("OpenMausBot on this computer could not be asked. Try again."))); }
+        catch { settle(requestId, () => reject(new Error("SPDBot auf diesem Computer konnte nicht angefragt werden. Versuche es erneut."))); }
       });
     },
     /** True for a handoff answer, kept or ignored; never logs or throws with what it carried. */
@@ -51,7 +51,7 @@ export function createLoginHandoffClient({ timeoutMs = 10_000, randomId = random
       if (!waiting || waiting.proc !== proc) return true;
       settle(message.requestId, ({ resolve, reject }) => {
         if (message.ok === true && (record(message.onePassword) || record(message.login))) resolve(message);
-        else reject(new Error(sentence(message.error) ?? "OpenMausBot on this computer could not read that login."));
+        else reject(new Error(sentence(message.error) ?? "SPDBot auf diesem Computer konnte diesen Zugang nicht lesen."));
       });
       return true;
     },
@@ -80,7 +80,7 @@ export function cloudLoginsView(listed) {
 
 async function readJson(response) {
   const text = await response.text();
-  if (text.length > 4 * 1024 * 1024) throw new Error("My Cloud's answer was too large.");
+  if (text.length > 4 * 1024 * 1024) throw new Error("Die Antwort des externen Cloud-Dienstes war zu groß.");
   try { return JSON.parse(text); } catch { return null; }
 }
 
@@ -101,16 +101,16 @@ export function createCloudLogins({ handoff, home, fetch: fetchImpl, cookieFetch
   }
   async function openSession(target) {
     let grant;
-    try { grant = await target.grant(); } catch (error) { throw new Error(sentence(error?.message) ?? "My Cloud is not ready. Check it in Settings → MausBot Cloud, then try again."); }
+    try { grant = await target.grant(); } catch (error) { throw new Error(sentence(error?.message) ?? "Der externe Cloud-Dienst ist nicht bereit. Prüfe die bestehende Verbindung und versuche es erneut."); }
     // Only the person's own Cloud may be signed in to: never an origin a grant names instead.
-    if (!record(grant) || grant.origin !== target.origin || typeof grant.code !== "string") throw new Error("My Cloud is not ready. Check it in Settings → MausBot Cloud, then try again.");
+    if (!record(grant) || grant.origin !== target.origin || typeof grant.code !== "string") throw new Error("Der externe Cloud-Dienst ist nicht bereit. Prüfe die bestehende Verbindung und versuche es erneut.");
     const response = await fetchImpl(`${target.origin}/api/auth/pair`, {
       method: "POST", redirect: "error", credentials: "omit", cache: "no-store", signal: AbortSignal.timeout(30_000),
       headers: { accept: "application/json", "content-type": "application/json" },
       body: JSON.stringify({ code: grant.code, label: "Logins from this computer" }),
     });
     const body = await readJson(response).catch(() => null);
-    if (!response.ok || typeof body?.token !== "string" || !body.token.startsWith("omb_sess_")) throw new Error("This app could not sign in to My Cloud to send the login. Try again.");
+    if (!response.ok || typeof body?.token !== "string" || !body.token.startsWith("omb_sess_")) throw new Error("Diese App konnte sich beim externen Cloud-Dienst nicht anmelden, um den Zugang zu übertragen. Versuche es erneut.");
     return { origin: target.origin, token: body.token };
   }
   async function call(session, method, route, body) {
@@ -123,8 +123,8 @@ export function createCloudLogins({ handoff, home, fetch: fetchImpl, cookieFetch
     return { status: response.status, ok: response.ok, body: answer };
   }
   const refusal = (answer, fallback) => {
-    if (answer.status === 401 || answer.status === 403) return new Error("My Cloud did not let this app change its logins. Open My Cloud in this app once, then try again.");
-    return new Error(sentence(answer.body?.error) ? `My Cloud said: ${sentence(answer.body.error)}` : fallback);
+    if (answer.status === 401 || answer.status === 403) return new Error("Der externe Cloud-Dienst erlaubt dieser App nicht, seine Zugänge zu ändern. Prüfe die bestehende Anmeldung und versuche es erneut.");
+    return new Error(sentence(answer.body?.error) ? `Der externe Cloud-Dienst meldet: ${sentence(answer.body.error)}` : fallback);
   };
 
   /** Whether the person has My Cloud, and what of Logins is already there. */
@@ -139,9 +139,9 @@ export function createCloudLogins({ handoff, home, fetch: fetchImpl, cookieFetch
     state,
     async send(input) {
       const what = handoffWhat(input);
-      if (!what) throw new Error("Choose a login to send to My Cloud.");
+      if (!what) throw new Error("Wähle einen Zugang aus, den du an den externen Cloud-Dienst übertragen möchtest.");
       const target = home();
-      if (!target) throw new Error("This computer has no My Cloud yet.");
+      if (!target) throw new Error("Dieser Computer ist nicht mit einem externen Cloud-Dienst verbunden.");
       const handed = await handoff(what);
       const session = await openSession(target);
       try {
@@ -150,14 +150,14 @@ export function createCloudLogins({ handoff, home, fetch: fetchImpl, cookieFetch
         let narrowed = false;
         if (handed.onePassword) {
           const connected = await call(session, "POST", "/api/logins/1password", { token: handed.onePassword.token });
-          if (!connected.ok) throw refusal(connected, "My Cloud could not connect 1Password. Try again.");
+          if (!connected.ok) throw refusal(connected, "Der externe Cloud-Dienst konnte 1Password nicht verbinden. Versuche es erneut.");
           for (const [vault, bots] of Object.entries(handed.onePassword.grants ?? {})) {
             if (!VAULT_ID.test(vault)) continue;
             const kept = botsOnCloud(bots, cloudBots);
             narrowed ||= Array.isArray(bots) && kept.length < bots.length;
             const granted = await call(session, "PATCH", `/api/logins/1password/vaults/${encodeURIComponent(vault)}`, { bots: kept });
             // A vault the Cloud's copy of the token cannot read is not there to narrow.
-            if (!granted.ok && granted.status !== 404) throw refusal(granted, "My Cloud connected 1Password but could not keep its vaults to the same bots. Check them in My Cloud's Settings → Logins.");
+            if (!granted.ok && granted.status !== 404) throw refusal(granted, "Der externe Cloud-Dienst hat 1Password verbunden, konnte dessen Tresore aber nicht auf dieselben Bots beschränken. Prüfe dort unter Einstellungen → Zugänge die Zuordnung.");
           }
         } else {
           const login = handed.login;
@@ -165,7 +165,7 @@ export function createCloudLogins({ handoff, home, fetch: fetchImpl, cookieFetch
           narrowed = Array.isArray(login.bots) && kept.length < login.bots.length;
           const saved = await call(session, "POST", "/api/logins", { site: login.site, username: login.username, password: login.password,
             ...(login.totp ? { totp: login.totp } : {}), bots: kept, exactHost: login.exactHost === true });
-          if (!saved.ok) throw refusal(saved, "My Cloud could not save the login. Try again.");
+          if (!saved.ok) throw refusal(saved, "Der externe Cloud-Dienst konnte den Zugang nicht speichern. Versuche es erneut.");
         }
         return { sent: true, ...(narrowed ? { narrowed: true } : {}), ...(await state()) };
       } finally {

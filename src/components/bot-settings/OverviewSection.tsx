@@ -3,9 +3,22 @@ import { Circle, Sparkles } from "lucide-react";
 
 import type { BotOverview } from "@/lib/bot-overview-types";
 import { t } from "@/lib/i18n";
-import { whenLabel } from "@/lib/schedule-label";
+import type { LocaleKey } from "@/locales";
+import { localizedHistorySummary } from "./HistorySection";
+import { localizedRoutineOverview, whenLabel } from "@/lib/schedule-label";
 import type { BotSettingsSection } from "@/state/store";
 import { PromptPreview, type PromptPreviewData } from "./PromptPreview";
+
+const OVERVIEW_LINES: Record<string, LocaleKey> = {
+  "Connected apps could not be checked.": "botOverview.line.appsUnknown",
+  "Coordinates its section as Chief of Staff.": "botOverview.line.chief",
+  "Command approvals use Ask mode; saved permissions and provider rules still apply.": "botOverview.line.askMode",
+  "Command approvals follow the provider's custom configuration.": "botOverview.line.customMode",
+  "Cannot initiate contact with other bots.": "botOverview.line.noPeers",
+  "Asks before contacting other bots.": "botOverview.line.askPeers",
+  "Can't use a computer.": "botOverview.line.noComputer",
+  "Profile proposal cards require your approval.": "botOverview.line.profileApproval",
+};
 
 export function OverviewSection({
   overview,
@@ -32,6 +45,21 @@ export function OverviewSection({
   const remaining = setup.filter((step) => !step.done);
   const setupLabel = (id: string, fallback: string) => t(`botOverview.setup.${id}` as never) || fallback;
   const overviewLine = (line: string) => {
+    if (OVERVIEW_LINES[line]) return t(OVERVIEW_LINES[line]!);
+    const folder = /^Works in (.+)\.$/.exec(line);
+    if (folder && line !== "Works in its private workspace.") return t("botOverview.line.folder", { path: folder[1]! });
+    const apps = /^Can use (\d+) connected apps?: (.+)\.$/.exec(line);
+    if (apps) return t(apps[1] === "1" ? "botOverview.line.appsOne" : "botOverview.line.appsMany", { count: apps[1]!, apps: apps[2]! });
+    const peers = /^Can talk to (\d+) other bots? in (its allowed teams|its section)\.$/.exec(line);
+    if (peers) return t(peers[1] === "1" ? "botOverview.line.peersOne" : "botOverview.line.peersMany", { count: peers[1]!, scope: t(peers[2] === "its section" ? "botOverview.line.scopeSection" : "botOverview.line.scopeTeams") });
+    const teams = /^May also coordinate these teams: (.+)\.$/.exec(line);
+    if (teams) return t("botOverview.line.moreTeams", { teams: teams[1]! });
+    const paused = /^Paused: (.+)\.$/.exec(line);
+    if (paused) return t("botOverview.line.paused", { name: paused[1]! });
+    const skill = /^Knows how to (.+)\.$/.exec(line);
+    if (skill) return t("botOverview.line.skill", { description: skill[1]! });
+    const webhook = /^Listens for “(.+)” webhooks\.$/.exec(line);
+    if (webhook) return t("botOverview.line.webhook", { name: webhook[1]! });
     if (line === "Works in its private workspace.") return t("botOverview.line.privateWorkspace");
     if (line === "Has the built-in browser.") return t("botOverview.line.browser");
     if (line === "Has no connected apps.") return t("botOverview.line.noApps");
@@ -41,7 +69,7 @@ export function OverviewSection({
       const preference = computer[1] === "Auto; availability is checked when a task starts" ? t("botOverview.preference.auto") : computer[1] === "cloud computer" ? t("botOverview.preference.cloud") : computer[1] === "Local VM" ? t("botOverview.preference.vm") : computer[1] === "this computer" ? t("botOverview.preference.local") : computer[1] === "browser only" ? t("botOverview.preference.browser") : computer[1];
       return t("botOverview.line.computer", { preference });
     }
-    return line;
+    return localizedRoutineOverview(line) ?? line;
   };
 
   return (
@@ -170,7 +198,7 @@ export function OverviewSection({
           <ul className="mt-2 flex flex-col gap-1.5 text-[13px] text-ink">
             {overview.recent.map((entry, i) => (
               <li key={i} className="flex items-baseline justify-between gap-3">
-                <span className="min-w-0 truncate">{entry.summary}</span>
+                <span className="min-w-0 truncate">{localizedHistorySummary(entry.summary)}</span>
                 <span className="shrink-0 text-[11.5px] text-ink-secondary">· {whenLabel(entry.at)}</span>
               </li>
             ))}

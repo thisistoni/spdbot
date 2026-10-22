@@ -2,6 +2,35 @@ import { ChevronDown } from "lucide-react";
 
 import { cn } from "@/lib/cn";
 import { t } from "@/lib/i18n";
+import type { LocaleKey } from "@/locales";
+
+const PROMPT_LABELS: Record<string, LocaleKey> = {
+  "persona": "botOverview.promptSection.persona",
+  "soul": "botOverview.promptSection.soul",
+  "tool-bridge": "botOverview.promptSection.tool-bridge",
+  "reply-style": "botOverview.promptSection.reply-style",
+  "user-profile": "botOverview.promptSection.user-profile",
+  "setup": "botOverview.promptSection.setup",
+  "shell": "botOverview.promptSection.shell",
+  "computer": "botOverview.promptSection.computer",
+  "team-computer": "botOverview.promptSection.team-computer",
+  "plan": "botOverview.promptSection.plan",
+  "composio": "botOverview.promptSection.composio",
+  "highlevel": "botOverview.promptSection.highlevel",
+  "mcp": "botOverview.promptSection.mcp",
+  "browser": "botOverview.promptSection.browser",
+  "coordination": "botOverview.promptSection.coordination",
+  "credential": "botOverview.promptSection.credential",
+  "routine": "botOverview.promptSection.routine",
+  "profile": "botOverview.promptSection.profile",
+  "section-context": "botOverview.promptSection.section-context",
+  "team-memory": "botOverview.promptSection.team-memory",
+  "availability": "botOverview.promptSection.availability",
+  "memory": "botOverview.promptSection.memory",
+  "skills": "botOverview.promptSection.skills",
+};
+
+const CURRENT_PREVIEW_NOTE = "Preview from current bot settings, not the exact prompt of a running task. Task folders, notes, recall, selected skills and available connections can change the dispatched prompt. Token count is an estimate.";
 
 export interface PromptPreviewData {
   sections: Array<{ id: string; label: string; text: string; bytes: number }>;
@@ -48,7 +77,7 @@ export function PromptPreview({
           {data.sections.map((section) => (
             <details key={section.id} className="rounded-lg border border-hairline/40 bg-inset px-3 py-2">
               <summary className="flex cursor-pointer items-center justify-between gap-3 text-[13px] text-ink">
-                <span>{section.label}</span>
+                <span>{PROMPT_LABELS[section.id] ? t(PROMPT_LABELS[section.id]!) : section.label}</span>
                 <span className="shrink-0 tabular-nums text-ink-secondary">{t("botOverview.bytes", { count: section.bytes.toLocaleString() })}</span>
               </summary>
               <pre className="mt-2 max-h-48 overflow-auto whitespace-pre-wrap break-words font-mono text-[12px] leading-relaxed text-ink">
@@ -56,7 +85,7 @@ export function PromptPreview({
               </pre>
             </details>
           ))}
-          {data.note && <div className="text-[11px] text-ink-secondary">{data.note}</div>}
+          {data.note && <div className="text-[11px] text-ink-secondary">{data.note === CURRENT_PREVIEW_NOTE ? t("botOverview.promptNote") : data.note}</div>}
         </div>
       )}
     </div>

@@ -1,4 +1,6 @@
-import { describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it } from "vitest";
+import { setLocale } from "@/lib/i18n";
+afterEach(() => setLocale("en"));
 
 import type { CompanionAccountState } from "../types/ogb";
 import {
@@ -148,7 +150,7 @@ describe("manual pairing code placement", () => {
   });
 
   it("keeps the code in troubleshooting details when a QR is available", () => {
-    expect(phonePairingManualCodeMode(true, "openmausbot://pair?token=example")).toBe("details");
+    expect(phonePairingManualCodeMode(true, "spdbot://pair?token=example")).toBe("details");
     expect(phonePairingManualCodeMode(false, null)).toBe("hidden");
   });
 });
@@ -235,4 +237,11 @@ describe("Tailscale pairing onboarding", () => {
       detail: "the companion is not responding",
     });
   });
+});
+
+it("localizes the paired-device status for one and several devices", () => {
+  setLocale("de");
+  const device = { id: "fixture", name: "Fixture", createdAt: 0, lastSeenAt: 0, cloudDesktopAccess: false };
+  expect(deriveCompanionPanelStatus({ enabled: true, devices: [device] })).toEqual({ label: "1 Gerät gekoppelt", good: true });
+  expect(deriveCompanionPanelStatus({ enabled: true, devices: [device, { ...device, id: "other" }] })).toEqual({ label: "2 Geräte gekoppelt", good: true });
 });

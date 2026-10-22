@@ -52,7 +52,7 @@ describe("app language preference", () => {
     expect(preference.useLanguageChoice()).toBeNull();
     expect(hook.serverSnapshot!()).toBeNull();
     expect(preference.effectiveLanguage(preference.languageChoice(), "fr")).toBe("fr");
-    expect(preference.effectiveLanguage(preference.languageChoice(), undefined)).toBe("");
+    expect(preference.effectiveLanguage(preference.languageChoice(), undefined)).toBe("de");
   });
 
   it("saves the choice on this device without asking the server", async () => {

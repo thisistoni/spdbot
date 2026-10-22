@@ -8,6 +8,7 @@ import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { removeTempDir, waitForExit } from "./testing/cleanup.ts";
+import { AGENT_BROWSER_VERSION } from "./browser-engine-release.ts";
 import { freePortBlock } from "./testing/ports.ts";
 import { openSse, type SseRecorder } from "./testing/sse.ts";
 
@@ -37,7 +38,7 @@ describe.skipIf(process.platform === "win32")("Codex browser turns with a minima
   beforeAll(async () => {
     home = mkdtempSync(join(tmpdir(), "omb-browser-codex-path-"));
     bin = join(home, ".local", "bin");
-    const data = join(home, ".openmausbot");
+    const data = join(home, ".spdbot");
     mkdirSync(bin, { recursive: true });
     mkdirSync(data);
     // The extensionless executable must exercise /usr/bin/env node, rather
@@ -52,7 +53,11 @@ describe.skipIf(process.platform === "win32")("Codex browser turns with a minima
     browser = join(bin, "agent-browser");
     // The fake provider records MCP configuration without starting a browser.
     // Preparation checks that the acknowledged close really removed it.
-    writeFileSync(browser, "#!/bin/sh\nif [ \"$1\" = session ]; then printf '%s\\n' '{\"success\":true,\"data\":{\"sessions\":[]}}'; fi\nexit 0\n", { mode: 0o755 });
+    writeFileSync(browser, `#!/bin/sh
+if [ "$1" = --version ]; then echo "agent-browser ${AGENT_BROWSER_VERSION}"; exit 0; fi
+if [ "$1" = session ]; then printf '%s\\n' '{"success":true,"data":{"sessions":[]}}'; fi
+exit 0
+`, { mode: 0o755 });
     writeFileSync(join(data, "config.json"), JSON.stringify({
       features: { browser: true },
       instances: Object.fromEntries(["default", "absolute"].map((id) => [id, {
@@ -79,7 +84,7 @@ describe.skipIf(process.platform === "win32")("Codex browser turns with a minima
       child.once("exit", () => { clearTimeout(timer); reject(new Error(`Fixture exited: ${stderr}`)); });
       child.stdout!.on("data", (chunk) => {
         output += chunk;
-        if (output.includes(`openmausbot server on ${base}`)) { clearTimeout(timer); resolve(); }
+        if (output.includes(`spdbot server on ${base}`)) { clearTimeout(timer); resolve(); }
       });
     });
     events = await openSse(`${base}/api/events`);

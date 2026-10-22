@@ -85,7 +85,7 @@ exports.createClient = async ({ auth }) => {
 
 async function start(name: string, env: NodeJS.ProcessEnv, port: number, extra: string[] = [], ipc = false): Promise<ChildProcess> {
   const home = join(root, name);
-  const dataDir = join(home, ".openmausbot");
+  const dataDir = join(home, ".spdbot");
   mkdirSync(dataDir, { recursive: true });
   const cli = join(home, "fixture-claude.mjs");
   writeFileSync(cli, `#!/usr/bin/env node
@@ -194,6 +194,6 @@ it("sends a login and the 1Password service account from this computer to My Clo
   expect(sessions.filter((session) => session.label === "Logins from this computer")).toEqual([]);
 
   await expect(logins.send({ kind: "login", id: "no-such-login" })).rejects.toThrow("This login is no longer saved on this computer.");
-  await expect(logins.send({ kind: "everything" } as never)).rejects.toThrow("Choose a login to send to My Cloud.");
+  await expect(logins.send({ kind: "everything" } as never)).rejects.toThrow("Wähle einen Zugang aus, den du an den externen Cloud-Dienst übertragen möchtest.");
   for (const where of [...answers, logs]) for (const value of SECRETS) expect(where).not.toContain(value);
 });

@@ -29,7 +29,7 @@ function scriptedServer(jobs) {
   const fetchImpl = async (url, init) => {
     const route = new URL(url).pathname;
     if (route === "/api/auth/session") return json({ kind: "session", id: env.sessionId });
-    if (route === "/.well-known/openmausbot/environment") return json({ environmentId: env.environmentId, capabilities: { sharedComputers: true } });
+    if (route === "/.well-known/spdbot/environment") return json({ environmentId: env.environmentId, capabilities: { sharedComputers: true } });
     const body = init?.body ? JSON.parse(init.body) : {};
     if (route === "/api/shared-computers/connect") { registration = body; return json({}); }
     if (route.endsWith("/poll")) {
@@ -391,8 +391,8 @@ test("computer control that never started gives its reason as a fix the person c
   for (const [reason, expected] of [
     ["cua-driver binary not found", helperMissing()],
     ["embedded host failed: Packaged background CUA driver is missing; reinstall OpenMausBot", helperMissing()],
-    ["Accessibility and Screen Recording required; grant access in System Settings and restart OpenMausBot", /allow Accessibility and Screen Recording/],
-    ["no running cua-driver daemon", /Computer control is not running on this computer/],
+    ["Accessibility and Screen Recording required; grant access in System Settings and restart OpenMausBot", /Bedienungshilfen und Bildschirmaufnahme/],
+    ["no running cua-driver daemon", /Die Computersteuerung läuft auf diesem Computer nicht/],
   ]) {
     const dir = await scratch(t);
     const { results } = await lend(t, dir, {

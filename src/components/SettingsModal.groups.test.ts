@@ -108,7 +108,8 @@ describe("Settings rail groups", () => {
     expect(SETTINGS_GROUPS.map((group) => group.id)).toEqual(["you", "ai", "computers", "account"]);
     const ids = SECTIONS.map((entry) => entry.id);
     expect(new Set(ids).size).toBe(ids.length);
-    expect(ids).toHaveLength(18); // 16 + the shared Skills library (AI group) + Logins (Computers)
+    expect(ids).not.toContain("cloudAccount");
+    expect(ids).not.toContain("organization");
     for (const entry of SECTIONS) expect(SETTINGS_GROUPS.map((group) => group.id)).toContain(entry.group);
   });
 
@@ -121,7 +122,7 @@ describe("Settings rail groups", () => {
       you: ["general", "appearance", "companion"],
       ai: ["engines", "connections", "decisionModel"],
       computers: ["desktopWorkspaces", "computer", "logins"],
-      account: ["cloudAccount", "organization", "usage", "backups", "experimental"],
+      account: ["usage", "backups", "experimental"],
     });
     expect(html).toContain('<optgroup label="AI">');
   });

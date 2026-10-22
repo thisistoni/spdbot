@@ -1,4 +1,4 @@
-// Anything touching the new dir before ensureDirs() runs would make the ~/.opengrokbot rename a no-op: this pins the order.
+// SPDBot starts fresh even when both older products have data in this home.
 import { spawn, type ChildProcess } from "node:child_process";
 import { existsSync, mkdirSync, mkdtempSync, readFileSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
@@ -21,11 +21,16 @@ beforeAll(async () => {
   home = mkdtempSync(join(tmpdir(), "omb-legacy-test-"));
   const legacy = join(home, ".opengrokbot");
   mkdirSync(legacy, { recursive: true });
-  // A non-product shadow: an empty map would select the full default fleet, whose CLI probes are not part of this test.
+  // A distinct older configuration exposes any accidental import into the fresh workspace.
   writeFileSync(join(legacy, "config.json"), JSON.stringify({
     instances: { fixture: { driver: "migration-test-shadow" } },
   }));
   writeFileSync(join(legacy, "keep-me.txt"), "carried over");
+  writeFileSync(join(legacy, "environment-id"), "00000000-0000-4000-8000-000000000001");
+  const maus = join(home, ".openmausbot");
+  mkdirSync(maus, { recursive: true });
+  writeFileSync(join(maus, "keep-me.txt"), "MausBot stays unchanged");
+  writeFileSync(join(maus, "environment-id"), "00000000-0000-4000-8000-000000000002");
   child = spawn(process.execPath, [join(SERVER_DIR, "index.ts")], {
     cwd: ROOT,
     env: {
@@ -57,11 +62,19 @@ afterAll(async () => {
   await removeTempDir(home);
 });
 
-describe("legacy data dir", () => {
-  it("is renamed to the new name on first boot, with its contents and a fresh environment id", () => {
-    const fresh = join(home, ".openmausbot");
-    expect(existsSync(join(home, ".opengrokbot"))).toBe(false);
-    expect(readFileSync(join(fresh, "keep-me.txt"), "utf8")).toBe("carried over");
-    expect(readFileSync(join(fresh, "environment-id"), "utf8").trim()).toMatch(/^[0-9a-f-]{36}$/);
+describe("legacy data directories", () => {
+  it("leaves both older products unchanged and creates a fresh SPDBot directory without migration", () => {
+    const fresh = join(home, ".spdbot");
+    expect(existsSync(join(home, ".opengrokbot"))).toBe(true);
+    expect(readFileSync(join(home, ".opengrokbot", "keep-me.txt"), "utf8")).toBe("carried over");
+    expect(JSON.parse(readFileSync(join(home, ".opengrokbot", "config.json"), "utf8")).instances.fixture.driver).toBe("migration-test-shadow");
+    expect(readFileSync(join(home, ".openmausbot", "keep-me.txt"), "utf8")).toBe("MausBot stays unchanged");
+    expect(existsSync(join(fresh, "keep-me.txt"))).toBe(false);
+    const identity = readFileSync(join(fresh, "environment-id"), "utf8").trim();
+    expect(identity).toMatch(/^[0-9a-f-]{36}$/);
+    for (const [directory, original] of [[".opengrokbot", "00000000-0000-4000-8000-000000000001"], [".openmausbot", "00000000-0000-4000-8000-000000000002"]] as const) {
+      expect(readFileSync(join(home, directory, "environment-id"), "utf8")).toBe(original);
+      expect(identity).not.toBe(original);
+    }
   });
 });
