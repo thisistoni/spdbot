@@ -29,11 +29,11 @@ import { loadEnvironmentId } from "./environment.ts";
 import { SPAWNED_PROXIES } from "./proxy-paths.ts";
 
 export const VPS_IMAGE = CUA_IMAGE;
-export const VPS_MANAGED_LABEL = "com.openmausbot.vps";
-export const VPS_CONTAINER_LABEL = "com.openmausbot.container";
-export const VPS_ENVIRONMENT_LABEL = "com.openmausbot.environment";
-export const VPS_VIEWER_LABEL = "com.openmausbot.vps-viewer";
-export const VPS_CONTAINER_PREFIX = "openmausbot-vps";
+export const VPS_MANAGED_LABEL = "de.spdlabs.spdbot.vps";
+export const VPS_CONTAINER_LABEL = "de.spdlabs.spdbot.container";
+export const VPS_ENVIRONMENT_LABEL = "de.spdlabs.spdbot.environment";
+export const VPS_VIEWER_LABEL = "de.spdlabs.spdbot.vps-viewer";
+export const VPS_CONTAINER_PREFIX = "spdbot-vps";
 // Lazy: index must finish data migration and take the writer lease before this may create the data directory.
 let vpsEnvironmentIdCache: string | null = null;
 function vpsEnvironmentId(): string {
@@ -48,10 +48,10 @@ const COMMAND_TIMEOUT_KILL_GRACE_MS = COMMAND_TIMEOUT_TERM_GRACE_MS + 1_000;
 const CONTAINER_NAME = /^[a-zA-Z0-9][a-zA-Z0-9_.-]+$/;
 const CONTAINER_ID = /^[a-f0-9]{12,64}$/i;
 const FULL_CONTAINER_ID = /^[a-f0-9]{64}$/i;
-const MANAGED_VPS_CONTAINER_NAME = /^openmausbot-vps-[a-z0-9]{1,12}-[a-f0-9]{12}$/;
+const MANAGED_VPS_CONTAINER_NAME = /^spdbot-vps-[a-z0-9]{1,12}-[a-f0-9]{12}$/;
 const IMAGE_ID = /^sha256:[a-f0-9]{64}$/i;
 const PIDS_LIMIT = 512;
-const SCREENSHOT_PATH = "/tmp/openmausbot-vps-preview.png";
+const SCREENSHOT_PATH = "/tmp/spdbot-vps-preview.png";
 // The Cua XFCE base ships Pillow in /opt/venv; a container without it returns the original PNG.
 const SCREENSHOT_TRANSFER = `/opt/venv/bin/python -I -c 'import base64, io, sys
 from PIL import Image
@@ -1345,7 +1345,7 @@ export async function vpsComputerScreenshot(
         "sh",
         "-c",
         SCREENSHOT_TRANSFER,
-        "openmausbot-preview",
+        "spdbot-preview",
         SCREENSHOT_PATH,
       ]), { timeoutMs: 30_000 })).stdout.trim();
       const checked = wholeScreenshot(Buffer.from(encoded, "base64"));

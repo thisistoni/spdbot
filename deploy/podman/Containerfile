@@ -30,10 +30,10 @@ COPY --from=build --chown=maus:maus /src/dist ./dist
 ARG ENGINES=""
 RUN if [ -n "$ENGINES" ]; then npm install -g $ENGINES; fi
 ENV HOME=/data \
-    OMB_DATA_DIR=/data/.openmausbot \
+    OMB_DATA_DIR=/data/.spdbot \
     OMB_STATIC_DIR=/app/dist \
-    OMB_PORT=8799 \
-    OMB_WEBHOOK_PORT=8800 \
+    OMB_PORT=8899 \
+    OMB_WEBHOOK_PORT=8900 \
     NODE_ENV=production
 USER maus
 # Starts dist-server/index.js again when it asks to (server/restart.ts).

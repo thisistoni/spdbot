@@ -1,7 +1,14 @@
 # Local Docker Compose
 
-From the repository root, run `docker compose up -d --build`, then open
-http://localhost:8080. Docker with Linux containers is required.
+From the repository root, build the local base image before Compose:
+
+```sh
+docker build -t spdbot-runtime:local .
+docker compose up -d --build
+```
+
+Then open http://localhost:8080. Docker with Linux containers is required.
+The base image is built from this checkout; no published SPDBot image is assumed.
 Compose supplies defaults; no `.env` file is required.
 The application container uses Docker's init process to reap orphaned agent
 subprocesses.
@@ -31,7 +38,7 @@ Sign in and pair a browser:
 
 ```sh
 docker compose exec omb codex login --device-auth
-docker compose exec omb node dist-server/openmausbot.js pair
+docker compose exec omb node dist-server/spdbot.js pair
 ```
 
 On Windows, `./maus.ps1` forwards arguments to Compose using the repository
@@ -41,5 +48,8 @@ Data and engine credentials persist in the named data volume. For an existing
 volume, set `OMB_DATA_VOLUME` to its name and `OMB_DATA_EXTERNAL=true`.
 Fresh installs create their volume automatically.
 
-Update with `docker compose build --pull` followed by `docker compose up -d`.
+Update by reviewing the new source checkout, rebuilding the base with
+`docker build --pull -t spdbot-runtime:local .`, then running
+`docker compose build` and `docker compose up -d`. Do not use Compose
+`build --pull` for this local-only base tag.
 Stop with `docker compose stop`. `docker compose down -v` deletes managed volumes.

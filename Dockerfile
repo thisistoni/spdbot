@@ -11,12 +11,12 @@
 # Caddy in the same network namespace to terminate TLS and authentication at
 # the edge.
 #
-#   docker build -t openmausbot .
-#   docker build --build-arg ENGINES="@anthropic-ai/claude-code @openai/codex" -t openmausbot .
+#   docker build -t spdbot-runtime:local .
+#   docker build --build-arg ENGINES="@anthropic-ai/claude-code @openai/codex" -t spdbot-runtime:local .
 #   docker build --target cloud-home -t omb-cloud-home .
 #
 # HOME is the /data volume, so engine CLI logins (~/.claude, ~/.codex, ~/.grok,
-# ...) and OpenMausBot's own state (~/.openmausbot) persist across container
+# ...) and OpenMausBot's own state (~/.spdbot) persist across container
 # restarts.
 #
 # A plain `docker run` of either image wants `--init --shm-size=512m`, as the
@@ -79,8 +79,8 @@ ARG CHROME_CACHE_TAG=""
 # postinstall points it there); the other platforms' binaries are never run.
 RUN echo "agent-browser ${AGENT_BROWSER_VERSION}, Chrome for Testing ${CHROME_CACHE_TAG:-Stable}" \
   && npm install -g --cache /tmp/npm-cache agent-browser@${AGENT_BROWSER_VERSION} \
-  && HOME=/opt/openmausbot-browser agent-browser install \
-  && ln -s /opt/openmausbot-browser/.agent-browser/browsers/chrome-*/chrome /opt/openmausbot-browser/chrome \
+  && HOME=/opt/spdbot-browser agent-browser install \
+  && ln -s /opt/spdbot-browser/.agent-browser/browsers/chrome-*/chrome /opt/spdbot-browser/chrome \
   && native="$(readlink -f "$(command -v agent-browser)")" \
   && case "$native" in */agent-browser/bin/agent-browser-linux-*) ;; *) echo "agent-browser is not a native binary: $native" >&2; exit 1;; esac \
   && [ "$(head -c 4 "$native")" = "$(printf '\177ELF')" ] \
@@ -92,9 +92,9 @@ RUN echo "agent-browser ${AGENT_BROWSER_VERSION}, Chrome for Testing ${CHROME_CA
 # which each image sets after its last build step, so no build step writes
 # into what a fresh volume starts with.
 #  OMB_DUCKDB_DIR: the DuckDB binding tree the server requires (no node_modules here).
-ENV AGENT_BROWSER_EXECUTABLE_PATH=/opt/openmausbot-browser/chrome \
+ENV AGENT_BROWSER_EXECUTABLE_PATH=/opt/spdbot-browser/chrome \
     OMB_DUCKDB_DIR=/app/duckdb \
-    OMB_DATA_DIR=/data/.openmausbot \
+    OMB_DATA_DIR=/data/.spdbot \
     OMB_STATIC_DIR=/app/dist \
     OMB_PORT=8799 \
     OMB_WEBHOOK_PORT=8800 \
@@ -154,7 +154,7 @@ VOLUME ["/data"]
 EXPOSE 8080
 # Fly uses the checks in fly.toml; this one serves a plain `docker run`.
 HEALTHCHECK --interval=15s --timeout=5s --start-period=30s --retries=5 \
-  CMD curl -sf http://127.0.0.1:8080/api/health | grep -q openmausbot || exit 1
+  CMD curl -sf http://127.0.0.1:8080/api/health | grep -q spdbot || exit 1
 # Starts as root: hands a fresh volume to `maus`, runs the server and the edge
 # as `maus`, and hands the server its secrets over a pipe, never an
 # environment `maus` could read (server/cloud-home-start.ts). It runs only
@@ -174,7 +174,7 @@ ENV HOME=/data
 VOLUME ["/data"]
 USER maus
 HEALTHCHECK --interval=30s --timeout=5s --start-period=20s --retries=3 \
-  CMD curl -sf http://127.0.0.1:8799/api/health | grep -q openmausbot || exit 1
+  CMD curl -sf http://127.0.0.1:8799/api/health | grep -q spdbot || exit 1
 # The launcher runs dist-server/index.js and starts it again when it asks to
 # (a copied workspace committing, server/restart.ts), so the container, and a
 # Caddy sharing its network, stays up through that restart.

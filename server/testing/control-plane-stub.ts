@@ -40,7 +40,7 @@ async function readJson(req: IncomingMessage): Promise<Record<string, unknown>> 
 
 export async function startControlPlaneStub(options: { otp?: string; endpointUrl?: string } = {}): Promise<ControlPlaneStub> {
   const otp = options.otp ?? "24681357";
-  const endpointUrl = options.endpointUrl ?? "https://c-stub.openmausbot.invalid";
+  const endpointUrl = options.endpointUrl ?? "https://c-stub.spdbot.invalid";
   const connectorToken = `stub-connector-${randomBytes(48).toString("base64url")}`;
   let issuedConnectorToken = connectorToken;
   let reclaimedUntilProvision: string | null = null;

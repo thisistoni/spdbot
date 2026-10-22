@@ -7,8 +7,8 @@ import { networkInterfaces } from "node:os";
 
 const CHECK_TIMEOUT_MS = 8_000;
 const MAX_RESPONSE_BYTES = 16_384;
-const DESCRIPTOR_PATH = "/.well-known/openmausbot/environment";
-export const CUSTOM_DOMAIN_CHALLENGE_PATH = "/.well-known/openmausbot/domain-check/";
+const DESCRIPTOR_PATH = "/.well-known/spdbot/environment";
+export const CUSTOM_DOMAIN_CHALLENGE_PATH = "/.well-known/spdbot/domain-check/";
 
 export class CustomDomainError extends Error {
   readonly status: number;

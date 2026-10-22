@@ -1,17 +1,18 @@
-// `openmausbot` on the command line: run the server anywhere and pair devices to it.
+// `spdbot` on the command line: run the server anywhere and pair devices to it.
 //
-//   openmausbot setup [--data-dir ~/.openmausbot]
-//   openmausbot start [serve options]
-//   openmausbot serve [--port 8799] [--data-dir ~/.openmausbot] [--label "cab mini"]
+//   spdbot setup [--data-dir ~/.spdbot]
+//   spdbot start [serve options]
+//   spdbot serve [--port 8899] [--data-dir ~/.spdbot] [--label "cab mini"]
 //                     [--public-url https://host] [--tailscale | --tunnel | --domain HOST] [--no-pair]
-//   openmausbot pair  [--label "My MacBook"] [--client] [--public-url https://host]
-//   openmausbot sessions [revoke <id>]
-//   openmausbot status
-//   openmausbot login [--email you@example.com]
-//   openmausbot logout
-//   openmausbot run | send | wait | doctor | team apply | export | …
+//   spdbot pair  [--label "My MacBook"] [--client] [--public-url https://host]
+//   spdbot sessions [revoke <id>]
+//   spdbot status
+//   spdbot login [--email you@example.com]
+//   spdbot logout
+//   spdbot run | send | wait | doctor | team apply | export | …
 //
-// This module only exports: openmausbot.ts runs main(), so bundling this file into other entries never runs it twice.
+// This module only exports: spdbot.ts runs main(), so bundling this file into other entries never runs it twice.
+import { discoverCliPort, probeLocalProduct } from "./cli-discovery.ts";
 import { spawn, type ChildProcess } from "node:child_process";
 import { randomBytes } from "node:crypto";
 import { closeSync, existsSync, mkdirSync, openSync, readFileSync } from "node:fs";
@@ -120,8 +121,8 @@ export function parseArgs(argv: string[], env: NodeJS.ProcessEnv = process.env):
   }
   const options: CliOptions = {
     command: command === "--help" || command === "-h" ? "help" : (command as CliOptions["command"]),
-    port: Number(env.OMB_PORT || 8799),
-    dataDir: env.OMB_DATA_DIR || join(homedir(), ".openmausbot"),
+    port: Number(env.OMB_PORT || 8899),
+    dataDir: env.OMB_DATA_DIR || join(homedir(), ".spdbot"),
     tailscale: false,
     tunnel: false,
     client: false,
@@ -254,28 +255,21 @@ async function api(port: number, path: string, init: { method?: string; body?: s
   return { status: res.status, body };
 }
 
-export const SERVICE_TRUST_HELP = "This server does not treat commands on this computer as its owner (OMB_LOOPBACK_TRUST=service, or a hosted workspace), so it will not pair devices or list sessions for them. Sign in as an admin and use Settings → Remote access, let people sign in with their email (openmausbot access add you@example.com), or restart the server with OMB_LOOPBACK_TRUST=owner.";
+export const SERVICE_TRUST_HELP = "This server does not treat commands on this computer as its owner (OMB_LOOPBACK_TRUST=service, or a hosted workspace), so it will not pair devices or list sessions for them. Sign in as an admin and use Settings → Remote access, let people sign in with their email (spdbot access add you@example.com), or restart the server with OMB_LOOPBACK_TRUST=owner.";
 
 function refusedAsService(status: number, body: any): boolean {
   return status === 403 && typeof body?.error === "string" && /shared server|Sign in through the workspace portal/.test(body.error);
 }
 
-async function serverUp(port: number, pid?: number): Promise<boolean> {
-  try {
-    const { status, body } = await api(port, "/api/health");
-    return status === 200 && body?.app === "openmausbot" && (pid === undefined || body.pid === pid);
-  } catch {
-    return false;
-  }
-}
+const serverUp = (port: number, pid?: number) => probeLocalProduct(api, port, pid);
 
 /** Never attach to another workspace just because it listens on the requested port. */
 export async function isWorkspaceRunning(options: CliOptions): Promise<boolean> {
   try {
     const { status, body } = await api(options.port, "/api/health");
-    if (status !== 200 || body?.app !== "openmausbot") return false;
+    if (status !== 200 || body?.app !== "spdbot") return false;
     const expected = readFileSync(join(options.dataDir, "environment-id"), "utf8").trim();
-    const descriptor = await api(options.port, "/.well-known/openmausbot/environment");
+    const descriptor = await api(options.port, "/.well-known/spdbot/environment");
     return /^[0-9a-f-]{36}$/i.test(expected) && descriptor.status === 200 && descriptor.body?.environmentId === expected;
   } catch { return false; }
 }
@@ -298,8 +292,8 @@ export async function openDashboard(port: number, env = process.env): Promise<bo
 export async function verifyPhoneEndpoint(port: number, origin: string): Promise<boolean> {
   if (!normalizePhoneOrigin(origin)) return false;
   try {
-    const local = await api(port, "/.well-known/openmausbot/environment");
-    const remote = await fetch(`${origin}/.well-known/openmausbot/environment`, { signal: AbortSignal.timeout(5000), redirect: "error" });
+    const local = await api(port, "/.well-known/spdbot/environment");
+    const remote = await fetch(`${origin}/.well-known/spdbot/environment`, { signal: AbortSignal.timeout(5000), redirect: "error" });
     if (local.status !== 200 || !remote.ok) return false;
     const descriptor = await remote.json() as { environmentId?: unknown };
     return typeof local.body?.environmentId === "string" && local.body.environmentId.length > 0
@@ -311,7 +305,7 @@ export function applyStartupPreferences(options: CliOptions, saved: AppConfig["c
   if (options.local) return { ...options, tunnel: false, tailscale: false, publicUrl: undefined, phone: undefined };
   if (!saved || options.tunnel || options.tailscale || options.publicUrl) return options;
   if (saved.access === "public-url" && (!saved.publicUrl || !normalizePhoneOrigin(saved.publicUrl))) {
-    throw new Error("The saved phone address is not a valid HTTPS origin. Run openmausbot setup to correct it, or openmausbot --local to start only on this computer.");
+    throw new Error("The saved phone address is not a valid HTTPS origin. Run spdbot setup to correct it, or spdbot --local to start only on this computer.");
   }
   return {
     ...options,
@@ -335,8 +329,8 @@ function startupPreferences(options: CliOptions): NonNullable<AppConfig["cliStar
 async function showPhonePairing(options: CliOptions, origin: string | undefined, log: (line: string) => void): Promise<boolean> {
   const ready = !!origin && await verifyPhoneEndpoint(options.port, origin);
   if (!ready) {
-    log("Phone access is not reachable yet. OpenMausBot is ready on this computer; no phone pairing code was created.");
-    log("Check the HTTPS connection, then run openmausbot pair again with the same --data-dir and --port.");
+    log("Phone access is not reachable yet. SPDBot is ready on this computer; no phone pairing code was created.");
+    log("Check the HTTPS connection, then run spdbot pair again with the same --data-dir and --port.");
     return false;
   }
   for (const line of phonePairingInstructions(options.phone ?? "ios", { origin: origin!, ready })) log(line);
@@ -363,7 +357,7 @@ async function mintPairing(port: number, options: { label?: string; client?: boo
 
 export async function runPair(options: CliOptions): Promise<number> {
   if (!(await serverUp(options.port))) {
-    console.error(`no OpenMausBot server on http://127.0.0.1:${options.port}; start one with \`openmausbot serve\` or set OMB_PORT`);
+    console.error(`no SPDBot server on http://127.0.0.1:${options.port}; start one with \`spdbot serve\` or set OMB_PORT`);
     return 1;
   }
   if (process.stdin.isTTY && process.stdout.isTTY && !options.label && !options.client) {
@@ -382,7 +376,7 @@ export async function runPair(options: CliOptions): Promise<number> {
     }
     if (!origin || !normalizePhoneOrigin(origin)) {
       console.log("Your workspace is running only on this computer. A phone cannot use its localhost address.");
-      console.log("Stop the server, run openmausbot setup and choose phone access, then start openmausbot again.");
+      console.log("Stop the server, run spdbot setup and choose phone access, then start spdbot again.");
       return 1;
     }
     const ui = defaultSetupIo();
@@ -404,7 +398,7 @@ export async function runPair(options: CliOptions): Promise<number> {
 
 export async function runSessions(options: CliOptions): Promise<number> {
   if (!(await serverUp(options.port))) {
-    console.error(`no OpenMausBot server on http://127.0.0.1:${options.port}`);
+    console.error(`no SPDBot server on http://127.0.0.1:${options.port}`);
     return 1;
   }
   if (options.revoke) {
@@ -435,7 +429,7 @@ export async function runSessions(options: CliOptions): Promise<number> {
     return 0;
   }
   if (!sessions.length) {
-    console.log("no paired devices yet: run `openmausbot pair`");
+    console.log("no paired devices yet: run `spdbot pair`");
     return 0;
   }
   console.log(formatSessions(sessions));
@@ -451,17 +445,17 @@ export function formatSessions(sessions: Array<{ id: string; label: string; scop
   const head = ["id", "device", "scope", "last seen", "expires"];
   const widths = head.map((h, i) => Math.max(h.length, ...rows.map((r) => r[i].length)));
   const line = (r: string[]) => r.map((c, i) => c.padEnd(widths[i])).join("  ");
-  return [line(head), ...rows.map(line), "", "revoke one with: openmausbot sessions revoke <id>"].join("\n");
+  return [line(head), ...rows.map(line), "", "revoke one with: spdbot sessions revoke <id>"].join("\n");
 }
 
 export async function runStatus(options: CliOptions, io: CliIo = defaultIo()): Promise<number> {
   let code = 0;
   try {
-    const res = await fetch(`http://127.0.0.1:${options.port}/.well-known/openmausbot/environment`);
+    const res = await fetch(`http://127.0.0.1:${options.port}/.well-known/spdbot/environment`);
     const body: any = await res.json();
-    io.log(options.json ? JSON.stringify(body, null, 2) : `${body.label} · OpenMausBot ${body.version} on ${body.platform} · id ${body.environmentId}`);
+    io.log(options.json ? JSON.stringify(body, null, 2) : `${body.label} · SPDBot ${body.version} on ${body.platform} · id ${body.environmentId}`);
   } catch {
-    io.error(`no OpenMausBot server on http://127.0.0.1:${options.port}`);
+    io.error(`no SPDBot server on http://127.0.0.1:${options.port}`);
     code = 1;
   }
   if (!options.json) {
@@ -508,7 +502,7 @@ export async function runAccess(options: CliOptions, io: CliIo = defaultIo()): P
   };
   if (options.accessAction === "list") {
     if (!admins.length && !members.length) {
-      io.log("nobody can sign in with an email yet; pairing codes only. Add someone with: openmausbot access add you@example.com");
+      io.log("nobody can sign in with an email yet; pairing codes only. Add someone with: spdbot access add you@example.com");
       return 0;
     }
     for (const entry of admins) io.log(`${entry.padEnd(40)} full access`);
@@ -528,7 +522,7 @@ export async function runAccess(options: CliOptions, io: CliIo = defaultIo()): P
       return 1;
     }
     await write({ admins: without(admins), members: without(members) });
-    io.log(`${entry} can no longer sign in (existing sessions stay until they expire or are revoked with \`openmausbot sessions revoke\`)`);
+    io.log(`${entry} can no longer sign in (existing sessions stay until they expire or are revoked with \`spdbot sessions revoke\`)`);
     return 0;
   }
   await write(options.chatOnly ? { admins: without(admins), members: [...without(members), entry] } : { admins: [...without(admins), entry], members: without(members) });
@@ -550,9 +544,9 @@ export async function runLogin(options: CliOptions, io: CliIo = defaultIo()): Pr
   }
   const existing = describeTunnelAccount(account.credentials.read());
   if (existing.address) io.log(`already signed in as ${existing.email ?? "?"} (${existing.address}); signing in again refreshes it`);
-  const email = (options.email ?? (await io.ask("Email for your OpenMausBot account: "))).trim();
+  const email = (options.email ?? (await io.ask("Email for your SPDBot account: "))).trim();
   if (!email) {
-    io.error("an email address is needed: openmausbot login --email you@example.com");
+    io.error("an email address is needed: spdbot login --email you@example.com");
     return 1;
   }
   try {
@@ -576,7 +570,7 @@ export async function runLogin(options: CliOptions, io: CliIo = defaultIo()): Pr
   }
   io.log(`Signed in as ${signedIn.email ?? email}.`);
   io.log(`This machine's public address: ${signedIn.address}`);
-  io.log("Serve there with:  openmausbot serve --tunnel");
+  io.log("Serve there with:  spdbot serve --tunnel");
   return 0;
 }
 
@@ -608,7 +602,7 @@ export async function runBrowser(options: CliOptions, io: CliIo = defaultIo()): 
   const status = browserEngineStatus({ dataDir: options.dataDir });
   if (options.browserAction === "status") {
     io.log(describeBrowserEngine(status, status.kind === "ready" ? new (await import("./browser/chrome/launcher.ts")).ChromeLauncher({ dataDir: options.dataDir }).describe() : undefined));
-    if (status.kind !== "ready" && status.installable) io.log("install it with:  openmausbot browser install");
+    if (status.kind !== "ready" && status.installable) io.log("install it with:  spdbot browser install");
     return status.kind === "ready" ? 0 : 1;
   }
   let binary = resolveAgentBrowserBinary({ dataDir: options.dataDir });
@@ -631,11 +625,11 @@ export async function runBrowser(options: CliOptions, io: CliIo = defaultIo()): 
     await ensureChrome(binary, { withDeps: options.withDeps === true, log: io.log });
   } catch (error) {
     io.error(`Chrome is not ready: ${message(error)}`);
-    if (process.platform === "linux" && !options.withDeps) io.error("on Linux, install Chrome's system libraries with `sudo openmausbot browser install --with-deps`, then retry `openmausbot browser install` as the user running serve");
+    if (process.platform === "linux" && !options.withDeps) io.error("on Linux, install Chrome's system libraries with `sudo spdbot browser install --with-deps`, then retry `spdbot browser install` as the user running serve");
     return 1;
   }
   io.log("browser installed for this user and data directory; run serve as the same user, then enable it under Settings → Computers and per bot");
-  if (process.platform === "linux" && options.withDeps) io.log("if serve runs as another user, run `openmausbot browser install` from that user's login shell too");
+  if (process.platform === "linux" && options.withDeps) io.log("if serve runs as another user, run `spdbot browser install` from that user's login shell too");
   return 0;
 }
 
@@ -680,18 +674,18 @@ async function planTunnel(options: CliOptions, log: (line: string) => void, reco
     account = createTunnelAccount({ dataDir: options.dataDir, version: serverVersion(), recovery, log: (line) => log(`tunnel: ${line}`) });
     if (account.credentials.status === "unavailable") return fail(`${account.credentials.file} exists but could not be read; fix or remove it`);
     if (!describeTunnelAccount(account.credentials.read()).email) {
-      return fail("no account on this machine yet: run `openmausbot login` first, then `openmausbot serve --tunnel`");
+      return fail("no account on this machine yet: run `spdbot login` first, then `spdbot serve --tunnel`");
     }
     try {
       const state = await account.service.retry();
       const saved = tunnelAccess(account.credentials.read()) !== null;
-      if (state.status === "signed-out") log(`tunnel: the sign-in on this machine expired; run \`openmausbot login\` to renew it${saved ? " (serving the saved address until then)" : ""}`);
+      if (state.status === "signed-out") log(`tunnel: the sign-in on this machine expired; run \`spdbot login\` to renew it${saved ? " (serving the saved address until then)" : ""}`);
       else if (state.message) log(`tunnel: ${state.message}${saved ? " Serving the saved address for now." : ""}`);
     } catch (error) {
       log(`tunnel: control plane not reachable right now (${message(error)}); using the saved address`);
     }
     access = tunnelAccess(account.credentials.read());
-    if (!access) return fail("this machine has no public address; run `openmausbot login` again");
+    if (!access) return fail("this machine has no public address; run `spdbot login` again");
   }
   let binary: string;
   try {
@@ -707,7 +701,7 @@ async function planTunnel(options: CliOptions, log: (line: string) => void, reco
 export async function runServe(options: CliOptions, log: (line: string) => void = console.log): Promise<number> {
   const { browserEngineStatus, describeBrowserEngine } = await import("./browser-engine.ts");
   if (await serverUp(options.port)) {
-    console.error(`something already answers on http://127.0.0.1:${options.port}; use \`openmausbot pair\` against it, or --port for a second server`);
+    console.error(`something already answers on http://127.0.0.1:${options.port}; use \`spdbot pair\` against it, or --port for a second server`);
     return 1;
   }
   let publicUrl = options.publicUrl;
@@ -846,12 +840,12 @@ export async function runServe(options: CliOptions, log: (line: string) => void 
       await new Promise((r) => setTimeout(r, 250));
     }
     if (exited !== null) {
-      if (exited !== 0) log(`OpenMausBot could not start.${logPath ? ` Details: ${logPath}` : " See the output above."}`);
+      if (exited !== 0) log(`SPDBot could not start.${logPath ? ` Details: ${logPath}` : " See the output above."}`);
       return exited;
     }
     if (stopping) return await childExit;
     if (!(await serverUp(options.port, child.pid))) {
-      console.error(`OpenMausBot did not become ready within a minute.${logPath ? ` Details: ${logPath}` : " See its output above."}`);
+      console.error(`SPDBot did not become ready within a minute.${logPath ? ` Details: ${logPath}` : " See its output above."}`);
       await stop();
       return 1;
     }
@@ -883,7 +877,7 @@ export async function runServe(options: CliOptions, log: (line: string) => void 
       void plan.account?.service.restore().catch(() => undefined);
     }
     log("");
-    log(`OpenMausBot is running on http://127.0.0.1:${options.port}${publicUrl ? `, reachable at ${publicUrl}` : ""}`);
+    log(`SPDBot is running on http://127.0.0.1:${options.port}${publicUrl ? `, reachable at ${publicUrl}` : ""}`);
     if (options.guided) {
       log("Your bots and conversations are saved automatically.");
       log(`Details if you need help: ${logPath}`);
@@ -907,14 +901,14 @@ export async function runServe(options: CliOptions, log: (line: string) => void 
       log("");
       try {
         log(await mintPairing(options.port, { label: options.label ? `${options.label} owner` : undefined, client: options.client, publicUrl: publicUrl ?? undefined, guided: options.guided }));
-        if (!options.guided) log("\nanother device later:  openmausbot pair --label \"Kitchen iPad\"");
+        if (!options.guided) log("\nanother device later:  spdbot pair --label \"Kitchen iPad\"");
       } catch (error) {
         log(`no pairing code: ${message(error)}`);
-        log("start without one next time:  openmausbot serve --no-pair");
+        log("start without one next time:  spdbot serve --no-pair");
       }
     }
     log(options.guided ? "\nKeep this terminal open while using your bots. Ctrl+C stops the server, not your saved work." : "stop with Ctrl+C");
-    if (options.guided) log("Next time: openmausbot · Change AI or phone setup: openmausbot setup · Pair another phone: openmausbot pair");
+    if (options.guided) log("Next time: spdbot · Change AI or phone setup: spdbot setup · Pair another phone: spdbot pair");
     return await childExit;
   } finally {
     serveOwnerToken = undefined;
@@ -931,7 +925,7 @@ export async function serveUntilStopped(options: CliOptions, run: (options: CliO
   for (;;) {
     const code = await run(launch);
     if (!policy.again(code)) return code;
-    console.log("\nOpenMausBot is starting again to finish installing a copy from the desktop app…");
+    console.log("\nSPDBot is starting again to finish installing a copy from the desktop app…");
     launch = { ...options, pair: false, open: false };
   }
 }
@@ -945,7 +939,7 @@ export async function runOnboardingCommand(
 ): Promise<number> {
   const interactive = process.stdin.isTTY === true && process.stdout.isTTY === true;
   if (options.command === "setup" && !interactive) {
-    io.error("Setup needs an interactive terminal. Run `npx openmausbot setup` in a terminal, then use `npx openmausbot serve` for unattended starts.");
+    io.error("Setup needs an interactive terminal. Run `pnpm spdbot setup` in a terminal, then use `pnpm spdbot serve` for unattended starts.");
     return 1;
   }
   process.env.OMB_DATA_DIR = options.dataDir;
@@ -964,11 +958,11 @@ export async function runOnboardingCommand(
   try {
     if (options.command === "setup" || !(await isSetupComplete(options.dataDir))) {
       if (!interactive) {
-        io.error("No completed setup was found. Run `npx openmausbot setup` in an interactive terminal first, or use `npx openmausbot serve` with an existing configuration.");
+        io.error("No completed setup was found. Run `pnpm spdbot setup` in an interactive terminal first, or use `pnpm spdbot serve` with an existing configuration.");
         return 1;
       }
       if (!(await runSetup({ dataDir: options.dataDir, port: options.port }))) {
-        io.log("Setup cancelled. Run openmausbot when you're ready.");
+        io.log("Setup cancelled. Run spdbot when you're ready.");
         return 130;
       }
     }
@@ -988,8 +982,8 @@ export async function runOnboardingCommand(
       saveCliStartup(options.dataDir, startupPreferences(launch));
     }
     if (options.command === "setup") {
-      io.log("\nAll set. Start with: openmausbot (or npx openmausbot without a global install).");
-      if (options.dataDir !== join(homedir(), ".openmausbot") || options.port !== 8799) {
+      io.log("\nAll set. Start with: pnpm spdbot from the SPDBot source checkout.");
+      if (options.dataDir !== join(homedir(), ".spdbot") || options.port !== 8899) {
         io.log(`Use the same --data-dir (${options.dataDir}) and --port (${options.port}) options when starting.`);
       }
       return 0;
@@ -998,7 +992,7 @@ export async function runOnboardingCommand(
     return startServer({ ...launch, guided: interactive });
   } catch (error) {
     if (!(error instanceof SetupCancelled)) throw error;
-    io.log("\nSetup stopped. Any AI setup already saved is kept; no server was started. Run openmausbot setup to continue.");
+    io.log("\nSetup stopped. Any AI setup already saved is kept; no server was started. Run spdbot setup to continue.");
     return 130;
   }
 }
@@ -1011,6 +1005,7 @@ export async function main(argv = process.argv.slice(2)): Promise<number> {
     console.error(`${options.error}\n\n${USAGE}`);
     return 2;
   }
+  if (!await discoverCliPort(options, argv, process.env, serverUp)) return 1;
   process.env.OMB_DATA_DIR = options.dataDir;
   switch (options.command) {
     case "setup":

@@ -18,8 +18,8 @@ let auth: RequestAuth, cloudHome: boolean, home: string, server: Server, base: s
 beforeEach(async () => {
   auth = owner; cloudHome = true;
   home = mkdtempSync(join(tmpdir(), "omb-sync-routes-"));
-  mkdirSync(join(home, ".openmausbot"));
-  routes = createCloudSyncRoutes({ dataDir: join(home, ".openmausbot"), cloudHome: () => cloudHome, statfs: () => ({ totalBytes: 10 * 1024 ** 3, freeBytes: 9 * 1024 ** 3 }) });
+  mkdirSync(join(home, ".spdbot"));
+  routes = createCloudSyncRoutes({ dataDir: join(home, ".spdbot"), cloudHome: () => cloudHome, statfs: () => ({ totalBytes: 10 * 1024 ** 3, freeBytes: 9 * 1024 ** 3 }) });
   server = createServer(async (req, res) => {
     const url = new URL(req.url!, "http://127.0.0.1");
     if (!await dispatchRoutes([routes], { req, res, url, path: url.pathname, method: req.method!, auth, json, readBody })) json(res, 404, { error: "not ours" });

@@ -154,8 +154,8 @@ ships, whichever command you ran it from:
 
 | Platform | Node | Script |
 |---|---|---|
-| macOS | `/Applications/OpenMausBot.app/Contents/MacOS/OpenMausBot` (or under `~/Applications`) | `…/Contents/Resources/server/openmausbot.js` |
-| Ubuntu `.deb` | `/opt/OpenMausBot/openmausbot` | `/opt/OpenMausBot/resources/server/openmausbot.js` |
+| macOS | `/Applications/OpenMausBot.app/Contents/MacOS/OpenMausBot` (or under `~/Applications`) | `…/Contents/Resources/server/spdbot.js` |
+| Ubuntu `.deb` | `/opt/OpenMausBot/openmausbot` | `/opt/OpenMausBot/resources/server/spdbot.js` |
 
 The app's own executable runs as Node with `ELECTRON_RUN_AS_NODE=1`, just as
 the [MCP server](mcp-server.md#from-the-installed-desktop-app) does. App

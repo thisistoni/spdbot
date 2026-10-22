@@ -629,7 +629,7 @@ import { createBotMessageRoutes } from "./routes/bot-messages.ts";
 import { createThreadRoutes } from "./routes/threads.ts";
 import { withScopeHint } from "./connector-scope-hint.ts";
 
-const PORT = Number(process.env.OMB_PORT || process.env.OGB_PORT || 8799);
+const PORT = Number(process.env.OMB_PORT || process.env.OGB_PORT || 8899);
 const WEBHOOK_PORT = Number(process.env.OMB_WEBHOOK_PORT || PORT + 1);
 const WEBHOOK_PUBLIC_URL = process.env.OMB_WEBHOOK_PUBLIC_URL || undefined;
 const STATIC_DIR = process.env.OMB_STATIC_DIR || null;
@@ -669,7 +669,7 @@ if (existsSync(join(DATA_DIR, ".backups"))) {
   if (!workspaceRestore.restored && !workspaceRestore.rolledBack) workspaceRestore = readLastWorkspaceRestore(DATA_DIR) ?? workspaceRestore;
 }
 const workspaceMaintenance = new WorkspaceBackupMaintenance();
-// Only after ensureDirs(), whose one-time legacy data-dir rename must not find ~/.openmausbot already there.
+// Only after ensureDirs(), whose one-time legacy data-dir rename must not find ~/.spdbot already there.
 const ENVIRONMENT_ID = loadEnvironmentId(DATA_DIR);
 const signInAllowList = cacheUntilConfigChanges((config) => ({
   admins: parseAllowList(config.signIn?.admins?.join(",")),
@@ -13796,7 +13796,7 @@ const handleRequest = async (req: IncomingMessage, res: ServerResponse) => {
       }
       res.setHeader(HOSTED_CONTRACT_HEADER, String(HOSTED_CONTRACT_VERSION));
       if (hostedModels) res.setHeader(HOSTED_MODEL_POLICY_HEADER, "1");
-      return json(res, 200, { ok: true, service: "openmausbot", membershipAuthority: "portal", workspace: hosted.workspace, ...HOSTED_CONTRACT_METADATA });
+      return json(res, 200, { ok: true, service: "spdbot", membershipAuthority: "portal", workspace: hosted.workspace, ...HOSTED_CONTRACT_METADATA });
     }
     // Hosted workspaces have one sign-in authority: a missing optional layer must never reactivate email/QR credential minting.
     if (HOSTED_WORKSPACE) {
@@ -13824,10 +13824,10 @@ const handleRequest = async (req: IncomingMessage, res: ServerResponse) => {
     }
     // Two public routes come first; everything else needs the loopback owner or a paired session with the right scope.
     if (method === "GET" && !path.startsWith("/api/") && !path.startsWith("/.well-known/") && serveStatic(res, path)) return;
-    if (method === "GET" && path === "/.well-known/openmausbot/environment") {
+    if (method === "GET" && path === "/.well-known/spdbot/environment") {
       return json(res, 200, environmentDescriptor({ environmentId: ENVIRONMENT_ID, desktopManaged: DESKTOP_MANAGED, emailSignIn: !HOSTED_WORKSPACE && !CLOUD_HOME && emailSignIn.enabled(), sharedComputers: lendingEnabled(), cloudHome: Boolean(CLOUD_HOME) }));
     }
-    const domainCheck = /^\/\.well-known\/openmausbot\/domain-check\/([a-f0-9]{64})$/.exec(path);
+    const domainCheck = /^\/\.well-known\/spdbot\/domain-check\/([a-f0-9]{64})$/.exec(path);
     if (method === "GET" && domainCheck) {
       res.setHeader("cache-control", "no-store");
       const challenge = customDomainVerifier.challenge(domainCheck[1]);
@@ -13951,7 +13951,7 @@ const handleRequest = async (req: IncomingMessage, res: ServerResponse) => {
     }
     // Public reachability probe: a stranger learns only the app name; pid and the static flag stay behind the gate.
     if (method === "GET" && path === "/api/health" && !gate.auth) {
-      return json(res, 200, { app: "openmausbot" });
+      return json(res, 200, { app: "spdbot" });
     }
     // Public: the sign-in page needs the deployment's name and icon, and it holds nothing secret.
     if (method === "GET" && path === "/api/brand" && !gate.auth) {
@@ -17157,7 +17157,7 @@ restoreChannelMessages();
 
 server.listen(PORT, "127.0.0.1", async () => {
   companyRuntimeReady();
-  console.log(`openmausbot server on http://127.0.0.1:${PORT}`);
+  console.log(`spdbot server on http://127.0.0.1:${PORT}`);
   browserSweep.start(); appTriggers.start(); startCloudHomeConnectedApps({ cloudHome: CLOUD_HOME !== null, dataDir: DATA_DIR, cloudGrant: CLOUD_ENV.OMB_CLOUD_CONNECTED_APPS_GRANT, apply: (access) => { composio.setManagedBrokerAccess(access); broadcast({ kind: "config", ...configStatus() }); } });
   if (builtInBrowserEnabled(cfg)) chromeLauncher.start();
   followupsReady = true;
@@ -17181,7 +17181,7 @@ if (TUNNEL_SOCKET) {
   tunnelListener = createServer(gzipTunnelReplies(handleRequest));
   upgrades.attach(tunnelListener, handleRequest);
   tunnelListener.listen(TUNNEL_SOCKET, () => {
-    console.log(`openmausbot tunnel listener on ${TUNNEL_SOCKET}`);
+    console.log(`spdbot tunnel listener on ${TUNNEL_SOCKET}`);
   });
 }
 

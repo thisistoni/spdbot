@@ -266,7 +266,7 @@ test("the preload gives every page of the window the notices and the switch's st
 test("production wiring: main answers this computer's page, My Cloud's own page and the active saved server's own page, and no other", async () => {
   const main = readFileSync(new URL("./main.mjs", import.meta.url), "utf8").replace(/\r\n/g, "\n");
   assert.match(main, /for \(const port of DESKTOP_PORTS\)/, "main tries the ports this module names, in order");
-  assert.deepEqual([...DESKTOP_PORTS], [8799, 18799, 28799]);
+  assert.deepEqual([...DESKTOP_PORTS], [8899, 18899, 28899]);
   const start = main.indexOf("  registerDesktopPrefs({"), end = main.indexOf("\n", main.indexOf("thisComputer:", start));
   assert.ok(start >= 0 && end > start, "main.mjs registers the desktop prefs");
   let options = null;
@@ -277,7 +277,7 @@ test("production wiring: main answers this computer's page, My Cloud's own page 
   let switched = async id => { calls.push(["switch", id]); }, loads = true;
   const context = vm.createContext({
     registerDesktopPrefs: value => { options = value; }, jsonFile: file => ({ read: () => file, write: () => {} }), ipcMain: {},
-    path: { join: (...parts) => parts.join("/") }, app: { getPath: () => "/user-data" }, desktopDataDir: () => "/home/.openmausbot",
+    path: { join: (...parts) => parts.join("/") }, app: { getPath: () => "/user-data" }, desktopDataDir: () => "/home/.spdbot",
     navigateMainWindow: async url => { calls.push(["navigate", url]); return loads; },
     senderIsLocal: localOrigin.isLocalSender, workspaceSenderAllowed: environments.workspaceSenderAllowed,
     mainWindow: { webContents: contents }, environmentsState: { environments: [{ id: "vps", name: "VPS", origin: VPS }], activeId: "vps" },
@@ -289,7 +289,7 @@ test("production wiring: main answers this computer's page, My Cloud's own page 
   });
   vm.runInContext(main.slice(start, end), context);
   assert.equal(options.read(), "/user-data/desktop-prefs.json");
-  assert.equal(options.localConfig(), "/home/.openmausbot/config.json", "This computer's own workspace, whichever server the window shows");
+  assert.equal(options.localConfig(), "/home/.spdbot/config.json", "This computer's own workspace, whichever server the window shows");
   assert.equal(options.page({ sender: { mainFrame: localFrame }, senderFrame: localFrame }), "local");
   assert.equal(options.page({ sender: contents, senderFrame: serverFrame }), "server");
   assert.equal(options.page({ sender: contents, senderFrame: serverFrame, verifiedCloud: true }), "cloud", "My Cloud's page as main verifies it");
