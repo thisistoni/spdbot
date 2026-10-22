@@ -1,11 +1,16 @@
-# Self-hosting the OpenMausBot server
+# Self-hosting the SPDBot server
 
 Run the harness server on an always-on Linux box (a VPS, a home server, a
 Mac mini in a closet) and pair browsers, the desktop app, or phones with it.
-The npm CLI supports a managed public tunnel, Tailscale, or your own proxy.
+Use a reviewed source checkout or a locally built tarball (see [CLI setup](headless-cli.md)).
+No published SPDBot npm package or container image is assumed. Never point
+SPDBot at a MausBot data directory; no data is migrated automatically.
+The CLI supports Tailscale or your own proxy. References below to upstream
+account/tunnel infrastructure describe inherited optional integrations, not a
+SPDBot-hosted service or an update channel.
 
 > **Security first:** by default a self-hosted server trusts loopback as its
-> owner — any process that can reach `127.0.0.1:8799` has full control,
+> owner — any process that can reach `127.0.0.1:8899` has full control,
 > including the shell your bots can use. A browser is the exception: even on
 > this machine it signs in once (see [A browser signs in](#a-browser-signs-in)).
 > **Never expose that port directly and never bind it to a public interface.** Reach it through an SSH tunnel, a
@@ -14,7 +19,11 @@ The npm CLI supports a managed public tunnel, Tailscale, or your own proxy.
 > session. If several people use one server, read
 > [Loopback trust](#loopback-trust-owner-or-service) below.
 
-Step by step, for a server you do not have yet: [Deploy OpenMausBot on a
+The upstream [VPS deployment guide](deploy-vps.md) contains historical npm
+and service names; use SPDBot source/tarball instructions here instead.
+The [headless CLI guide](headless-cli.md) covers SPDBot setup and pairing.
+
+Historical reference: [Deploy OpenMausBot on a
 VPS](deploy-vps.md) walks through the three ways in (public address, own
 domain, Tailscale), signing engines in, pairing, keeping it running,
 updating and backups. This page is the reference behind it.
@@ -33,7 +42,7 @@ Runs fully on a server:
 - text-to-speech (with a key), the web UI (the server serves it itself)
 
 - a browser for bots, once the engine is installed on the server
-  (`npx openmausbot browser install`, or nothing to do in the Docker image,
+  (`pnpm spdbot browser install`, or nothing to do in the Docker image,
   which ships it): each bot gets its own isolated, persistent session.
   Watching it live from the app is the next step (docs/plans/browser-engine.md).
   It reaches the public internet and the dev servers a bot starts itself,
@@ -49,7 +58,7 @@ Desktop-only for now (needs the Mac/Linux app):
 On any machine with Node 24 or newer (a VPS, a Mac mini, a Raspberry Pi):
 
 ```sh
-npx openmausbot start
+pnpm spdbot start
 ```
 
 First launch asks you to choose AI access, connect an account or API key,
@@ -58,35 +67,35 @@ Codex also offers device-code login for SSH. API-key connections currently
 support chat, not agent tools or computer use. The [setup guide](cli-onboarding.md)
 explains the choices, key storage, and how to run setup again safely.
 
-It then starts the server and keeps your data in `~/.openmausbot`. If you
+It then starts the server and keeps your data in `~/.spdbot`. If you
 choose phone access, it prints a pairing link and QR code only after checking
 the HTTPS connection. Choosing **Skip for now** keeps the workspace local-only
-and creates no pairing invitation. Use `npx openmausbot setup` to configure without starting, or
-`npx openmausbot serve` to start non-interactively with your existing config
+and creates no pairing invitation. Use `pnpm spdbot setup` to configure without starting, or
+`pnpm spdbot serve` to start non-interactively with your existing config
 (for services and scripts).
 
 The npm package does not include engine CLIs (`claude`, `codex`, …); setup
 can offer to install and sign in supported engines on this machine.
 Run setup, engine authentication, and the server as the same unprivileged
 operating-system user. Engine credentials live in that user's CLI-specific
-directories, not all under `.openmausbot`.
+directories, not all under `.spdbot`.
 
 For a Linux service, the [VPS guide](deploy-vps.md#before-you-start) shows the
 account setup, engine installation, and browser dependency installation.
 After installing browser libraries as administrator, also run
-`npx openmausbot browser install` as the service user so that user's browser
+`pnpm spdbot browser install` as the service user so that user's browser
 is present. Three ways to make the server reachable from elsewhere:
 
 - **On your Tailscale network, no domain needed:**
-  `npx openmausbot serve --tailscale`. Tailscale terminates HTTPS with its
+  `pnpm spdbot serve --tailscale`. Tailscale terminates HTTPS with its
   own certificate and the link uses this machine's MagicDNS name, so only
   devices on your tailnet can reach it. Needs Tailscale signed in and HTTPS
   certificates enabled for the tailnet (admin console → DNS).
 - **A public address, no domain, no proxy, no open port:**
 
   ```sh
-  npx openmausbot login          # once: an emailed code signs this machine in
-  npx openmausbot serve --tunnel
+  pnpm spdbot login          # once: an emailed code signs this machine in
+  pnpm spdbot serve --tunnel
   ```
 
   `login` reserves an address like `https://c-….openmausbot.com` for this
@@ -98,9 +107,9 @@ is present. Three ways to make the server reachable from elsewhere:
   the server treats as "through a proxy", never as the owner. That listener
   also gzips JSON replies of 1 KB or more when the client accepts gzip, since
   the hop to Cloudflare runs on this machine's upload uncompressed; the
-  loopback port never compresses. `npx openmausbot logout` releases the
+  loopback port never compresses. `pnpm spdbot logout` releases the
   address. The account credentials live in
-  `~/.openmausbot/tunnel-account.json` (mode 0600).
+  `~/.spdbot/tunnel-account.json` (mode 0600).
   Starting it from a fleet or a container, where nobody can type an emailed
   code? Set `OMB_INSTALLATION_CREDENTIAL` to the installation credential the
   fleet issued and skip `login`: the address and connector token are fetched
@@ -109,7 +118,7 @@ is present. Three ways to make the server reachable from elsewhere:
 - **Your own domain, still one command:**
 
   ```sh
-  npx openmausbot serve --domain maus.example.com
+  pnpm spdbot serve --domain maus.example.com
   ```
 
   Point the domain's A record at this machine and open ports 80 and 443.
@@ -118,13 +127,13 @@ is present. Three ways to make the server reachable from elsewhere:
   and renews the certificate from Let's Encrypt. On Linux, binding ports 80
   and 443 as a normal user needs one privilege grant; when Caddy reports the
   refusal, `serve` prints the exact `setcap` command to run once.
-- **Behind your own proxy or domain:** `npx openmausbot serve --public-url
+- **Behind your own proxy or domain:** `pnpm spdbot serve --public-url
   https://maus.example.com`, with the proxy rules from "Putting a proxy in
   front".
 
-Later: `npx openmausbot pair --label "Kitchen iPad"` for another device
+Later: `pnpm spdbot pair --label "Kitchen iPad"` for another device
 (`--client` for one that may chat but not change settings), and
-`npx openmausbot sessions` to see or revoke them. `openmausbot serve` is a
+`pnpm spdbot sessions` to see or revoke them. `spdbot serve` is a
 plain foreground process. For unattended use, follow the
 [systemd example](deploy-vps.md#keep-it-running), which installs a chosen
 release and runs its binary directly. Restarting that service does not
@@ -213,14 +222,15 @@ Requirements: Docker with Compose, a DNS name pointing at the machine, and
 ports 80/443 open.
 
 ```sh
-git clone https://github.com/milind-soni/OpenMausBot && cd OpenMausBot/deploy
+git clone https://github.com/thisistoni/spdbot && cd spdbot
+docker build -t spdbot-runtime:local .
+cd deploy
 cp .env.example .env            # set DOMAIN
-docker compose pull omb && docker compose up -d
+docker compose up -d --build
 ```
 
-That uses the image CI publishes on every `main` push
-(`ghcr.io/milind-soni/openmausbot`, tagged `latest`, `sha-…` and `v…`).
-To build from your checkout instead: `docker compose up -d --build`.
+The base image is built locally from the selected source checkout. Compose
+adds the selected engine CLIs; it does not pull a published SPDBot image.
 
 Then sign the engine CLIs in **inside the container** (their logins live on
 the `data` volume, so they survive restarts and image upgrades) and mint a
@@ -251,17 +261,18 @@ What the stack does, so you can adapt it:
   own pairing is the login. A shared-password `basic_auth` block is there,
   commented out, if you want a second wall in front of pairing.
 
-Upgrade with `docker compose pull omb && docker compose up -d` (or
-`git pull && docker compose up -d --build`). State (chats, routines,
+Upgrade by reviewing the new source revision, rebuilding the root base image
+(`docker build --pull -t spdbot-runtime:local .` from the repository root),
+then `cd deploy && docker compose up -d --build`. State (chats, routines,
 engine logins, paired sessions) is on the `data` volume; back that up.
 
-The published image installs the current Chrome for Testing whenever a new
-Stable ships. A build from source keeps the Chrome (and any `ENGINES`) it
+A build from source keeps the Chrome (and any `ENGINES`) it
 installed first, because those layers sit beneath the app and stay cached
 across code changes. To pick up the current ones, rebuild with a new tag:
 
 ```sh
-docker compose build --build-arg CHROME_CACHE_TAG=$(date +%F) omb && docker compose up -d
+docker build --build-arg CHROME_CACHE_TAG=$(date +%F) -t spdbot-runtime:local .
+cd deploy && docker compose up -d --build
 ```
 
 ## From source
@@ -270,27 +281,28 @@ Requirements: Node 24+, pnpm, and at least one agent CLI installed and
 signed in on the server.
 
 ```sh
-git clone https://github.com/milind-soni/OpenMausBot && cd OpenMausBot
+git clone https://github.com/thisistoni/spdbot && cd spdbot
 pnpm install
 
 # choose where data lives and start the server
-OMB_DATA_DIR="$HOME/.openmausbot" OMB_PORT=8799 \
+OMB_DATA_DIR="$HOME/.spdbot" OMB_PORT=8899 \
   node --experimental-strip-types server/index.ts
 ```
 
 For something durable, let the CLI write the service for you:
 
 ```sh
-npx openmausbot service install --domain maus.example.com   # or --tunnel, --tailscale, or nothing
+pnpm spdbot service install --domain maus.example.com   # or --tunnel, --tailscale, or nothing
 ```
 
 It renders a systemd unit (Linux) or a launchd agent (macOS) that runs the
-same `openmausbot serve …` with your options, restarts it if it stops, and,
+same `spdbot serve …` with your options, restarts it if it stops, and,
 for `--domain`, grants the unit the capability to bind ports 80 and 443
 without root. The file is written next to your data and the two commands
 that install and start it are printed (they need `sudo` on Linux).
-`openmausbot service uninstall` prints the reverse. Install the package
-permanently first (`npm install -g openmausbot`): a service must not point
+`spdbot service uninstall` prints the reverse. Install the package
+permanently first from an inspected local tarball (see [CLI setup](headless-cli.md)):
+a service must not point
 at an `npx` cache that npm may prune.
 
 Engine CLIs read their logins from the service user's home: sign them in
@@ -343,8 +355,8 @@ Providers added with `opencode auth login` work everywhere.
 
 ## Many client workspaces on one server
 
-`openmausbot fleet` runs one workspace per client on a single Linux server,
-each as its own OS user, its own `openmausbot@<name>` service on its own
+`spdbot fleet` runs one workspace per client on a single Linux server,
+each as its own OS user, its own `spdbot@<name>` service on its own
 loopback ports, its own data folder, brand, sign-in list and provider key,
 reached at `<name>.<your domain>` through the system Caddy. Bots of one
 workspace cannot read another's files or reach its API: the data lives in a
@@ -356,7 +368,7 @@ Once, as root, with the package installed permanently and a wildcard DNS
 record (`*.example.com`) pointing at the server:
 
 ```sh
-openmausbot fleet init --domain example.com
+spdbot fleet init --domain example.com
 ```
 
 That writes the template unit, the fence and its unit, the workspace folders,
@@ -364,14 +376,14 @@ and adds `import /etc/caddy/omb.d/*.caddy` to `/etc/caddy/Caddyfile`. Then per
 client:
 
 ```sh
-openmausbot fleet create acme --admin owner@acme.test --member @acme.test \
+spdbot fleet create acme --admin owner@acme.test --member @acme.test \
   --brand /root/acme-brand.json --anthropic-key-file /root/acme-anthropic.key \
   --cap 50 --memory 1G
-openmausbot fleet users acme add bob@acme.test --chat-only
-openmausbot fleet list
-openmausbot fleet suspend acme      # 503 page, service stopped; resume undoes it
-openmausbot fleet upgrade           # new release, then every running workspace restarted in turn
-openmausbot fleet delete acme --yes # add --keep-data to keep the home folder
+spdbot fleet users acme add bob@acme.test --chat-only
+spdbot fleet list
+spdbot fleet suspend acme      # 503 page, service stopped; resume undoes it
+spdbot fleet upgrade                # refused until a verified SPDBot package channel exists; see headless-cli.md
+spdbot fleet delete acme --yes # add --keep-data to keep the home folder
 ```
 
 Give `init` `--operator USER` (the Unix user your own workspace runs as; the
@@ -380,7 +392,7 @@ root service on a Unix socket only that user may open. Your workspace then
 shows **Settings → Installations** (with the enterprise `admin` feature): create
 an installation, add or remove who may sign in, suspend, resume, delete, upgrade
 all, and see each one's spend this month. Every action goes through the
-agent's audit log at `/var/log/openmausbot/fleet.jsonl`.
+agent's audit log at `/var/log/spdbot/fleet.jsonl`.
 
 `https://acme.example.com` is up when `create` returns; the first admin signs
 in with an emailed code. `OMB_LICENSE_KEY` in the environment (or
@@ -413,7 +425,7 @@ Pair once, then use the server from any browser on any machine that can
 reach it. On the server:
 
 ```sh
-npx openmausbot pair                         # npm install
+pnpm spdbot pair                         # source checkout
 pnpm omb pair                                # from a checkout
 docker compose exec omb node dist-server/spdbot.js pair   # Docker
 ```
@@ -430,7 +442,7 @@ From the **desktop app**, use the server dropdown above Search → **Connect
 to a server…**, or **Settings → Servers**. Enter the server's
 HTTPS address or full pairing link, with an optional name. Custom domains and
 Cloudflare tunnel addresses work; Tailscale is not required. Generate a fresh
-link for each device: `npx openmausbot pair --label "My desktop"` creates an
+link for each device: `pnpm spdbot pair --label "My desktop"` creates an
 owner link without the phone wizard; add `--client` for chat-only access.
 A code already used by your phone cannot also pair your desktop.
 
@@ -468,11 +480,11 @@ restarts itself to install it. API keys, engine sign-ins and paired devices
 stay where they are on both sides; routines arrive paused. The desktop app must
 be paired with an owner code (not `--client`), and a server whose email sign-in
 lets someone besides you in (a member, a second admin or a whole `@domain`
-added with `openmausbot access add`) never receives one; your own address
+added with `spdbot access add`) never receives one; your own address
 alone is fine. Behind a proxy, allow uploads of at least 1 MB
 (nginx: `client_max_body_size 64m`); smaller parts are tried before the copy
 says so. How each
-way of running the server restarts itself: `openmausbot serve` and
+way of running the server restarts itself: `spdbot serve` and
 `service install` start it again in the same process, the Docker and Podman
 images run `server-launcher.js`, which does the same inside the container; a
 server started any other way installs the copy at its next start. Details:
@@ -505,7 +517,7 @@ and take a 5-minute ticket from `POST /api/auth/stream-ticket` for the
 event stream, because `EventSource` cannot set headers:
 `GET /api/events?ticket=…`.
 
-`GET /.well-known/openmausbot/environment` is public and tells a client what
+`GET /.well-known/spdbot/environment` is public and tells a client what
 it is talking to: a stable `environmentId`, the label, the version and
 capabilities. Saved connections check the id so a reused address that now
 points at a different server is refused loudly.
@@ -514,8 +526,8 @@ An SSH tunnel still works, and is the right answer when the server has no
 address of its own:
 
 ```sh
-ssh -L 8799:localhost:8799 you@your-server
-# then run `openmausbot pair` on the server and open the "this computer:" link it prints
+ssh -L 8899:localhost:8899 you@your-server
+# then run `spdbot pair` on the server and open the "this computer:" link it prints
 ```
 
 The browser signs in once through the tunnel, like any browser on the server
@@ -531,15 +543,15 @@ server, even when it runs on the same machine. Programs are unaffected: the
 CLI, scripts, `curl` and the companion send neither header.
 
 So the first time you open the web UI in a browser on the server's own
-machine, it shows the sign-in page. `openmausbot serve` and `openmausbot pair`
+machine, it shows the sign-in page. `spdbot serve` and `spdbot pair`
 print a link for it:
 
 ```
-this computer: http://127.0.0.1:8799/pair#code=XXXX-XXXX-XXXX
+this computer: http://127.0.0.1:8899/pair#code=XXXX-XXXX-XXXX
 ```
 
 Open it and choose **Connect** (or type the code on the sign-in page); the browser
-keeps its session cookie from then on. `openmausbot` (the guided start) prints
+keeps its session cookie from then on. `spdbot` (the guided start) prints
 the same link when it opens the browser. The desktop app is unaffected:
 its window adds the app's own per-launch owner header to every request and
 WebSocket it sends to its server, and no other Electron session may reach the
@@ -588,15 +600,15 @@ it too and is always `service` (docs/cloud-pro.md).
 
 With `service` on a self-hosted server:
 
-- `openmausbot serve` still prints the first pairing code. It hands the
+- `spdbot serve` still prints the first pairing code. It hands the
   server it starts a one-off secret over the server's stdin (never its
   environment, which every engine inherits), and that secret opens the
   pairing route for that CLI alone. Pass `--no-pair` to skip the code; if
   the server refuses one anyway, `serve` says why and keeps running.
-- `openmausbot pair` and `openmausbot sessions`, run later from another
+- `spdbot pair` and `spdbot sessions`, run later from another
   terminal, are refused like any other admin change and say so. Pair from
   Settings → Remote access while signed in as an admin, or let people sign
-  in with their email (`openmausbot access add you@example.com`, which edits
+  in with their email (`spdbot access add you@example.com`, which edits
   the sign-in list on disk).
 - A browser on an SSH tunnel gets the sign-in page instead of the app.
 - The MCP server script works with `OPENMAUSBOT_TOKEN` set to a paired session.
@@ -633,14 +645,14 @@ npm package, the same thing from the command line, with the server running
 or not, no restart needed:
 
 ```sh
-npx openmausbot access add her@yourcompany.com
-npx openmausbot access add freelancer@example.com --chat-only
-npx openmausbot access list
+pnpm spdbot access add her@yourcompany.com
+pnpm spdbot access add freelancer@example.com --chat-only
+pnpm spdbot access list
 ```
 
 An entry is an address or `@domain` (everyone at that domain). Admins get
-the same access as a pairing code from `openmausbot serve`; users get the
-chat-only scope, the same as `openmausbot pair --client`. The same lists live
+the same access as a pairing code from `spdbot serve`; users get the
+chat-only scope, the same as `spdbot pair --client`. The same lists live
 in `config.json` under `signIn.admins` and `signIn.members` and can be changed
 through the settings API without a restart; the environment variables win
 when set, which is how a container or a service unit is bootstrapped.
@@ -651,7 +663,7 @@ it to send the code, checks the answer, and then issues its own session
 cookie: the browser only ever talks to your server, and who is welcome is
 decided only by your allow-list. Wrong codes count against the same lockout
 as pairing codes. Sessions from a sign-in show the email in
-`openmausbot sessions` and can be revoked the same way.
+`spdbot sessions` and can be revoked the same way.
 
 ### Inviting people
 
@@ -825,19 +837,19 @@ creates a one-time code with a QR right in the browser, and lists every
 paired device with a sign-out button. Nobody needs the command line.
 
 The iOS app pairs with a server the same way a laptop does: scan the QR
-code that `openmausbot serve` (or `openmausbot pair`) prints, paste the
+code that `spdbot serve` (or `spdbot pair`) prints, paste the
 whole `https://host/pair#code=…` link into the address field on the pairing
 screen, or type the address and then the code. The phone gets a session of
-its own, listed and revocable with `openmausbot sessions`. What it may do is
-the code's scope: a code from `openmausbot pair` carries `admin` and the app
-shows everything; a code from `openmausbot pair --client` (also what the
+its own, listed and revocable with `spdbot sessions`. What it may do is
+the code's scope: a code from `spdbot pair` carries `admin` and the app
+shows everything; a code from `spdbot pair --client` (also what the
 guided phone setup mints) can chat, approve and read, and the app hides
 creating bots and sections, changing models, generating avatars, connecting
 apps and cloud desktops — those stay with the owner. A server reinstalled at
 the same address has a new identity; the app then asks to pair again rather
 than present the old session to it.
 
-Both native apps pair this way. `openmausbot pair --phone android` prints the
+Both native apps pair this way. `spdbot pair --phone android` prints the
 app-scheme QR that Android's scanner needs, and the iOS app accepts either
 that QR or the web link. Pass `--phone` whenever nothing is watching the
 terminal, such as `docker compose exec omb node dist-server/spdbot.js
@@ -848,7 +860,7 @@ session like any other.
 Older way, still supported, and only useful on a LAN or a tailnet: run the
 companion sidecar next to the harness and pair by its own QR. It advertises
 on your private networks (Tailscale-aware) and issues its own per-device
-credentials, which are **not** `openmausbot sessions` and are revoked from
+credentials, which are **not** `spdbot sessions` and are revoked from
 its own page at the `127.0.0.1:8811/#token=…` link it prints. It also serves phones over cleartext HTTP
 on port 8810, so do not expose it from a public server. It ships only in a
 git checkout: neither the npm package nor the Docker image contains it.
@@ -987,8 +999,8 @@ shutdown): settings
 sessions, webhooks, MCP servers, engines and keys, bots created, deleted or
 given different permissions, spend limits and prices, and who can see a bot.
 Each row names who acted — the session's email or device label, `This
-computer` for the owner, `Command line` for `openmausbot` commands such as
-`openmausbot access add` — and the values before and after. Values are
+computer` for the owner, `Command line` for `spdbot` commands such as
+`spdbot access add` — and the values before and after. Values are
 redacted: anything under a key that names a credential, every value in a
 headers or environment map, the value after a flag such as `--api-key` or
 `-k`, URL parameters such as `?key=`, a token before a URL's host
@@ -1067,8 +1079,8 @@ umask 077
 BOT_ID=your-bot-id
 THREAD_ID=your-existing-thread-id
 TOKEN=$(openssl rand -hex 32)
-printf '{ "%s": {"token":"%s","threadId":"%s"} }\n' "$BOT_ID" "$TOKEN" "$THREAD_ID" > ~/.openmausbot/external-runtimes.json
-chmod 600 ~/.openmausbot/external-runtimes.json
+printf '{ "%s": {"token":"%s","threadId":"%s"} }\n' "$BOT_ID" "$TOKEN" "$THREAD_ID" > ~/.spdbot/external-runtimes.json
+chmod 600 ~/.spdbot/external-runtimes.json
 ```
 
 Keep the file private (`600` on Unix; restrict its Windows file permissions).
@@ -1083,7 +1095,7 @@ The runtime runs the bundled MCP bridge from the source checkout with the same
 bot, thread and token (replace the port with your server's actual address):
 
 ```sh
-OMB_HARNESS_URL=http://127.0.0.1:8799 OMB_BOT_ID=$BOT_ID OMB_THREAD_ID=$THREAD_ID \
+OMB_HARNESS_URL=http://127.0.0.1:8899 OMB_BOT_ID=$BOT_ID OMB_THREAD_ID=$THREAD_ID \
   OMB_COMMS_TOKEN=$TOKEN OMB_EXTERNAL_RUNTIME=1 \
   node --experimental-strip-types server/drivers/agents-proxy.ts
 ```
@@ -1151,12 +1163,13 @@ that succeed. A tool call that was denied is never sent back.
 
 For the npm service, [install the chosen new version](deploy-vps.md#update)
 as the service user while the server is stopped, then start it again.
-For a foreground invocation, `npx --yes openmausbot@X.Y.Z serve --tunnel`
-selects a particular published release; replace `X.Y.Z` with that version.
+For a foreground invocation, `spdbot serve --tailscale`
+uses the installed local artifact; select and inspect the source revision
+before building and installing its tarball.
 
 ```sh
-docker compose -f deploy/docker-compose.yml pull omb && docker compose -f deploy/docker-compose.yml up -d   # Docker
-git pull && pnpm install && sudo systemctl restart openmausbot          # from source
+docker build --pull -t spdbot-runtime:local . && docker compose -f deploy/docker-compose.yml up -d --build   # Docker
+git pull && pnpm install && sudo systemctl restart spdbot          # from source
 ```
 
 Routines and queued work survive restarts. A teammate turn in flight runs

@@ -41,6 +41,16 @@ const registryFile = "/etc/spdbot/fleet.json";
 const withRegistry = (workspaces = {}) => ({ [registryFile]: JSON.stringify({ ...emptyRegistry("agentada.cc"), workspaces }) });
 
 describe("spdbot fleet", () => {
+  it.each([false, true])("rejects unverified registry upgrades without machine mutations (root: %s)", async (root) => {
+    const m = machine({ root, files: withRegistry() });
+    const output = io();
+    const before = new Map(m.files);
+    expect(await runFleetCommand({ ...base, action: "upgrade", yes: true }, output.io, m.deps)).toBe(2);
+    expect(output.err.join("\n")).toContain("no verified npm channel exists");
+    expect(m.calls).toEqual([]);
+    expect(m.files).toEqual(before);
+  });
+
   it("updates only managed OpenRouter models and rejects missing, malformed or redirected config", async () => {
     const workspace: FleetWorkspace = { slug: "acme", host: "acme.agentada.cc", port: 28810, webhookPort: 28811, status: "running", createdAt: "" };
     const path = "/var/lib/spdbot/acme/.config/opencode/opencode.json";

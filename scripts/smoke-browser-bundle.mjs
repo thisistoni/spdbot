@@ -120,6 +120,7 @@ let failure;
 let fixtureRequests = 0;
 let phase = "runtime discovery";
 let closeBrowserSession;
+let browserDaemonFile;
 
 function child(command, args, childEnv) {
   const proc = spawn(command, args, { cwd: fixture, env: childEnv, windowsHide: true, stdio: ["pipe", "pipe", "pipe"] });
@@ -202,7 +203,7 @@ async function failureDiagnostics() {
     // Only fixed metadata names in our own temporary socket directory. Never
     // dump daemon config, encryption keys, browser profiles, or parent env.
     for (const extension of ["pid", "port", "version", "engine"]) {
-      sidecars[extension] = await readFile(join(env.AGENT_BROWSER_SOCKET_DIR, `${session}.${extension}`), "utf8")
+      sidecars[extension] = await readFile(browserDaemonFile({ ...env, ...integration.env }, `.${extension}`), "utf8")
         .then((value) => value.trim().slice(0, 128), (error) => error.code === "ENOENT" ? null : error.code);
     }
     let daemonAlive = false;
@@ -246,8 +247,7 @@ function pngInfo(buffer) {
 }
 
 async function ownedDaemonPid(client) {
-  const session = client.integration.env.AGENT_BROWSER_SESSION;
-  const value = (await readFile(join(env.AGENT_BROWSER_SOCKET_DIR, `${session}.pid`), "utf8")).trim();
+  const value = (await readFile(browserDaemonFile({ ...env, ...client.integration.env }, ".pid"), "utf8")).trim();
   assert(/^[1-9][0-9]*$/.test(value), "Owned browser daemon did not record a valid PID");
   return Number(value);
 }
@@ -266,8 +266,9 @@ const interrupt = () => { for (const proc of children) proc.kill("SIGTERM"); };
 process.once("SIGINT", interrupt);
 process.once("SIGTERM", interrupt);
 try {
-  const { browserEngineStatus, agentBrowserIntegration, prepareBrowserSessionState, closeBrowserSession: closeSession } = await import("../server/browser-engine.ts");
+  const { browserEngineStatus, agentBrowserIntegration, prepareBrowserSessionState, closeBrowserSession: closeSession, browserDaemonFile: daemonFile } = await import("../server/browser-engine.ts");
   closeBrowserSession = closeSession;
+  browserDaemonFile = daemonFile;
   const status = browserEngineStatus({ dataDir: env.OMB_DATA_DIR, env });
   assert.equal(status.kind, "ready", `Fresh-home runtime did not discover the bundle: ${JSON.stringify(status)}`);
   assert.equal(resolve(status.binaryPath), resolve(enginePath), "Runtime did not select the engine under test");
@@ -304,7 +305,7 @@ try {
     // managed config; it must not prewarm a daemon and mask cold-start bugs.
     await prepareBrowserSessionState(integration.command, integration.env.AGENT_BROWSER_SESSION,
       { env: { ...env, ...integration.env }, persistent: false });
-    await assert.rejects(readFile(join(env.AGENT_BROWSER_SOCKET_DIR, `${integration.env.AGENT_BROWSER_SESSION}.pid`)), { code: "ENOENT" });
+    await assert.rejects(readFile(browserDaemonFile({ ...env, ...integration.env }, ".pid")), { code: "ENOENT" });
     const client = mcp(integration);
     clients.push(client);
     await client.request("initialize", { protocolVersion: "2025-11-25", capabilities: {}, clientInfo: { name: "omb-bundle-smoke", version: "1" } });

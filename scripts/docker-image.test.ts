@@ -265,6 +265,19 @@ describe("container images", () => {
     expect(resolve(false)).toEqual({ chrome: today, engines: "@anthropic-ai/claude-code @openai/codex", engines_tag: today });
   });
 
+  it("keeps deployment projects and host-network Podman ports outside MausBot defaults", () => {
+    for (const [file, project] of [["../compose.yaml", "spdbot"], ["../deploy/docker-compose.yml", "spdbot-deploy"], ["../deploy/podman/compose.yaml", "spdbot-podman"]]) {
+      const config = parse(readFileSync(new URL(file, import.meta.url), "utf8"));
+      expect(config.name).toBe(`\${COMPOSE_PROJECT_NAME:-${project}}`);
+      expect(config.services.omb.image).not.toMatch(/openmausbot|milind-soni/);
+    }
+    const podman = parse(readFileSync(new URL("../deploy/podman/compose.yaml", import.meta.url), "utf8"));
+    expect(podman.services.omb.environment.OMB_PORT).toBe("${OMB_PORT:-8899}");
+    expect(podman.services.caddy.environment.OMB_PORT).toBe("${OMB_PORT:-8899}");
+    expect(podman.services.omb.environment.OMB_WEBHOOK_PORT).toBe("${OMB_WEBHOOK_PORT:-8900}");
+    expect(podman.services.omb.environment.OMB_DATA_DIR).toBe("${OMB_DATA_ROOT}/.spdbot");
+  });
+
   // An init collects browser processes whose parents exit, and Chrome gets the
   // shared memory OpenMausBot's desktop containers give it.
   it("runs every compose service of the server image with an init and Chrome's shared memory", () => {

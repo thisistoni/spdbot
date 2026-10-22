@@ -402,7 +402,10 @@ an engine that can limit built-in tools.
 
 ```yaml
 # .github/workflows/rehearse.yml (a sketch)
-- run: npm install -g spdbot @anthropic-ai/claude-code
+# Build the checked-out source; SPDBot is not assumed to be on npm.
+- run: pnpm install --frozen-lockfile && pnpm build:server && pnpm exec vite build && node scripts/build-npm-package.mjs
+- run: cd release/npm && npm pack
+- run: npm install -g ./release/npm/spdbot-*.tgz @anthropic-ai/claude-code
 - run: pnpm spdbot serve --no-pair --data-dir "$RUNNER_TEMP/omb" &
   env: { OMB_ANTHROPIC_API_KEY: "${{ secrets.ANTHROPIC_API_KEY }}" }   # the workspace's Claude key from the start
 - run: spdbot doctor --wait 2m          # the server answers and an engine is ready
@@ -426,3 +429,13 @@ file (`--token-file`).
 `spdbot mcp` serves the same operations as MCP tools on stdin and stdout
 ([docs/mcp-server.md](mcp-server.md)): `wait_for_conversation` waits on the
 same job, and returns the same result, as `wait`.
+
+### Fleet upgrades
+
+`spdbot fleet upgrade` refuses automatic registry installation until a verified
+SPDBot package channel exists. Review the desired source revision, run
+`pnpm build:server && pnpm exec vite build && node scripts/build-npm-package.mjs`,
+then `cd release/npm && npm pack`. Inspect the resulting `release/npm/spdbot-*.tgz`, and install
+that explicit local artifact with `npm install -g /absolute/path/to/spdbot-VERSION.tgz`.
+Then restart only the currently running `spdbot@NAME.service` units and check
+each workspace's health. Leave suspended units and MausBot services untouched.

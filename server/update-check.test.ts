@@ -4,7 +4,7 @@ import { describe, expect, it, vi } from "vitest";
 import { createUpdateChecker, installKind, isNewerVersion, LATEST_RELEASE_URL } from "./update-check.ts";
 
 const release = (tag: string) =>
-  ({ ok: true, status: 200, json: async () => ({ tag_name: tag, html_url: `https://github.com/milind-soni/OpenMausBot/releases/tag/${tag}` }) }) as Response;
+  ({ ok: true, status: 200, json: async () => ({ tag_name: tag, html_url: `https://github.com/thisistoni/spdbot/releases/tag/${tag}` }) }) as Response;
 
 describe("server update check", () => {
   it("tells how this server was installed", () => {
@@ -46,8 +46,8 @@ describe("server update check", () => {
       install: "docker",
       latest: "0.1.93",
       available: true,
-      releaseUrl: "https://github.com/milind-soni/OpenMausBot/releases/tag/v0.1.93",
-      command: "docker compose pull omb && docker compose up -d",
+      releaseUrl: "https://github.com/thisistoni/spdbot/releases/tag/v0.1.93",
+      command: "git pull && docker build -t spdbot-runtime:local . && docker compose up -d --build",
       restart: false,
     });
     expect(fetch).toHaveBeenCalledWith(LATEST_RELEASE_URL, expect.anything());
@@ -57,13 +57,32 @@ describe("server update check", () => {
     let now = 0;
     const fetch = vi.fn(async () => release("v0.1.92"));
     const check = createUpdateChecker({ current: "0.1.92", install: "npm", fetch, now: () => now });
-    expect(await check()).toMatchObject({ available: false, latest: "0.1.92", command: "npm install -g openmausbot@latest", restart: true });
+    expect(await check()).toMatchObject({ available: false, latest: "0.1.92" });
     now = 59 * 60_000;
     await check();
     expect(fetch).toHaveBeenCalledTimes(1);
     now = 61 * 60_000;
     await check();
     expect(fetch).toHaveBeenCalledTimes(2);
+  });
+
+  it("keeps npm installs on explicit local artifacts and never offers the MausBot updater", async () => {
+    expect(LATEST_RELEASE_URL).toBe("https://api.github.com/repos/thisistoni/spdbot/releases/latest");
+    const fetch = vi.fn(async () => release("v0.1.93"));
+    const result = await createUpdateChecker({ current: "0.1.92", install: "npm", fetch })();
+    expect(result.available).toBe(true);
+    expect(result.releaseUrl).toBe("https://github.com/thisistoni/spdbot/releases/tag/v0.1.93");
+    expect(result.command).toBeUndefined();
+    expect(result.restart).toBeUndefined();
+  });
+
+  it("treats a not-yet-published first release as no update without consulting upstream", async () => {
+    const fetch = vi.fn(async () => ({ ok: false, status: 404 }) as Response);
+    const check = createUpdateChecker({ current: "0.1.92", install: "npm", fetch });
+    expect(await check()).toEqual({ current: "0.1.92", install: "npm", available: false });
+    await check();
+    expect(fetch).toHaveBeenCalledTimes(1);
+    expect(fetch).toHaveBeenCalledWith(LATEST_RELEASE_URL, expect.anything());
   });
 
   it("does not look anything up for a desktop or hosted server", async () => {

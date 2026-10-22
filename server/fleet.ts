@@ -473,13 +473,9 @@ export function deletePlan(input: { registry: FleetRegistry; slug: string; keepD
   };
 }
 
-export function upgradePlan(input: { registry: FleetRegistry }): FleetStep[] {
-  const running = Object.values(input.registry.workspaces).filter((workspace) => workspace.status === "running").sort((a, b) => a.slug.localeCompare(b.slug));
-  return [
-    { kind: "run", argv: ["npm", "install", "-g", "spdbot@latest"], why: "install the release every workspace runs from" },
-    ...running.map((workspace) => ({ kind: "run" as const, argv: ["systemctl", "restart", `spdbot@${workspace.slug}.service`], why: `restart ${workspace.slug} on the new release` })),
-    ...running.map((workspace) => ({ kind: "health" as const, url: `http://127.0.0.1:${workspace.port}/api/health`, why: `wait for ${workspace.slug}` })),
-  ];
+/** No registry channel has been established for this fork. Never install an unverified namesake as root. */
+export function upgradePlan(): never {
+  throw new Error("Automatic SPDBot fleet upgrades are unavailable: no verified npm channel exists. Build and inspect a local tarball using scripts/build-npm-package.mjs, install that explicit file, then restart only running spdbot@ units. See docs/headless-cli.md.");
 }
 
 /** The same shape `spdbot access` writes; the server reads it live. */

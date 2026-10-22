@@ -18,8 +18,8 @@ if [ ! -f .env ]; then
 COMPOSE_PROJECT_NAME=spdbot-podman
 OMB_DATA_ROOT=$data_root
 PODMAN_SOCKET=/run/user/$(id -u)/podman/podman.sock
-OMB_PORT=8799
-OMB_WEBHOOK_PORT=8800
+OMB_PORT=8899
+OMB_WEBHOOK_PORT=8900
 OMB_HTTP_PORT=8080
 OMB_PUBLIC_URL=http://localhost:8080
 OMB_HTTPS_HOST=https-disabled.invalid

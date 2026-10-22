@@ -184,11 +184,33 @@ function portInFile(path: string): number[] {
   } catch { return []; }
 }
 
-/** The stream servers of this machine's agent-browser daemons: agent-browser 0.37 upgrades a WebSocket from any origin. */
+/** Defensive port discovery includes other products/workspaces. It must never be used for process ownership. */
 export function agentBrowserStreamPorts(env: NodeJS.ProcessEnv = browserRuntimeEnv({ AGENT_BROWSER_SESSION: "omb" })): number[] {
-  const directory = dirname(browserDaemonFile(env, ".stream"));
-  try { return readdirSync(directory).filter((name) => name.endsWith(".stream")).flatMap((name) => portInFile(join(directory, name))); }
-  catch { return []; }
+  const home = (process.platform === "win32" ? env.USERPROFILE : env.HOME) || homedir();
+  const roots = new Set([
+    env.AGENT_BROWSER_SOCKET_DIR,
+    join(home, ".agent-browser"),
+    env.XDG_RUNTIME_DIR ? join(env.XDG_RUNTIME_DIR, "agent-browser") : undefined,
+  ].filter((root): root is string => Boolean(root)));
+  const ports = new Set<number>();
+  const scan = (directory: string) => {
+    try {
+      for (const entry of readdirSync(directory, { withFileTypes: true })) {
+        if (entry.isFile() && entry.name.endsWith(".stream")) {
+          for (const port of portInFile(join(directory, entry.name))) ports.add(port);
+        }
+      }
+    } catch { /* A stopped daemon or unavailable runtime root contributes no ports. */ }
+  };
+  for (const root of roots) {
+    scan(root);
+    try {
+      for (const entry of readdirSync(join(root, "namespaces"), { withFileTypes: true })) {
+        if (entry.isDirectory()) scan(join(root, "namespaces", entry.name, "run"));
+      }
+    } catch { /* Legacy runtimes have no namespaces. */ }
+  }
+  return [...ports];
 }
 
 /** The DevTools ports of the Chromes agent-browser launched, from the profiles it creates in the temp folder. */

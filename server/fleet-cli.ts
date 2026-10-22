@@ -394,7 +394,7 @@ export function planFleetAction(input: FleetInput, deps: FleetDeps): FleetStep[]
       return deletePlan({ registry, slug: input.slug, keepData: input.keepData, layout }).steps;
     }
     case "upgrade":
-      return upgradePlan({ registry: loadRegistry(layout, deps) });
+      return upgradePlan();
     case "list":
       return [];
   }

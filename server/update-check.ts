@@ -2,7 +2,7 @@
 import { existsSync } from "node:fs";
 import { join, sep } from "node:path";
 
-export const LATEST_RELEASE_URL = "https://api.github.com/repos/milind-soni/OpenMausBot/releases/latest";
+export const LATEST_RELEASE_URL = "https://api.github.com/repos/thisistoni/spdbot/releases/latest";
 const CACHE_MS = 60 * 60_000;
 
 /** "managed" is a hosted or Cloud server that is updated for its owner. */
@@ -10,9 +10,9 @@ export type InstallKind = "desktop" | "managed" | "docker" | "podman" | "npm" | 
 
 /** As docs/self-hosting.md and deploy/podman/README.md give them. */
 export const UPDATE_COMMANDS: Partial<Record<InstallKind, { command: string; restart: boolean }>> = {
-  docker: { command: "docker compose pull omb && docker compose up -d", restart: false },
+  docker: { command: "git pull && docker build -t spdbot-runtime:local . && docker compose up -d --build", restart: false },
   podman: { command: "git pull && cd deploy/podman && PODMAN_COMPOSE_PROVIDER=podman-compose podman compose --env-file .env -f compose.yaml up -d --build", restart: false },
-  npm: { command: "npm install -g openmausbot@latest", restart: true },
+  // Locally built npm tarballs have no verified registry upgrade channel.
   git: { command: "git pull && pnpm install", restart: true },
 };
 
@@ -93,9 +93,15 @@ export function createUpdateChecker(options: {
     inflight ??= (async () => {
       try {
         const response = await fetchRelease(LATEST_RELEASE_URL, {
-          headers: { accept: "application/vnd.github+json", "user-agent": "openmausbot-update-check" },
+          headers: { accept: "application/vnd.github+json", "user-agent": "spdbot-update-check" },
           signal: AbortSignal.timeout(8_000),
         });
+        // A fork may have no release yet. That is not permission to fall back upstream.
+        if (response.status === 404) {
+          const result = base();
+          cached = { at: now(), result };
+          return result;
+        }
         if (!response.ok) throw new Error(`GitHub answered ${response.status}`);
         const release = await response.json() as { tag_name?: unknown; html_url?: unknown };
         if (typeof release.tag_name !== "string") throw new Error("GitHub sent no release tag");
