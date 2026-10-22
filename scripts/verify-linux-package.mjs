@@ -72,6 +72,7 @@ function requireUpdaterTarget(resources, label) {
   const updateFile = path.join(resources, "app-update.yml");
   requireFile(updateFile);
   const update = readFileSync(updateFile, "utf8");
+  if (!/^updaterCacheDirName: spdbot-updater$/m.test(update)) fail(`${label} updater cache is not SPDBot-specific`);
   if (!/^owner: thisistoni$/m.test(update) || !/^repo: spdbot$/m.test(update)) {
     fail(`${label} app-update.yml does not point at thisistoni/spdbot`);
   }

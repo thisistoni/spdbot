@@ -41,7 +41,7 @@ jobs:
           set -euo pipefail
           docker run -d --name omb spdbot-runtime:local
           for i in $(seq 1 40); do
-            if docker exec omb curl -sf http://127.0.0.1:8799/api/health | grep -q openmausbot; then break; fi
+            if docker exec omb curl -sf http://127.0.0.1:8799/api/health | grep -q spdbot; then break; fi
             sleep 2
             if [ "$i" = "40" ]; then docker logs omb; echo "server never became healthy"; exit 1; fi
           done
@@ -58,7 +58,7 @@ jobs:
           set -euo pipefail
           docker run -d --name omb-ent -e OMB_LICENSE_KEY=omb1.not.real spdbot-runtime:local
           for i in $(seq 1 40); do
-            if docker exec omb-ent curl -sf http://127.0.0.1:8799/api/health | grep -q openmausbot; then break; fi
+            if docker exec omb-ent curl -sf http://127.0.0.1:8799/api/health | grep -q spdbot; then break; fi
             sleep 2
             if [ "$i" = "40" ]; then docker logs omb-ent; echo "server never became healthy"; exit 1; fi
           done
@@ -143,7 +143,7 @@ jobs:
           grep -qi 'Secure' <<<"$paired"                                          # over TLS the cookie is Secure
           grep -qi 'HttpOnly' <<<"$paired"
           test "$(code -b "$jar" $H/api/health)" = 200                              # paired: the API answers
-          grep -q openmausbot <<<"$(body -b "$jar" $H/api/health)"
+          grep -q spdbot <<<"$(body -b "$jar" $H/api/health)"
           test "$(code -b "$jar" -H 'Origin: https://evil.example' -X POST -d '{}' $H/api/bots)" = 403   # cookie is same-origin only
           test "$(code -b "$jar" -H 'Origin: https://localhost' $H/api/auth/session)" = 200
           grep -q '"via":"cookie"' <<<"$(body -b "$jar" $H/api/auth/session)"
@@ -188,7 +188,7 @@ jobs:
           E=http://127.0.0.1:18080
           healthy() {
             for i in $(seq 1 45); do
-              curl -sf --max-time 2 "$E/api/health" | grep -q openmausbot && return 0
+              curl -sf --max-time 2 "$E/api/health" | grep -q spdbot && return 0
               sleep 2
             done
             docker logs home; echo "the cloud home never became healthy"; return 1
