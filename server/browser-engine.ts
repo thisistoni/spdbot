@@ -132,8 +132,12 @@ async function closeOnce(binaryPath: string, env: NodeJS.ProcessEnv, session: st
   const pidFile = browserDaemonFile(env, ".pid");
   const daemonPid = () => { try { return readFileSync(pidFile, "utf8").trim(); } catch { return null; } };
   const closing = daemonPid();
-  // Read first: once the daemon exits, its Chrome is re-parented and can no longer be found under it.
-  const tree = closing === null ? null : await browserProcessTree(binaryPath, Number(closing), session).catch(() => null);
+  let recordedAtNs: bigint | undefined;
+  try { recordedAtNs = statSync(pidFile, { bigint: true }).mtimeNs; } catch {}
+  // Read first: once the daemon exits, its Chrome is re-parented. Refuse a
+  // changed record; Windows also checks birth against the file's timestamp.
+  const tree = closing === null || daemonPid() !== closing ? null
+    : await browserProcessTree(binaryPath, Number(closing), session, recordedAtNs).catch(() => null);
   if ((await runBrowserCommand(binaryPath, closeEnv, ["close"], deadline)).ok) {
     // Native close answers before the daemon exits, and Chrome's helper processes can outlive the answer.
     while (Date.now() < deadline) {

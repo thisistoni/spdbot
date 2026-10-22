@@ -4,12 +4,13 @@ import { BROWSER_NAMESPACE } from "./browser-identity.ts";
 // hands its Chrome.
 import { execFile, execFileSync, spawn, type ChildProcess } from "node:child_process";
 import { randomUUID } from "node:crypto";
-import { existsSync, mkdirSync, mkdtempSync, readFileSync, writeFileSync } from "node:fs";
+import { once } from "node:events";
+import { existsSync, mkdirSync, mkdtempSync, readFileSync, statSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
-import { browserProcessesRunning, browserProcessTree, orphanedBrowsers, stopBrowserProcesses } from "./browser-processes.ts";
+import { browserProcessesRunning, browserProcessTree, processAlive, orphanedBrowsers, stopBrowserProcesses } from "./browser-processes.ts";
 import { removeTempDir } from "./testing/cleanup.ts";
 
 // The real tools, except where a test stands in for Windows' tasklist and taskkill.
@@ -133,12 +134,46 @@ describe("a browser on Windows", () => {
     vi.mocked(execFile).mockImplementation(actualExecFile);
   });
 
+  it.runIf(platform === "win32")("uses real CIM creation ticks to reject an old record and stop only its recorded child", async () => {
+    vi.mocked(execFile).mockImplementation(actualExecFile);
+    const home = mkdtempSync(join(tmpdir(), "spdbot-windows-pid-"));
+    homes.push(home);
+    const record = join(home, "browser.pid");
+    writeFileSync(record, "stale");
+    const staleAtNs = statSync(record, { bigint: true }).mtimeNs;
+    const foreign = spawn(process.execPath, ["-e", IDLE], { stdio: "ignore" });
+    let owned: ChildProcess | undefined;
+    try {
+      await once(foreign, "spawn");
+      // A reused PID would point at a process born after the old record,
+      // even when it runs the exact same executable as our browser.
+      expect(await browserProcessTree(process.execPath, foreign.pid!, "foreign", staleAtNs)).toBeNull();
+      expect(processAlive(foreign.pid!)).toBe(true);
+      owned = spawn(process.execPath, ["-e", IDLE], { stdio: "ignore" });
+      await once(owned, "spawn");
+      writeFileSync(record, String(owned.pid));
+      const tree = await browserProcessTree(process.execPath, owned.pid!, "owned", statSync(record, { bigint: true }).mtimeNs);
+      expect(tree).not.toBeNull();
+      expect(await stopBrowserProcesses(tree!)).toBe(true);
+      expect(processAlive(owned.pid!)).toBe(false);
+      expect(processAlive(foreign.pid!)).toBe(true);
+    } finally {
+      for (const child of [owned, foreign]) {
+        if (!child) continue;
+        child.kill("SIGKILL");
+        await vi.waitFor(() => expect(processAlive(child.pid!)).toBe(false), { timeout: 5_000 });
+      }
+    }
+  }, 30_000);
+
   it("kills only the same executable and creation time, never a foreign path, reused PID or unverifiable process", async () => {
     // A live process answers for the pid, as whatever Windows gave it to would.
     const holder = spawn(process.execPath, ["-e", IDLE], { stdio: "ignore" });
     try {
       let image: string | null = "/engine/agent-browser.exe";
-      let started = "created-1";
+      const born = 638967420000000000n; // UTC .NET ticks
+      const recordedAtNs = (born - 621355968000000000n) * 100n + 1_000_000_000n;
+      let started = String(born);
       const commands: string[][] = [];
       vi.mocked(execFile).mockImplementation(((file: string, args: string[], _options: unknown, done: (error: Error | null, stdout: string) => void) => {
         commands.push([file, ...args]);
@@ -150,9 +185,19 @@ describe("a browser on Windows", () => {
       Object.defineProperty(process, "platform", { value: "win32", configurable: true });
       // A pid file naming another program gives no tree to stop.
       image = "notepad.exe";
-      expect(await browserProcessTree("/engine/agent-browser.exe", holder.pid!, "bot-a")).toBeNull();
+      expect(await browserProcessTree("/engine/agent-browser.exe", holder.pid!, "bot-a", recordedAtNs)).toBeNull();
       image = "/engine/agent-browser.exe";
-      const tree = (await browserProcessTree("/engine/agent-browser.exe", holder.pid!, "bot-a"))!;
+      // Even a matching executable cannot adopt a reused PID at initial capture.
+      expect(await browserProcessTree("/engine/agent-browser.exe", holder.pid!, "bot-a")).toBeNull();
+      started = String(born + 20_000_000n);
+      expect(await browserProcessTree("/engine/agent-browser.exe", holder.pid!, "bot-a", recordedAtNs)).toBeNull();
+      // Keep sub-millisecond precision: a process born 100ns after the record is foreign too.
+      started = String(born + 10_000_001n);
+      expect(await browserProcessTree("/engine/agent-browser.exe", holder.pid!, "bot-a", recordedAtNs)).toBeNull();
+      started = "unverifiable";
+      expect(await browserProcessTree("/engine/agent-browser.exe", holder.pid!, "bot-a", recordedAtNs)).toBeNull();
+      started = String(born);
+      const tree = (await browserProcessTree("/engine/agent-browser.exe", holder.pid!, "bot-a", recordedAtNs))!;
       expect(tree).toMatchObject({ daemon: holder.pid, image: "/engine/agent-browser.exe" });
       expect(await browserProcessesRunning(tree)).toBe(true);
       const killed = () => commands.filter(([file]) => file === "taskkill");
@@ -169,10 +214,10 @@ describe("a browser on Windows", () => {
       expect(await stopBrowserProcesses(tree)).toBe(true);
       expect(killed()).toEqual([]);
       image = "/engine/agent-browser.exe";
-      started = "created-2";
+      started = String(born + 20_000_000n);
       expect(await stopBrowserProcesses(tree)).toBe(true);
       expect(killed()).toEqual([]);
-      started = "created-1";
+      started = String(born);
       expect(await stopBrowserProcesses(tree)).toBe(true);
       expect(killed()).toEqual([["taskkill", "/PID", String(holder.pid), "/T", "/F"]]);
       expect(await browserProcessesRunning(tree)).toBe(false);

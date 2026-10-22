@@ -17,7 +17,7 @@ export interface BrowserProcessTree {
   groups: number[];
   /** Chrome's temporary profile folders, which the daemon removes only when it closes Chrome itself. */
   profiles?: string[];
-  /** Windows gives no start times: the pid counts as the daemon only while it runs this image. */
+  /** Windows executable path; members also retain its UTC creation ticks. */
   image?: string;
 }
 
@@ -103,7 +103,7 @@ async function processEnvironment(pid: number): Promise<Map<string, string> | nu
 // CIM supplies the full executable path and creation time; unavailable identity fails closed.
 async function imageOf(pid: number): Promise<{ path: string; started: string } | null> {
   const output = await execText("powershell.exe", ["-NoProfile", "-NonInteractive", "-Command",
-    `Get-CimInstance Win32_Process -Filter 'ProcessId = ${pid}' | Select-Object ExecutablePath,CreationDate | ConvertTo-Json -Compress`]);
+    `Get-CimInstance Win32_Process -Filter 'ProcessId = ${pid}' | Select-Object ExecutablePath,@{Name='CreationDate';Expression={$_.CreationDate.ToUniversalTime().Ticks.ToString()}} | ConvertTo-Json -Compress`]);
   if (output === null) return null;
   if (!output.trim()) return { path: "", started: "" };
   try {
@@ -115,14 +115,19 @@ async function imageOf(pid: number): Promise<{ path: string; started: string } |
 
 /** agent-browser starts a daemon through the binary's resolved path with AGENT_BROWSER_DAEMON=1 and the session's name, so a
  * pid now running another program, command or session is not it. Read before the close: afterwards Chrome is re-parented. */
-export async function browserProcessTree(binaryPath: string, daemon: number, session: string): Promise<BrowserProcessTree | null> {
+export async function browserProcessTree(binaryPath: string, daemon: number, session: string, recordedAtNs?: bigint): Promise<BrowserProcessTree | null> {
   if (!Number.isInteger(daemon) || daemon <= 1 || daemon === process.pid || !processAlive(daemon)) return null;
   const paths = new Set([binaryPath]);
   try { paths.add(realpathSync(binaryPath)); } catch {}
   if (process.platform === "win32") {
-    // Require this installation's full path and a process creation time before considering a saved PID.
+    // A stale file can name a NEW daemon from this same installation. Its
+    // creation must precede the PID record, not just our inspection of it.
+    // .NET UTC ticks retain 100ns precision; fs mtimeNs uses the Unix epoch.
     const image = await imageOf(daemon);
-    return image?.started && [...paths].some((path) => path.replaceAll("\\", "/").toLowerCase() === image.path)
+    if (recordedAtNs === undefined || !image || !/^[0-9]+$/.test(image.started)) return null;
+    const startedAtNs = (BigInt(image.started) - 621355968000000000n) * 100n;
+    if (startedAtNs <= 0n || startedAtNs > recordedAtNs) return null;
+    return [...paths].some((path) => path.replaceAll("\\", "/").toLowerCase() === image.path)
       ? { daemon, members: new Map([[daemon, image.started]]), groups: [], image: image.path } : null;
   }
   const command = await processArgs(daemon);
