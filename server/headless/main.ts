@@ -11,72 +11,74 @@ import { Output, processIo, type HeadlessIo } from "./output.ts";
 import { runVerb, waitVerb } from "./run.ts";
 import { teamApplyVerb, teamExportVerb } from "./team-apply.ts";
 
-const T = "TARGET is a bot or room by name or id, or --bot ID, --channel ID, --thread ID; --task ID picks one of its conversations.";
+const T = "TARGET bezeichnet einen Bot oder eine Gruppe per Name oder ID. Alternativ: --bot ID, --channel ID oder --thread ID. --task ID wählt einen bestimmten Chat.";
 
-/** Each verb's help, in plain words. `spdbot help VERB` or `VERB --help`. */
+/** Help is human-facing; verbs, flags and machine-readable results keep their existing grammar. */
 export const VERB_HELP: Record<string, string> = {
-  doctor: `spdbot doctor [--wait DURATION]
-  Check the server answers, is new enough, says who you are to it, and has an engine ready.
-  --wait 2m keeps checking until it is ready. Exit 0 ready, 1 no engine, 5 unreachable or too old.`,
-  bots: "spdbot bots\n  Your bots and what each is doing.",
-  channels: "spdbot channels\n  Your rooms (group chats) and who is in them.",
-  models: "spdbot models\n  The engines and the models each offers (use them as INSTANCE/MODEL).",
-  messages: `spdbot messages TARGET [--limit 30]\n  The latest messages of a conversation (at most 200).
+  doctor: `pnpm spdbot doctor [--wait DURATION]
+  Prüft, ob der Server antwortet, aktuell genug ist, dich erkennt und eine Engine bereitsteht.
+  --wait 2m prüft bis zu zwei Minuten. Exitcode: 0 bereit, 1 keine Engine, 5 nicht erreichbar oder zu alt.`,
+  bots: "pnpm spdbot bots\n  Deine Bots und ihre aktuelle Arbeit anzeigen.",
+  channels: "pnpm spdbot channels\n  Deine Gruppen und ihre Mitglieder anzeigen.",
+  models: "pnpm spdbot models\n  Engines und ihre Modelle anzeigen. Verwende sie als INSTANCE/MODEL.",
+  messages: `pnpm spdbot messages TARGET [--limit 30]\n  Die letzten Nachrichten eines Chats anzeigen, höchstens 200.
   ${T}`,
-  send: `spdbot send TARGET (TEXT | --text TEXT | --message-file FILE | -) [--send-id ID] [--dry-run]
-  Send one message and return at once. The same --send-id never sends twice.
+  send: `pnpm spdbot send TARGET (TEXT | --text TEXT | --message-file FILE | -) [--send-id ID] [--dry-run]
+  Eine Nachricht senden und sofort zurückkehren. Dieselbe --send-id sendet nie zweimal.
   ${T}`,
-  "send-channel": "spdbot send-channel --channel ID (TEXT | --text TEXT) [--task ID] [--dry-run]\n  The same as send, for a room named by id.",
-  run: `spdbot run TARGET (TEXT | --message-file FILE | -) [--task new|current|ID] [--title T]
+  "send-channel": "pnpm spdbot send-channel --channel ID (TEXT | --text TEXT) [--task ID] [--dry-run]\n  Wie send, für eine Gruppe mit der angegebenen ID.",
+  run: `pnpm spdbot run TARGET (TEXT | --message-file FILE | -) [--task new|current|ID] [--title T]
                 [--wait job|turn|none] [--timeout 30m] [--on-input exit|wait|stop] [--on-timeout leave|stop]
                 [--strict] [--export DIR [--force]]
-  Give a bot or room one job and wait until it, and every teammate it asked, is done.
-  It starts a new conversation unless --task says otherwise, prints progress to stderr,
-  then the final reply and the files it links. --export writes the job to DIR once it ends
-  (a new or empty folder, checked before anything is sent; --force writes into a used one).
-  --on-input: exit (3) when someone must answer, wait for the answer, or stop the job.
-  --on-timeout: leave the work running, or stop it. --strict: a teammate that failed fails the run.
-  Exit 0 done, 1 failed or stopped, 3 needs you, 4 timed out, 130 Ctrl-C (the work keeps running).
+  Einem Bot oder einer Gruppe einen Auftrag geben und auf alle beteiligten Bots warten.
+  Beginnt einen neuen Chat, sofern --task nichts anderes festlegt. Fortschritt erscheint auf stderr,
+  danach die letzte Antwort mit verknüpften Dateien. --export exportiert den abgeschlossenen Auftrag
+  nach DIR: ein neuer oder leerer Ordner, der vor dem Senden geprüft wird. --force erlaubt einen belegten Ordner.
+  --on-input: exit beendet mit 3, wenn eine Antwort nötig ist; wait wartet darauf; stop stoppt den Auftrag.
+  --on-timeout: leave lässt die Arbeit weiterlaufen; stop stoppt sie.
+  --strict: Ein Fehler eines beteiligten Bots lässt den gesamten Durchlauf fehlschlagen.
+  Exitcodes: 0 fertig, 1 fehlgeschlagen oder gestoppt, 3 Eingabe nötig, 4 Zeitlimit, 130 Strg+C (Arbeit läuft weiter).
   ${T}`,
-  wait: `spdbot wait TARGET [--for job|turn] [--timeout 30m] [--on-input …] [--on-timeout …] [--strict] [--since MS]
-  Wait on a conversation already running (after run --wait none, Ctrl-C or a restarted CI step).
-  --since MS (which run prints) keeps watching the same job, so one that ended meanwhile reports how.
-  Nothing running: it returns at once (exit 0). Same exit codes as run.
+  wait: `pnpm spdbot wait TARGET [--for job|turn] [--timeout 30m] [--on-input …] [--on-timeout …] [--strict] [--since MS]
+  Auf einen bereits laufenden Chat warten, etwa nach run --wait none, Strg+C oder einem CI-Neustart.
+  --since MS (von run ausgegeben) verfolgt denselben Auftrag und meldet auch dessen zwischenzeitlichen Abschluss.
+  Wenn nichts läuft, endet der Befehl sofort mit 0. Sonst gelten dieselben Exitcodes wie bei run.
   ${T}`,
-  interrupt: `spdbot interrupt TARGET [--tree] [--dry-run]\n  Press Stop on a conversation. --tree also stops every teammate still working on its job.
+  interrupt: `pnpm spdbot interrupt TARGET [--tree] [--dry-run]\n  Einen Chat stoppen. --tree stoppt auch alle Bots, die noch an dessen Auftrag arbeiten.
   ${T}`,
-  "new-bot": "spdbot new-bot NAME [--title T] [--team T] [--model INSTANCE/MODEL] [--effort E]\n  Make a bot.",
-  "new-channel": "spdbot new-channel NAME --members A,B [--team T]\n  Make a room from bots, by name or id.",
-  "set-model": "spdbot set-model BOT --model INSTANCE/MODEL [--effort E] [--task ID] [--dry-run]\n  Change an idle bot's model (or one idle conversation's, with --task).",
-  edit: "spdbot edit BOT --message ID (TEXT | --text TEXT) [--task ID] [--dry-run]\n  Rewrite an earlier message of yours and have the bot answer again from there.",
-  export: `spdbot export TARGET --out DIR [--root ID] [--since MS] [--max-files 200] [--max-screens 100] [--max-bytes 500MB] [--force]
-  Write a conversation's job to DIR: the job tree, every transcript (secrets removed),
-  the files its replies link to, and screen captures. --root keeps one job.
+  "new-bot": "pnpm spdbot new-bot NAME [--title T] [--team T] [--model INSTANCE/MODEL] [--effort E]\n  Einen Bot erstellen.",
+  "new-channel": "pnpm spdbot new-channel NAME --members A,B [--team T]\n  Eine Gruppe aus Bots erstellen, angegeben per Name oder ID.",
+  "set-model": "pnpm spdbot set-model BOT --model INSTANCE/MODEL [--effort E] [--task ID] [--dry-run]\n  Das Modell eines untätigen Bots ändern. Mit --task nur das Modell eines untätigen Chats ändern.",
+  edit: "pnpm spdbot edit BOT --message ID (TEXT | --text TEXT) [--task ID] [--dry-run]\n  Eine frühere eigene Nachricht bearbeiten und den Bot ab dort erneut antworten lassen.",
+  export: `pnpm spdbot export TARGET --out DIR [--root ID] [--since MS] [--max-files 200] [--max-screens 100] [--max-bytes 500MB] [--force]
+  Einen Auftrag nach DIR exportieren: Auftragsstruktur, Chatverläufe mit entfernten Geheimnissen,
+  verknüpfte Dateien und Bildschirmbilder. --root beschränkt den Export auf einen Auftrag.
   ${T}`,
-  events: `spdbot events [--thread ID]… [--job THREAD_ID [--until-settled]] [--kind K,…] [--since CURSOR] [--screens] [--jsonl]
-  The server's live events, one JSON line each: messages, threads, bots and rooms, or the kinds --kind names
-  (--kind message,runtime adds token-level events to messages).
-  --job follows the threads of one conversation's job; --until-settled ends with it.`,
-  team: "spdbot team apply FILE | team export --out FILE   (see help team apply, help team export)",
-  "team apply": `spdbot team apply FILE [--dry-run | --check] [--prune] [--rotate-secrets] [--wait-idle 2m]
-  Make the workspace match a team file (YAML or JSON): teams and briefs, bots, skills, Chiefs,
-  rooms and engines. Prints the plan, then applies it; a second apply prints "No changes.".
-  --dry-run only prints the plan; --check exits 6 if anything would change. --prune deletes bots
-  and rooms the file leaves out, in teams marked prune: true. Keys come from { env } or { file },
-  and a key already set is kept unless --rotate-secrets. docs/headless-cli.md has the format.`,
-  "team export": "spdbot team export [--team NAME]… --out FILE\n  Write the workspace (or some teams) as a team file; skills go beside it, keys as placeholders,\n  and a key written into a soul, brief or skill is taken out.",
-  engine: "spdbot engine set KIND … | engine list   (see help engine set)",
-  "engine set": `spdbot engine set KIND (--key-env VAR | --key-file FILE) [--base-url URL] [--only-claude-api] [--install] [--rotate] [--dry-run]
-  Give the workspace an engine key: claude, openai, openrouter, openai-compatible, xai, groq, mistral or cerebras.
-  The key is never printed. One already set is kept unless --rotate. --install installs the engine's
-  command if it is not running already, so a script can run this on every start.
-  claude: the key runs every Claude bot; --only-claude-api keeps it to "Claude (API key)" bots.`,
-  "engine list": "spdbot engine list\n  The engines, whether each is ready, and which keys are set (never their values).",
-  connect: `spdbot connect [URL] [--code CODE] --out FILE [--label NAME] [--client] [--force]
-  Get a token for a workspace you reach over the network, saved to FILE (only you can read it).
-  On this computer's own server the code is made for you; elsewhere, get one from Settings → Phone.
-  Then use it: --url URL --token-file FILE (or SPDBOT_URL and SPDBOT_TOKEN).`,
-  mcp: "spdbot mcp\n  Serve the SPDBot MCP tools on stdin and stdout, for an agent (docs/mcp-server.md).",
+  events: `pnpm spdbot events [--thread ID]… [--job THREAD_ID [--until-settled]] [--kind K,…] [--since CURSOR] [--screens] [--jsonl]
+  Live-Ereignisse des Servers ausgeben, je eine JSON-Zeile: Nachrichten, Chats, Bots und Gruppen
+  oder die mit --kind gewählten Typen. --kind message,runtime ergänzt Token-Ereignisse.
+  --job verfolgt die Chats eines Auftrags; --until-settled beendet die Ausgabe mit dessen Abschluss.`,
+  team: "pnpm spdbot team apply FILE | team export --out FILE   (siehe help team apply und help team export)",
+  "team apply": `pnpm spdbot team apply FILE [--dry-run | --check] [--prune] [--rotate-secrets] [--wait-idle 2m]
+  Den Arbeitsbereich an eine Teamdatei (YAML oder JSON) anpassen: Teams und Anweisungen, Bots,
+  Skills, Stabschefs, Gruppen und Engines. Zeigt zuerst den Plan und wendet ihn dann an. Ein zweiter unveränderter Aufruf meldet „Keine Änderungen.“.
+  --dry-run zeigt nur den Plan. --check endet mit 6, wenn Änderungen nötig wären.
+  --prune löscht nicht aufgeführte Bots und Gruppen in Teams mit prune: true.
+  Schlüssel kommen aus { env } oder { file }. Vorhandene Schlüssel bleiben ohne --rotate-secrets erhalten.
+  Das Dateiformat ist in docs/headless-cli.md beschrieben.`,
+  "team export": "pnpm spdbot team export [--team NAME]… --out FILE\n  Den Arbeitsbereich oder ausgewählte Teams als Teamdatei exportieren. Skills liegen daneben,\n  Schlüssel werden durch Platzhalter ersetzt und aus Persönlichkeit, Anweisungen und Skills entfernt.",
+  engine: "pnpm spdbot engine set KIND … | engine list   (siehe help engine set)",
+  "engine set": `pnpm spdbot engine set KIND (--key-env VAR | --key-file FILE) [--base-url URL] [--only-claude-api] [--install] [--rotate] [--dry-run]
+  Einen Engine-Schlüssel einrichten: claude, openai, openrouter, openai-compatible, xai, groq, mistral oder cerebras.
+  Der Schlüssel wird nie ausgegeben. Ein vorhandener Schlüssel bleibt ohne --rotate erhalten.
+  --install installiert den Engine-Befehl, falls er noch nicht läuft; dadurch eignet sich der Aufruf für Startskripte.
+  claude: Der Schlüssel gilt für alle Claude-Bots. --only-claude-api beschränkt ihn auf Bots mit „Claude (API key)“.`,
+  "engine list": "pnpm spdbot engine list\n  Engines, ihre Verfügbarkeit und eingerichtete Schlüssel anzeigen, niemals die Schlüsselwerte.",
+  connect: `pnpm spdbot connect [URL] [--code CODE] --out FILE [--label NAME] [--client] [--force]
+  Einen Token für einen erreichbaren Arbeitsbereich abrufen und in FILE speichern. Nur du kannst die Datei lesen.
+  Auf dem lokalen Server wird der Kopplungscode automatisch erstellt. Auf einem anderen Server erhältst du
+  ihn in der Serveransicht unter Einstellungen → Fernzugriff. Anschließend: --url URL --token-file FILE oder SPDBOT_URL und SPDBOT_TOKEN.`,
+  mcp: "pnpm spdbot mcp\n  Die SPDBot-MCP-Werkzeuge für einen Agenten über stdin und stdout bereitstellen (docs/mcp-server.md).",
 };
 
 export interface HeadlessOptions {

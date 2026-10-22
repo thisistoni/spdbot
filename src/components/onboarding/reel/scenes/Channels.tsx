@@ -49,7 +49,7 @@ function useTypewriter(text: string, active: boolean, still: boolean, charsPerTi
 
 export function Channels({ playing, onCue, onEnded, label }: SceneProps) {
   const MEMBERS: Array<{ name: string; title: string; color: MausColor }> = [
-    { name: "Maus", title: t("onboarding.reel.demo.chief"), color: "green" },
+    { name: "SPDBot", title: t("onboarding.reel.demo.chief"), color: "green" },
     { name: t("onboarding.reel.demo.researcher"), title: t("onboarding.reel.demo.researcher.title"), color: "blue" },
     { name: t("onboarding.reel.demo.writer"), title: t("onboarding.reel.demo.writer.title"), color: "orange" },
   ];

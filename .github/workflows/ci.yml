@@ -146,6 +146,41 @@ jobs:
         if: matrix.shard == 1
         run: pnpm broker:test && pnpm test:electron
 
+  spd-german:
+    needs: static
+    if: needs.static.outputs.runtime == 'true'
+    name: SPDBot German interface visual check (Chromium)
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: pnpm/action-setup@ff378ebe6b225b0680b81c1ad4498ae0d1d3a5e3 # v6.0.10
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: 24
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - name: Install the pinned browser test client outside the app
+        run: npm install --prefix "$RUNNER_TEMP/spd-playwright" --no-audit --no-fund --ignore-scripts playwright@1.57.0
+      - name: Check the QA URL and German-label guards without a browser
+        run: node --test scripts/testing/check-spd-german.node-test.mjs
+      - name: Check the actual renderer and capture German interface screenshots
+        env:
+          OMB_VERIFY_PLAYWRIGHT: ${{ runner.temp }}/spd-playwright/node_modules/playwright/index.mjs
+          OMB_VERIFY_BROWSER_CHROME: /usr/bin/google-chrome
+          OMB_SPD_EVIDENCE: .omb-scratch/spd-german-evidence
+        run: node scripts/testing/run-spd-german-ci.mjs
+      - name: Upload renderer evidence, including failures
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        if: always()
+        with:
+          name: spd-german-renderer-evidence
+          path: .omb-scratch/spd-german-evidence
+          if-no-files-found: error
+          retention-days: 14
+
   behavior-evals:
     needs: static
     if: needs.static.outputs.runtime == 'true'
@@ -278,7 +313,7 @@ jobs:
   gate:
     # One aggregation, not three queued runners doing the same check.
     name: CI
-    needs: [static, vitest, behavior-evals, packaged-server, windows-cua, electron-smokes]
+    needs: [static, vitest, behavior-evals, packaged-server, windows-cua, electron-smokes, spd-settings, spd-german]
     # Still report failed/skipped dependencies, but don't keep a superseded
     # workflow alive just to schedule its summary jobs.
     if: ${{ !cancelled() }}
@@ -463,6 +498,39 @@ jobs:
             .omb-scratch/verify-evidence/share-team-dialog.png
           if-no-files-found: warn
           retention-days: 7
+
+  spd-settings:
+    needs: static
+    if: needs.static.outputs.runtime == 'true'
+    name: SPDBot settings visual check (Chromium)
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: pnpm/action-setup@ff378ebe6b225b0680b81c1ad4498ae0d1d3a5e3 # v6.0.10
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: 24
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - name: Install the pinned browser test client outside the app
+        run: npm install --prefix "$RUNNER_TEMP/spd-playwright" --no-audit --no-fund --ignore-scripts playwright@1.57.0
+      - name: Check the actual renderer and capture settings screenshots
+        env:
+          OMB_VERIFY_PLAYWRIGHT: ${{ runner.temp }}/spd-playwright/node_modules/playwright/index.mjs
+          OMB_VERIFY_BROWSER_CHROME: /usr/bin/google-chrome
+          OMB_SPD_EVIDENCE: .omb-scratch/spd-settings-evidence
+        run: node scripts/testing/run-spd-settings-ci.mjs
+      - name: Upload renderer evidence, including failures
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        if: always()
+        with:
+          name: spd-settings-renderer-evidence
+          path: .omb-scratch/spd-settings-evidence
+          if-no-files-found: error
+          retention-days: 14
 
   browser-identity:
     needs: static

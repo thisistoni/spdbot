@@ -88,12 +88,12 @@ describe("login and logout against the control plane", () => {
   it("an emailed code signs this machine in and reserves its public address; logout releases it", async () => {
     const wrong = fakeIo(["00000000"]);
     expect(await runLogin(options(dir, { email: "milind@example.test" }), wrong.io)).toBe(1);
-    expect(wrong.err.join("\n")).toMatch(/sign-in failed/);
+    expect(wrong.err.join("\n")).toMatch(/Anmeldung fehlgeschlagen/);
     expect(describeTunnelAccount(openTunnelCredentials(dir).read()).email).toBeNull();
 
     const right = fakeIo([stub.otp]);
     expect(await runLogin(options(dir, { email: "milind@example.test" }), right.io)).toBe(0);
-    expect(right.out.join("\n")).toContain(`This machine's public address: ${stub.endpointUrl}`);
+    expect(right.out.join("\n")).toContain(`Öffentliche Adresse dieses Computers: ${stub.endpointUrl}`);
     const doc = openTunnelCredentials(dir).read();
     expect(describeTunnelAccount(doc)).toMatchObject({ email: "milind@example.test", address: stub.endpointUrl });
     expect(tunnelAccess(doc)?.token).toBe(stub.connectorToken);
@@ -104,11 +104,11 @@ describe("login and logout against the control plane", () => {
 
     const status = fakeIo([]);
     await runStatus(options(dir, { command: "status" }), status.io);
-    expect(status.out.join("\n")).toContain(`public address: ${stub.endpointUrl}`);
+    expect(status.out.join("\n")).toContain(`Öffentliche Adresse: ${stub.endpointUrl}`);
 
     const bye = fakeIo([]);
     expect(await runLogout(options(dir, { command: "logout" }), bye.io)).toBe(0);
-    expect(bye.out.join("\n")).toContain("is released");
+    expect(bye.out.join("\n")).toContain("wird freigegeben");
     expect(describeTunnelAccount(openTunnelCredentials(dir).read()).email).toBeNull();
     expect(stub.calls).toContain("DELETE /v1/installations/self/endpoint");
     expect(stub.calls).toContain("POST /api/auth/sign-out");
@@ -178,6 +178,19 @@ describe("login and logout against the control plane", () => {
     const io = fakeIo([]);
     expect(await runLogin(options(dir, { email: "a@b.test" }), io.io)).toBe(1);
     expect(io.err.join("\n")).toMatch(/OMB_CONTROL_PLANE_URL/);
+  });
+
+  it("the SPDBot control-plane override signs in and an invalid value wins over the legacy alias", async () => {
+    vi.stubEnv("SPDBOT_CONTROL_PLANE_URL", stub.url);
+    vi.stubEnv("OMB_CONTROL_PLANE_URL", "ftp://nope");
+    expect(await runLogin(options(dir, { email: "spdbot@example.test" }), fakeIo([stub.otp]).io)).toBe(0);
+    const calls = stub.calls.length;
+    vi.stubEnv("SPDBOT_CONTROL_PLANE_URL", "ftp://nope");
+    vi.stubEnv("OMB_CONTROL_PLANE_URL", stub.url);
+    const io = fakeIo([]);
+    expect(await runLogin(options(dir, { email: "spdbot@example.test" }), io.io)).toBe(1);
+    expect(io.err.join("\n")).toMatch(/SPDBOT_CONTROL_PLANE_URL/);
+    expect(stub.calls).toHaveLength(calls);
   });
 });
 

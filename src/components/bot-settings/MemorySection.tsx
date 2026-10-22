@@ -535,21 +535,25 @@ export function MemoryUpkeepCard({
 
 export function MemoryGauge({ index }: { index: MemoryCapacity }) {
   const status = capacityStatus(index);
+  const missingLines = index.lines - index.loadedLines;
+  const warning = !index.truncated ? null : missingLines > 0
+    ? t(missingLines === 1 ? "memory.capacity.warningLines.one" : "memory.capacity.warningLines.many", { lines: index.lines, loaded: index.loadedLines, missing: missingLines })
+    : t("memory.capacity.warningBytes", { bytes: formatBytes(index.bytes), loaded: formatBytes(index.loadedBytes) });
   const fill = status.level === "over" ? "bg-danger" : status.level === "near" ? "bg-warning" : "bg-accent";
   return (
     <div className={cn("rounded-xl p-4", status.level === "over" ? "border border-danger/30 bg-danger/10" : "bg-card")}>
       <div className="flex items-center justify-between gap-3 text-[13px]">
         <span className="font-medium text-ink">{t("memory.capacity.title")}</span>
         <span className={cn("text-[12px]", status.level === "over" ? "text-danger" : "text-ink-secondary")}>
-          {index.lines} / {index.maxLines} lines · {formatBytes(index.bytes)} / {formatBytes(index.maxBytes)}
+          {t("memory.capacity.counter", { lines: index.lines, maxLines: index.maxLines, bytes: formatBytes(index.bytes), maxBytes: formatBytes(index.maxBytes) })}
         </span>
       </div>
       <GaugeBar label={t("memory.capacity.lines")} share={status.lineShare} fill={fill} />
       <GaugeBar label={t("memory.capacity.size")} share={status.byteShare} fill={fill} />
       <p className={cn("mt-2 text-[12.5px] leading-relaxed", status.level === "over" ? "text-danger" : "text-ink-secondary")}>
-          {status.warning ?? t("memory.capacity.sentence", { lines: index.lines, maxLines: index.maxLines, bytes: formatBytes(index.bytes), maxBytes: formatBytes(index.maxBytes), maxLoaded: index.maxLines })}
+          {warning ?? t("memory.capacity.sentence", { lines: index.lines, maxLines: index.maxLines, bytes: formatBytes(index.bytes), maxBytes: formatBytes(index.maxBytes), maxLoaded: index.maxLines })}
       </p>
-      {status.warning && <p className="mt-1 text-[12px] text-ink-secondary">{t("memory.capacity.sentence", { lines: index.lines, maxLines: index.maxLines, bytes: formatBytes(index.bytes), maxBytes: formatBytes(index.maxBytes), maxLoaded: index.maxLines })}</p>}
+      {warning && <p className="mt-1 text-[12px] text-ink-secondary">{t("memory.capacity.sentence", { lines: index.lines, maxLines: index.maxLines, bytes: formatBytes(index.bytes), maxBytes: formatBytes(index.maxBytes), maxLoaded: index.maxLines })}</p>}
     </div>
   );
 }
@@ -702,7 +706,8 @@ export function MemoryJournalList({
                   {reverting === row.id ? t("memory.undoing") : t("memory.undo")}
                 </button>
               ) : (
-                <span className="shrink-0 text-[11.5px] text-ink-secondary" title={row.revertUnavailableReason}>
+                <span className="shrink-0 text-[11.5px] text-ink-secondary" title={row.revertUnavailableReason === "The earlier version was too large to keep, so this change cannot be reverted." ? t("memory.restore.tooLarge")
+                    : row.revertUnavailableReason === "The earlier version contained sensitive text that was hidden, so it cannot be restored exactly." ? t("memory.restore.redacted") : row.revertUnavailableReason}>
                   {t("memory.cantUndo")}
                 </span>
               )}

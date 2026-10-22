@@ -391,8 +391,8 @@ test("computer control that never started gives its reason as a fix the person c
   for (const [reason, expected] of [
     ["cua-driver binary not found", helperMissing()],
     ["embedded host failed: Packaged background CUA driver is missing; reinstall OpenMausBot", helperMissing()],
-    ["Accessibility and Screen Recording required; grant access in System Settings and restart OpenMausBot", /allow Accessibility and Screen Recording/],
-    ["no running cua-driver daemon", /Computer control is not running on this computer/],
+    ["Accessibility and Screen Recording required; grant access in System Settings and restart OpenMausBot", /Bedienungshilfen und Bildschirmaufnahme/],
+    ["no running cua-driver daemon", /Die Computersteuerung läuft auf diesem Computer nicht/],
   ]) {
     const dir = await scratch(t);
     const { results } = await lend(t, dir, {

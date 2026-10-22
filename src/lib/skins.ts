@@ -23,15 +23,15 @@ export type Skin = {
 
 export const SKINS: readonly Skin[] = [
   { id: "spd", name: "SPD", tagline: "Deep plum, soft lavender. SPD Studio.", taglineKey: "settings.skin.spd.tagline" },
-  { id: "midnight", name: "Midnight", tagline: "The original. Cool and dark." },
-  { id: "atelier", name: "Atelier", tagline: "Daylight on paper, warm and quiet." },
-  { id: "foundry", name: "Foundry", tagline: "Night shift. Dark, warm, lit in brass." },
-  { id: "lagoon", name: "Lagoon", tagline: "Cool daylight. Porcelain and deep teal." },
-  { id: "graphite", name: "Graphite", tagline: "Quiet charcoal and softened steel blue." },
-  { id: "linen", name: "Linen", tagline: "Clean daylight with a restrained navy accent." },
-  { id: "dusk", name: "Dusk", tagline: "Muted plum after dark, calm and low-key." },
-  { id: "daylight", name: "Daylight", tagline: "Midnight in reverse. Near-white, ink-black bubbles." },
-  { id: "meadow", name: "Meadow", tagline: "Fresh white with a calm green. The MausBot look." },
+  { id: "midnight", name: "Midnight", tagline: "The original. Cool and dark.", taglineKey: "settings.skin.midnight.tagline" },
+  { id: "atelier", name: "Atelier", tagline: "Daylight on paper, warm and quiet.", taglineKey: "settings.skin.atelier.tagline" },
+  { id: "foundry", name: "Foundry", tagline: "Night shift. Dark, warm, lit in brass.", taglineKey: "settings.skin.foundry.tagline" },
+  { id: "lagoon", name: "Lagoon", tagline: "Cool daylight. Porcelain and deep teal.", taglineKey: "settings.skin.lagoon.tagline" },
+  { id: "graphite", name: "Graphite", tagline: "Quiet charcoal and softened steel blue.", taglineKey: "settings.skin.graphite.tagline" },
+  { id: "linen", name: "Linen", tagline: "Clean daylight with a restrained navy accent.", taglineKey: "settings.skin.linen.tagline" },
+  { id: "dusk", name: "Dusk", tagline: "Muted plum after dark, calm and low-key.", taglineKey: "settings.skin.dusk.tagline" },
+  { id: "daylight", name: "Daylight", tagline: "Midnight in reverse. Near-white, ink-black bubbles.", taglineKey: "settings.skin.daylight.tagline" },
+  { id: "meadow", name: "Meadow", tagline: "Fresh white with a calm green.", taglineKey: "settings.skin.meadow.tagline" },
 ];
 
 export const DEFAULT_SKIN: SkinId = "spd";

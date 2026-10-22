@@ -6,6 +6,7 @@ import { cn } from "@/lib/cn";
 import { APP_REPOSITORY } from "@/lib/app-links";
 import { useMenuMotion } from "./MenuMotion";
 import { t } from "@/lib/i18n";
+import { desktopErrorMessage } from "@/lib/desktop-errors";
 import type { LocaleKey } from "@/locales";
 import { SECTION_PROVIDER, type KeyResult, type KeyVia } from "@/lib/analytics-allowlist";
 import { keyRemoved, keySaved, keySaveFailure, keyTestResult, savedKeyResult } from "@/lib/product-events";
@@ -326,7 +327,7 @@ export function ApiKeyRow({
       setVerdict(`${t("keys.testSaved")} ${outcome}`);
       return keyTestResult(result);
     } catch (cause) {
-      if (generation === testGeneration.current) setVerdict(cause instanceof Error ? cause.message : String(cause));
+      if (generation === testGeneration.current) setVerdict(desktopErrorMessage(cause));
       return keyTestResult(null);
     } finally {
       if (generation === testGeneration.current) setTesting(false);
@@ -365,7 +366,7 @@ export function ApiKeyRow({
         else keySaved(provider, via, savedKeyResult(provider));
       })
       .catch((e) => {
-        setError(e.message);
+        setError(desktopErrorMessage(e));
         if (next) keySaved(SECTION_PROVIDER[section], via, keySaveFailure(e));
       })
       .finally(() => { savingRef.current = false; setSaving(false); });
@@ -478,7 +479,7 @@ export function OpenCodeProviderKeys() {
     setError(null);
     put(target, value)
       .then(() => { setName(""); setKey(""); })
-      .catch((e) => setError(e.message))
+      .catch((e) => setError(desktopErrorMessage(e)))
       .finally(() => setAdding(false));
   };
 
@@ -487,7 +488,7 @@ export function OpenCodeProviderKeys() {
     setRemoving(target);
     setError(null);
     put(target, "")
-      .catch((e) => setError(e.message))
+      .catch((e) => setError(desktopErrorMessage(e)))
       .finally(() => setRemoving(null));
   };
 
@@ -563,7 +564,7 @@ export function AnthropicEveryClaudeBot() {
     setError(null);
     api("/api/config", { method: "PUT", body: JSON.stringify({ anthropic: { everyClaudeBot: !on } }) })
       .then((status: ConfigStatus) => dispatch({ type: "configStatus", config: status }))
-      .catch((e) => setError(e.message))
+      .catch((e) => setError(desktopErrorMessage(e)))
       .finally(() => setSaving(false));
   };
   return (
@@ -612,7 +613,7 @@ export function VpsConnection() {
         dispatch({ type: "configStatus", config: status });
         setAlias(status.vps?.sshAlias ?? "");
       })
-      .catch((e) => setError(e.message))
+      .catch((e) => setError(desktopErrorMessage(e)))
       .finally(() => setSaving(false));
   };
 
@@ -684,7 +685,7 @@ export function OpenAiCompatUrl() {
     setError(null);
     api("/api/config", { method: "PUT", body: JSON.stringify({ openaiCompat: { url: value.trim() } }) })
       .then((status: ConfigStatus) => dispatch({ type: "configStatus", config: status }))
-      .catch((e) => setError(e.message))
+      .catch((e) => setError(desktopErrorMessage(e)))
       .finally(() => { savingRef.current = false; setSaving(false); });
   };
 

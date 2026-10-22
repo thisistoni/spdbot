@@ -1,6 +1,9 @@
 import { createElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
-import { describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it } from "vitest";
+import { setLocale } from "@/lib/i18n";
+
+afterEach(() => setLocale("en"));
 
 import { canPairDevices, lastSeen, minutesLeft, pairingBlockedReason, ServerPairingCard, shownDevices } from "./ServerPairingCard";
 
@@ -35,7 +38,8 @@ describe("pairing devices from a hosted server's settings", () => {
     expect(pairingBlockedReason({ kind: "unauthenticated", error: "pair" })).toBeNull();
     const html = renderToStaticMarkup(createElement(ServerPairingCard, { initialSession: chatOnly }));
     expect(html).toContain("data-server-pairing-chat-only");
-    expect(html).toContain("openmausbot pair");
+    expect(html).toContain("Settings → Remote access");
+    expect(html).not.toContain("openmausbot pair");
     expect(html).not.toContain("Create pairing code");
     const admin = renderToStaticMarkup(createElement(ServerPairingCard, { initialSession: { ...chatOnly, scopes: ["admin", "client"] } }));
     expect(admin).toContain("Create pairing code");
@@ -45,6 +49,14 @@ describe("pairing devices from a hosted server's settings", () => {
     expect(admin).toContain('data-phone-pairing="server"');
     expect(html).toContain('data-phone-pairing="server"');
     expect(html).not.toContain("data-phone-pairing-action");
+  });
+
+  it("uses German browser-pairing instructions, without claiming an SPDBot phone app exists", () => {
+    setLocale("de");
+    const html = renderToStaticMarkup(createElement(ServerPairingCard, { initialSession: { kind: "loopback" } }));
+    expect(html).toContain("Kopplungscode erstellen");
+    expect(html).toContain("öffne den Link im Browser");
+    expect(html).not.toMatch(/OpenMaus|MausBot|SPDBot-App|openmausbot/);
   });
 
   it("offers no pairing code on a hosted workspace, where people sign in through the portal", () => {

@@ -627,7 +627,7 @@ export function Composer({
               if (result.status === "rejected") {
                 dispatch({
                   type: "error",
-                  message: result.reason instanceof Error ? result.reason.message : "image upload failed",
+                  message: result.reason instanceof Error ? result.reason.message : t("composer.imageUploadFailed"),
                 });
               }
             }

@@ -11,7 +11,12 @@ import { applyFont, readFont } from "./lib/fonts";
 import { settleAdvancedModeDefault } from "./lib/interface-mode";
 import { BrowserSignInPage } from "./pair/BrowserSignInPage";
 import { PairPage } from "./pair/PairPage";
+import { effectiveLanguage, languageChoice } from "./lib/language-preference";
+import { setLocale } from "./lib/i18n";
 import "./styles.css";
+
+// Pairing and initial connection render before App can read the server language.
+setLocale(effectiveLanguage(languageChoice(), undefined) || globalThis.navigator?.language);
 
 // Before first paint; settleAdvancedModeDefault must run before applySkin writes omb-skin.
 settleAdvancedModeDefault();

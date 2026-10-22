@@ -10,7 +10,7 @@ export function AnalyticsRow() {
   const [on, setOn] = useState(analyticsEnabled);
   const subtitle = (
     <>
-      {t("settings.analytics.subtitle")}{" "}
+      {t("settings.analytics.productSubtitle")}{" "}
       <a href={ANALYTICS_DOC_URL} target="_blank" rel="noopener noreferrer" className="text-accent hover:underline">
         {t("settings.analytics.link")}
       </a>

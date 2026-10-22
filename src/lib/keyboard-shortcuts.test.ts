@@ -1,3 +1,4 @@
+import { setLocale } from "@/lib/i18n";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import {
@@ -62,7 +63,7 @@ describe("keyboard-shortcuts", () => {
 
   it("draws the send and new-line rows from the send key choice", () => {
     const row = (groups: readonly typeof SHORTCUT_GROUPS[number][], id: string) => groups.flatMap((group) => group.items).find((item) => item.id === id)!;
-    expect(shortcutGroupsFor("enter")).toBe(SHORTCUT_GROUPS);
+    expect(shortcutGroupsFor("enter")).toEqual(SHORTCUT_GROUPS);
     expect(row(SHORTCUT_GROUPS, "send-message")).toMatchObject({ macKeys: ["Return"], winKeys: ["Enter"] });
     expect(row(SHORTCUT_GROUPS, "new-line")).toMatchObject({ macKeys: ["⇧", "Return"], winKeys: ["Shift", "Enter"] });
     const shift = shortcutGroupsFor("shift-enter");
@@ -72,7 +73,7 @@ describe("keyboard-shortcuts", () => {
     expect(row(mod, "send-message")).toMatchObject({ macKeys: ["⌘", "Return"], winKeys: ["Ctrl", "Enter"] });
     expect(row(mod, "new-line")).toMatchObject({ macKeys: ["Return"], winKeys: ["Enter"] });
     for (const groups of [shift, mod]) {
-      expect(row(groups, "save-bulletin")).toBe(row(SHORTCUT_GROUPS, "save-bulletin"));
+      expect(row(groups, "save-bulletin")).toEqual(row(SHORTCUT_GROUPS, "save-bulletin"));
       expect(row(groups, "send-message").description).toBe("Send message");
       expect(groups.map((group) => group.items.map((item) => item.id))).toEqual(SHORTCUT_GROUPS.map((group) => group.items.map((item) => item.id)));
     }
@@ -125,5 +126,21 @@ describe("keyboard shortcut opening guard", () => {
     }
     expect(shouldOpenKeyboardShortcuts(event("?", { ctrlKey: true }))).toBe(false);
     expect(shouldOpenKeyboardShortcuts(event("/", { metaKey: true, shiftKey: true }))).toBe(false);
+  });
+});
+
+
+describe("localized keyboard shortcut descriptions", () => {
+  afterEach(() => setLocale("en"));
+  it("localizes descriptions and search without changing shortcut IDs or keys", () => {
+    setLocale("de");
+    const groups = shortcutGroupsFor("enter");
+    const send = groups.flatMap(group => group.items).find(item => item.id === "send-message")!;
+    expect(send.description).toBe("Nachricht senden");
+    expect(send.winKeys).toEqual(["Enter"]);
+    expect(filterShortcutGroups(groups, "Nachricht senden")[0]?.items[0]?.id).toBe("send-message");
+    expect(groups.some(group => group.category === "Chat und Eingabefeld")).toBe(true);
+    setLocale("en");
+    expect(shortcutGroupsFor("enter").flatMap(group => group.items).find(item => item.id === "send-message")?.description).toBe("Send message");
   });
 });

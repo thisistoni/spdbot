@@ -7,6 +7,7 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import { setLocale, t } from "@/lib/i18n";
 import { locales } from "@/locales";
 import { screenPreviewFailure } from "@/lib/screen-preview";
+import { localizeComputerProblem } from "@/lib/computer-messages";
 
 const capabilities: DesktopCapabilities = {
   host: { platform: "linux", label: "Ubuntu", session: "x11", packaged: true },
@@ -28,6 +29,20 @@ afterEach(() => {
 });
 
 describe("computer panel translation", () => {
+  it("translates server-owned VM setup states and preserves runtime, driver and external details", () => {
+    setLocale("de");
+    expect(localizeComputerProblem("Install a supported container runtime first")).toBe("Installiere zuerst eine unterstützte Container-Laufzeit.");
+    expect(localizeComputerProblem("Start podman first")).toBe("Starte zuerst podman.");
+    expect(localizeComputerProblem("Prepare the Cua desktop image with Driver 0.20.0")).toBe("Bereite das Cua-Desktop-Image mit Treiber 0.20.0 vor.");
+    for (const brand of ["OpenMausBot", "SPDBot"]) {
+      expect(localizeComputerProblem(`The existing container was not created by ${brand}; recreate it`)).toContain("SPDBot");
+    }
+    expect(localizeComputerProblem("External runtime: fixture detail")).toBe("External runtime: fixture detail");
+    setLocale("en");
+    expect(localizeComputerProblem("Install a supported container runtime first")).toBe("Install a supported container runtime first");
+    expect(localizeComputerProblem("Start podman first")).toBe("Start podman first");
+  });
+
   it("resolves the local preview's phase copy at render, not at import", () => {
     expect(renderToStaticMarkup(createElement(LocalScreenPreview))).toContain(
       t("computer.screen.idle"),

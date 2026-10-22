@@ -28,7 +28,7 @@ session named `omb-ui-<port>`, and prints a handle:
 ```json
 {
   "ok": true,
-  "ui": "/tmp/openmausbot-verify-data-XXXXXX/ui.json",
+  "ui": "/tmp/spdbot-verify-data-XXXXXX/ui.json",
   "url": "http://127.0.0.1:PORT",
   "previewUrl": "http://127.0.0.1:5178/__threads.html",
   "botId": "…", "dataDir": "…", "logPath": "…"
@@ -43,7 +43,7 @@ a browser it did not launch.
 ## Drive
 
 ```sh
-H=/tmp/openmausbot-verify-data-XXXXXX/ui.json
+H=/tmp/spdbot-verify-data-XXXXXX/ui.json
 pnpm control:omb ui flag --ui $H --set features.showToolCalls=true --dry-run
 pnpm control:omb ui flag --ui $H --set features.showToolCalls=true
 pnpm control:omb ui snapshot --ui $H --interactive

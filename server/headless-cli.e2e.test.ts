@@ -160,7 +160,7 @@ rooms:
 
     const refused = await cli(["export", "--thread", result.threadId, "--out", out]);
     expect(refused.code).toBe(2);
-    expect(refused.stderr).toContain("already has files in it");
+    expect(refused.stderr).toContain("enthält bereits Dateien");
     const forced = await cli(["export", "--thread", result.threadId, "--out", out, "--force", "--json"]);
     expect(forced.code, forced.stderr).toBe(0);
     expect(json(forced).files.length).toBeGreaterThanOrEqual(3);

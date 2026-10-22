@@ -231,7 +231,7 @@ function SectionContextDialog({ section, label, onClose }: { section: string; la
                   {t("team.instructionsFactHint")} {updatedAt ? ` ${t("team.instructionsLastSaved", { time: new Date(updatedAt).toLocaleString() })}` : ""}
                 </span>
                 <span className={cn("shrink-0 tabular-nums", bytes > maxBytes && "text-danger")}>
-                  {bytes.toLocaleString()} / {maxBytes.toLocaleString()} bytes
+                  {t("teamMap.byteCount", { bytes: bytes.toLocaleString(), max: maxBytes.toLocaleString() })}
                 </span>
               </div>
             </>

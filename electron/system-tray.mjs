@@ -15,9 +15,9 @@ export function createSystemTray({ Tray, Menu, nativeImage, iconPath, getWindow,
   };
   tray.setToolTip("SPDBot");
   tray.setContextMenu(Menu.buildFromTemplate([
-    { label: "Open SPDBot", click: show },
+    { label: "SPDBot öffnen", click: show },
     { type: "separator" },
-    { label: "Quit SPDBot", click: onQuit },
+    { label: "SPDBot beenden", click: onQuit },
   ]));
   tray.on("click", show);
   tray.on("double-click", show);

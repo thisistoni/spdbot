@@ -7,6 +7,9 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { setLocale } from "@/lib/i18n";
 import type { CompanionAccountState } from "../types/ogb";
+import { CompanionSection } from "./CompanionSection";
+vi.mock("@/state/store", () => ({ useStore: () => ({ state: { config: {} } }) }));
+
 import { PhoneSetupFlow, type CompanionState } from "./PhoneSetupFlow";
 
 const HOSTED = "https://c-opaque.openmausbot.com";
@@ -172,4 +175,23 @@ describe("pairing on a computer that already holds its HTTPS address", () => {
     expect(fake.bridge.companionAccount.prepare).toHaveBeenCalledOnce();
     expect(fake.bridge.companion.pairing).toHaveBeenCalledWith(true);
   });
+});
+
+
+it("SPDBot local pairing preserves six-digit desktop pairing without hosted account calls or mobile QR", async () => {
+  const fake = desktop();
+  (globalThis as { ogb?: unknown }).ogb = fake.bridge;
+  flushSync(() => root.render(createElement(CompanionSection)));
+  await vi.waitFor(() => expect(button("Create local pairing code")?.disabled).toBe(false));
+  button("Create local pairing code")!.click();
+  await vi.waitFor(() => expect(text()).toContain("123456"));
+  expect(text()).toContain("192.168.1.34");
+  expect(text()).not.toMatch(/OpenMausBot|MausBot Cloud|Email a code|App Store|Google Play/);
+  expect(host.querySelector('[aria-label="Device pairing QR code"]')).toBeNull();
+  expect(fake.bridge.companionAccount.state).not.toHaveBeenCalled();
+  expect(fake.bridge.companionAccount.prepare).not.toHaveBeenCalled();
+  expect(fake.bridge.companionAccount.requestCode).not.toHaveBeenCalled();
+  expect(fake.bridge.companion.pairing).toHaveBeenCalledWith(true);
+  button("Close pairing code")!.click();
+  await vi.waitFor(() => expect(text()).not.toContain("123456"));
 });

@@ -55,11 +55,25 @@ describe("remote connection Settings", () => {
     expect(html).toContain("Server pairing link");
     expect(html).toContain("pnpm spdbot pair --client");
     expect(html).toContain("12-character code");
+    expect(html).toContain("SPDBot repository folder on the server after completing setup");
+    expect(html).not.toContain("npx openmausbot");
     expect(html).toContain("custom domains and Cloudflare Tunnel");
     expect(html).toContain("Connect to server");
     expect(html).toContain("Server menu");
     expect(html).not.toContain('placeholder="000000"');
     expect(environments.addFromLink).not.toHaveBeenCalled();
+  });
+
+  it("renders the server instructions in German without inherited branding or English fallback", () => {
+    vi.stubGlobal("window", { ogb: { environments, remoteClient: { active: false } } });
+    setLocale("de");
+    const html = renderToStaticMarkup(createElement(RemoteComputerSection));
+    expect(html).toContain("Selbst gehosteter Server");
+    expect(html).toContain("Kopplungslink des Servers");
+    expect(html).toContain("pnpm spdbot pair --client");
+    expect(html).toContain("SPDBot-Projektordner auf dem Server");
+    expect(html).toContain("Mit Server verbinden");
+    expect(html).not.toMatch(/OpenMausBot|openmausbot|Self-hosted server|Connection type/);
   });
 
   it("allows a server-only bridge without presenting a companion option", () => {
@@ -73,8 +87,9 @@ describe("remote connection Settings", () => {
     expect(html).toContain("Companion address");
     expect(html).toContain("Six-digit companion code");
     expect(html).toContain('placeholder="000000"');
-    expect(html).toContain("managed OpenMausBot HTTPS address");
-    expect(html).toContain("Tailscale name ending in .ts.net");
+    expect(html).toContain("Copy the address shown with it");
+    expect(html).not.toContain("openmausbot.com");
+    expect(html).toContain("local or Tailscale pairing code");
     expect(html).not.toContain("<select");
     expect(html).not.toContain("Server pairing link");
   });

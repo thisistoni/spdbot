@@ -1,10 +1,12 @@
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
-import { describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it } from "vitest";
+import { setLocale, t } from "./i18n";
+
+afterEach(() => setLocale("en"));
 
 import { teamImportPreview } from "./team-import";
 import { takeImportName } from "../../shared/import-name";
-import { NEWER_PACKAGE_MESSAGE } from "../../shared/package-format";
 
 const fixture = (name: string) =>
   JSON.parse(readFileSync(join(import.meta.dirname, "..", "..", "shared", "package-fixtures", name), "utf8"));
@@ -165,12 +167,51 @@ Create the team.`);
   });
 
   it("names the problem in a shared team before anything is added", () => {
-    expect(() => teamImportPreview(fixture("newer.v3.json"))).toThrow(NEWER_PACKAGE_MESSAGE);
+    expect(() => teamImportPreview(fixture("newer.v3.json"))).toThrow(t("teamImport.error.newerVersion"));
     const skillsOnly = fixture("library-only.v2.json");
     delete skillsOnly.package.presets;
     expect(() => teamImportPreview(skillsOnly)).toThrow("This file has no bots or preset bots to add.");
     const broken = fixture("full-team.v2.json");
     broken.package.rooms[0].members.push("ghost");
     expect(() => teamImportPreview(broken)).toThrow("Room desk references unknown agent: ghost");
+  });
+});
+
+
+describe("German team import validation", () => {
+  it.each([
+    [null, "Diese Datei enthält kein Team."],
+    [{}, "Diese Datei ist keine unterstützte Sicherung, Vorlage oder Teamdatei."],
+    [{ format: "openmaus.team", version: 9 }, "Version 9 der Teamdatei wird nicht unterstützt."],
+    [{ format: "openmaus.team", version: 2 }, "In dieser Teamdatei fehlt die Teamdefinition."],
+    [{ format: "openmaus.team", version: 2, team: {} }, "Dieses Team hat keinen Namen."],
+    [{ format: "openmaus.team", version: 2, team: { name: "Test", members: [] } }, "Dieses Team hat keine Mitglieder."],
+    [{ format: "openmaus.team", version: 2, team: { name: "Test", members: [null] } }, "Teammitglied 1 ist ungültig."],
+    [{ format: "openmaus.team", version: 2, team: { name: "Test", members: [{}] } }, "Teammitglied 1 hat keinen Namen."],
+    ["plain markdown", "In dieser Markdown-Datei fehlen die Metadaten der Vorlage."],
+    ["---\n[invalid\n---\n", "Die YAML-Metadaten dieser Markdown-Datei sind ungültig."],
+    ["---\nnull\n---\n", "In dieser Markdown-Datei fehlt die Vorlagendefinition."],
+    ["---\nbotmrr: 9\n---\n", "Diese Version der Markdown-Vorlage wird nicht unterstützt."],
+    [{ format: "openmaus.package", version: 0 }, "Version 0 der Vorlage wird nicht unterstützt."],
+    [{ format: "openmaus.package", version: 1 }, "In dieser Vorlage fehlt die Teamdefinition."],
+    [{ format: "openmaus.package", version: 1, package: {} }, "Diese Vorlage hat keinen Namen."],
+    [{ format: "openmaus.package", version: 1, package: { name: "Test", agents: [] } }, "Diese Vorlage enthält keine Bots."],
+    [{ format: "openmaus.package", version: 1, package: { name: "Test", agents: [null] } }, "Bot 1 ist ungültig."],
+    [{ format: "openmaus.package", version: 1, package: { name: "Test", agents: [{}] } }, "Bot 1 hat keinen Namen."],
+  ])("localizes an invalid manifest without changing its validation", (manifest, message) => {
+    setLocale("de");
+    expect(() => teamImportPreview(manifest)).toThrow(message as string);
+  });
+
+  it("names SPDBot for newer files and leaves imported content unchanged", () => {
+    setLocale("de");
+    expect(() => teamImportPreview(fixture("newer.v3.json"))).toThrow("Diese Datei wurde mit einer neueren Version von SPDBot erstellt.");
+    const manifest = { format: "openmaus.team", version: 2, team: { name: "English team name", description: "User description", members: [{ name: "Scout", title: "Researcher" }] } };
+    const preview = teamImportPreview(manifest);
+    expect(preview).toMatchObject({ manifest, name: "English team name", description: "User description", members: [{ name: "Scout", title: "Researcher" }] });
+    expect(preview.manifest).toBe(manifest);
+    const skillsOnly = fixture("library-only.v2.json");
+    delete skillsOnly.package.presets;
+    expect(() => teamImportPreview(skillsOnly)).toThrow("Diese Datei enthält keine Bots oder Bot-Vorlagen zum Hinzufügen.");
   });
 });

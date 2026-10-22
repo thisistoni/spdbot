@@ -73,31 +73,31 @@ describe("the import step in the welcome flow", () => {
     setLocale("de");
     const first = render();
     expect(first).toContain('aria-label="Einführung"');
-    expect(first).toContain("Schritt 1 von 4");
+    expect(first).toContain("Schritt 1 von 3");
     expect(first).toContain("Einführung überspringen");
     fixture.values = [];
     const last = render({ initialBeat: "bot" });
     expect(last).toContain("Lerne deinen ersten Bot kennen");
     expect(last).toContain(">Zurück</button>");
-    expect(last).toContain("Schritt 4 von 4");
+    expect(last).toContain("Schritt 3 von 3");
   });
 
   it("joins after the engines when the desktop app's own server finds something new", async () => {
     local.detect.mockResolvedValue(FOUND);
-    expect(render()).toContain("Step 1 of 4");
-    expect(await settle()).toContain("Step 1 of 5");
+    expect(render()).toContain("Step 1 of 3");
+    expect(await settle()).toContain("Step 1 of 4");
     expect(local.detect).toHaveBeenCalledOnce();
   });
 
   it("stays out when nothing is found, the look fails, or it would land behind the person", async () => {
     local.detect.mockResolvedValue({ skills: [], tools: [] });
-    expect(await settle()).toContain("Step 1 of 4");
+    expect(await settle()).toContain("Step 1 of 3");
     fixture.values = [];
     local.detect.mockRejectedValue(new Error("403"));
-    expect(await settle()).toContain("Step 1 of 4");
+    expect(await settle()).toContain("Step 1 of 3");
     fixture.values = [];
     local.detect.mockResolvedValue(FOUND);
-    expect(await settle({ initialBeat: "phone" })).toContain("Step 3 of 4");
+    expect(await settle({ initialBeat: "bot" })).toContain("Step 3 of 3");
   });
 
   it("never looks on a hosted server or from another server's page", async () => {
@@ -115,7 +115,7 @@ describe("the import step in the welcome flow", () => {
     const client = { detect: vi.fn(), apply: vi.fn() };
     const html = render({ setupImport: { client, detection: FOUND }, initialBeat: "import" });
     expect(html).toContain("Bring what you already use");
-    expect(html).toContain("Step 3 of 5");
+    expect(html).toContain("Step 3 of 4");
     for (const effect of fixture.effects) effect();
     expect(client.detect).not.toHaveBeenCalled();
   });
@@ -134,4 +134,11 @@ describe("the import step in the welcome flow", () => {
     expect(back(render(props))).not.toContain('disabled=""');
     expect((importBeat.props as unknown as { result: unknown }).result).toEqual(first);
   });
+});
+
+it("does not offer the unsupported mobile app during the welcome", () => {
+  const html = render({ initialBeat: "phone" });
+  expect(html).toContain("Welcome to SPDBot");
+  expect(html).toContain("Step 1 of 3");
+  expect(html).not.toMatch(/MausBot|App Store|Google Play/);
 });

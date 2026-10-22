@@ -42,7 +42,7 @@ describe.skipIf(process.platform === "win32")("spdbot serve under service loopba
     serve.stdout!.on("data", (chunk) => (output += chunk));
     serve.stderr!.on("data", (chunk) => (output += chunk));
     const deadline = Date.now() + 40_000;
-    while (!output.includes("stop with Ctrl+C")) {
+    while (!output.includes("Mit Ctrl+C stoppen")) {
       if (serve.exitCode !== null) throw new Error(`serve exited:\n${output}`);
       if (Date.now() > deadline) throw new Error(`serve never finished starting:\n${output}`);
       await new Promise((resolve) => setTimeout(resolve, 200));
@@ -56,8 +56,8 @@ describe.skipIf(process.platform === "win32")("spdbot serve under service loopba
 
   it("prints a pairing code for the CLI that started the server and keeps running", async () => {
     expect(output).toContain("local requests: service trust (OMB_LOOPBACK_TRUST)");
-    expect(output).toMatch(/pairing code: {2}[A-Z0-9]{4}-[A-Z0-9]{4}-[A-Z0-9]{4}/);
-    expect(output).not.toContain("no pairing code");
+    expect(output).toMatch(/Kopplungscode: [A-Z0-9]{4}-[A-Z0-9]{4}-[A-Z0-9]{4}/);
+    expect(output).not.toContain("Kein Kopplungscode");
     expect(serve.exitCode).toBeNull();
     expect((await fetch(`http://127.0.0.1:${PORT}/api/health`)).status).toBe(200);
   });
@@ -73,8 +73,8 @@ describe.skipIf(process.platform === "win32")("spdbot serve under service loopba
     for (const args of [["sessions"], ["sessions", "revoke", "sess-1"], ["pair", "--label", "Kitchen iPad"]]) {
       const result = await cli(args);
       expect(result.code, args.join(" ")).toBe(1);
-      expect(result.stderr, args.join(" ")).toContain("does not treat commands on this computer as its owner");
-      expect(result.stdout).not.toContain("no paired devices yet");
+      expect(result.stderr, args.join(" ")).toContain("behandelt Befehle auf diesem Computer nicht als Eigentümerzugriff");
+      expect(result.stdout).not.toContain("Noch keine gekoppelten Geräte");
     }
   }, 60_000);
 });

@@ -36,7 +36,7 @@ test("local confirmation is parented, defaults to Cancel and accepts only explic
     const [parent, options] = f.calls[0];
     assert.equal(parent, f.mainWindow);
     assert.deepEqual(JSON.parse(JSON.stringify(options)), {
-      type: "warning", message: "Delete the fixture VM?", buttons: ["OK", "Cancel"], defaultId: 1, cancelId: 1,
+      type: "warning", message: "Delete the fixture VM?", buttons: ["OK", "Abbrechen"], defaultId: 1, cancelId: 1,
     });
   }
 });

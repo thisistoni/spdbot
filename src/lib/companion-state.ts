@@ -1,3 +1,13 @@
+import type { CompanionAccountState } from "../types/ogb";
+
+export const companionAccountActionError = (
+  account: CompanionAccountState | null,
+  actionError: string | null,
+): string | null => {
+  if (actionError) return actionError;
+  return account?.status === "signed-out" ? account.message ?? null : null;
+};
+
 export interface CompanionStateMutationEpoch {
   current: number;
 }

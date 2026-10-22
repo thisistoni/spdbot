@@ -145,9 +145,9 @@ export function AppEventEditor({ trigger, bots, initialBotId, onClose, onSaved }
             <div className="grid gap-3 sm:grid-cols-2">
               {gmail ? [
                 filterField("from", t("automations.editor.appEvent.from"), "acme.com"),
-                filterField("subject", t("automations.editor.appEvent.subject"), "order"),
-                filterField("label", t("automations.editor.appEvent.label"), "Customers"),
-              ] : filterField("text", t("automations.editor.appEvent.text"), "urgent")}
+                filterField("subject", t("automations.editor.appEvent.subject"), t("routines.calendar.order")),
+                filterField("label", t("automations.editor.appEvent.label"), t("routines.calendar.customers")),
+              ] : filterField("text", t("automations.editor.appEvent.text"), t("routines.calendar.urgent"))}
               {delivery && <p className="self-end text-[11.5px] text-ink-secondary sm:col-span-2">{delivery === "poll" ? t("automations.editor.appEvent.checks") : t("automations.editor.appEvent.instant")}</p>}
             </div>
           )}

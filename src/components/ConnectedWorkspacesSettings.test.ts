@@ -226,7 +226,7 @@ it("offers no Forget for the environment this app is on", async () => {
 });
 
 // Two controls over one record let the Cloud switch read off while Computer access lent apps and screen to the same Cloud.
-it("My Cloud's entry has one lending control, Let My Cloud use this computer; other servers keep Computer access", async () => {
+it("unsupported cloud lending stays hidden; generic servers keep Computer access", async () => {
   config.value = { features: { sharedComputers: true } };
   const open = vi.fn().mockResolvedValue(undefined);
   const cloud = { id: "cloud", name: "My Cloud", origin: "https://omb-u-1.fly.dev", home: true };
@@ -237,6 +237,17 @@ it("My Cloud's entry has one lending control, Let My Cloud use this computer; ot
   const labels = render().nodes.filter(node => node.type === "button").map(node => node.props["aria-label"] ?? Children.toArray(node.props.children).join(""));
   expect(labels).toContain("Computer access for VPS");
   expect(labels).not.toContain("Computer access for My Cloud");
-  render().nodes.find(node => node.type === "button" && Children.toArray(node.props.children).join("") === "Let My Cloud use this computer")!.props.onClick!();
-  expect(open).toHaveBeenCalledOnce();
+  expect(render().html).not.toContain("data-cloud-lending-link");
+  expect(open).not.toHaveBeenCalled();
+});
+
+
+it("does not offer hosted Cloud lending, even for an existing home entry", async () => {
+  const open = vi.fn();
+  stub({ cloudLending: { open } });
+  await mount();
+  const saved = f.values.find(value => value && typeof value === "object" && "environments" in value) as { environments: unknown[] };
+  saved.environments = [{ ...VPS, home: true }];
+  expect(render().html).not.toContain("data-cloud-lending-link");
+  expect(open).not.toHaveBeenCalled();
 });

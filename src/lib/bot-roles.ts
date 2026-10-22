@@ -1,8 +1,13 @@
+import { t } from "@/lib/i18n";
+import type { LocaleKey } from "@/locales";
+
 export interface BotRole {
   id: string;
   name: string;
   title: string;
   description: string;
+  titleKey?: LocaleKey;
+  descriptionKey?: LocaleKey;
   soul: string;
   apps: string[];
 }
@@ -10,6 +15,8 @@ export interface BotRole {
 export const BOT_ROLES: BotRole[] = [
   {
     id: "assistant",
+    titleKey: "newBot.roleProfile.assistant.title",
+    descriptionKey: "newBot.roleProfile.assistant.description",
     name: "Assistant",
     title: "General assistant",
     description: "Answers questions, drafts text, and takes on whatever you hand it.",
@@ -18,6 +25,8 @@ export const BOT_ROLES: BotRole[] = [
   },
   {
     id: "inbox",
+    titleKey: "newBot.roleProfile.inbox.title",
+    descriptionKey: "newBot.roleProfile.inbox.description",
     name: "Inbox",
     title: "Email triage",
     description: "Reads your inbox, flags what needs you, and drafts replies for approval.",
@@ -26,6 +35,8 @@ export const BOT_ROLES: BotRole[] = [
   },
   {
     id: "research",
+    titleKey: "newBot.roleProfile.research.title",
+    descriptionKey: "newBot.roleProfile.research.description",
     name: "Scout",
     title: "Researcher",
     description: "Digs through the web and your files, and comes back with a sourced brief.",
@@ -34,6 +45,8 @@ export const BOT_ROLES: BotRole[] = [
   },
   {
     id: "coder",
+    titleKey: "newBot.roleProfile.coder.title",
+    descriptionKey: "newBot.roleProfile.coder.description",
     name: "Dev",
     title: "Coding partner",
     description: "Works inside a project folder: reads, edits, runs tests, explains changes.",
@@ -42,6 +55,8 @@ export const BOT_ROLES: BotRole[] = [
   },
   {
     id: "community",
+    titleKey: "newBot.roleProfile.community.title",
+    descriptionKey: "newBot.roleProfile.community.description",
     name: "Watch",
     title: "Community monitor",
     description: "Watches Discord, Slack, or forums and reports what matters, on a schedule.",
@@ -50,6 +65,8 @@ export const BOT_ROLES: BotRole[] = [
   },
   {
     id: "ops",
+    titleKey: "newBot.roleProfile.ops.title",
+    descriptionKey: "newBot.roleProfile.ops.description",
     name: "Ops",
     title: "Operations",
     description: "Keeps calendars, tasks, and follow-ups moving; nudges you before things slip.",
@@ -70,8 +87,8 @@ export function roleProfilePatch(role: BotRole): {
 } {
   return {
     name: role.name,
-    title: role.title,
-    description: role.description,
+    title: role.titleKey ? t(role.titleKey) : role.title,
+    description: role.descriptionKey ? t(role.descriptionKey) : role.description,
     soul: role.soul,
   };
 }

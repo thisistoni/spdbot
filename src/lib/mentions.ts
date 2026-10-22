@@ -7,6 +7,15 @@ export type MentionPeer = { name: string; hidden?: boolean; color?: MausColor };
 export type MentionRange = { start: number; end: number; color?: string; you?: true };
 export type MentionPerson = { profileName?: string | null };
 
+export function samePeers(previous: readonly MentionPeer[], next: readonly MentionPeer[]): boolean {
+  if (previous === next) return true;
+  if (previous.length !== next.length) return false;
+  return previous.every((peer, index) => {
+    const other = next[index]!;
+    return peer.name === other.name && peer.hidden === other.hidden && peer.color === other.color;
+  });
+}
+
 export function sameMentionPerson(a?: MentionPerson, b?: MentionPerson): boolean {
   return Boolean(a) === Boolean(b) && (a?.profileName ?? "") === (b?.profileName ?? "");
 }

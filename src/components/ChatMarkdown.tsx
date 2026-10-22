@@ -7,13 +7,13 @@ import remarkMath from "remark-math";
 import { fromMarkdown, type Options as MarkdownParseOptions } from "mdast-util-from-markdown";
 import { Check, Copy, Download, LoaderCircle, RotateCcw, WrapText, X } from "lucide-react";
 import { useCopyFeedback } from "@/lib/copy-text";
-import { t } from "@/lib/i18n";
-import { remarkMentions, sameMentionPerson, type MentionPeer, type MentionPerson } from "@/lib/mentions";
+import { activeLocale, t } from "@/lib/i18n";
+import { remarkMentions, sameMentionPerson, samePeers, type MentionPeer, type MentionPerson } from "@/lib/mentions";
+export { samePeers } from "@/lib/mentions";
 
 import {
   countLines,
   downloadSnippetFile,
-  formatLineCount,
   getLanguageDisplayName,
   getSnippetFileName,
   parseFenceInfo,
@@ -345,7 +345,7 @@ export function CodeBlock({ code, lang, initialWrap = false }: CodeBlockProps) {
           </span>
           {lineCount > 0 && (
             <span className="shrink-0 whitespace-nowrap text-[11px] text-ink-secondary select-none">
-              {formatLineCount(lineCount)}
+              {lineCount === 1 ? t("markdown.lineOne") : t("markdown.lineMany", { count: lineCount })}
             </span>
           )}
         </div>
@@ -358,29 +358,29 @@ export function CodeBlock({ code, lang, initialWrap = false }: CodeBlockProps) {
                 ? "bg-accent/15 text-accent font-medium"
                 : "text-ink-secondary hover:bg-raised hover:text-ink"
             }`}
-            title={wrapLines ? "Disable line wrapping" : "Wrap long lines"}
-            aria-label={wrapLines ? "Disable line wrapping" : "Wrap long lines"}
+            title={wrapLines ? t("markdown.disableWrap") : t("markdown.wrapLongLines")}
+            aria-label={wrapLines ? t("markdown.disableWrap") : t("markdown.wrapLongLines")}
             aria-pressed={wrapLines}
           >
             <WrapText size={12} aria-hidden="true" />
-            <span className="hidden sm:inline">{wrapLines ? "Unwrap" : "Wrap"}</span>
+            <span className="hidden sm:inline">{wrapLines ? t("markdown.unwrap") : t("markdown.wrap")}</span>
           </button>
           <button
             type="button"
             onClick={download}
             className="inline-flex items-center gap-1 rounded px-1.5 py-0.5 text-[11px] text-ink-secondary hover:bg-raised hover:text-ink transition-colors"
-            title="Download snippet as file"
-            aria-label="Download snippet as file"
+            title={t("markdown.downloadSnippet")}
+            aria-label={t("markdown.downloadSnippet")}
           >
             <Download size={12} aria-hidden="true" />
-            <span className="hidden sm:inline">Save</span>
+            <span className="hidden sm:inline">{t("common.save")}</span>
           </button>
           <button
             type="button"
             onClick={copy}
             className="inline-flex items-center gap-1 rounded px-1.5 py-0.5 text-[11px] text-ink-secondary hover:bg-raised hover:text-ink transition-colors"
-            title={copied === "copied" ? "Copied to clipboard" : copied === "failed" ? t("common.copyFailed") : "Copy code"}
-            aria-label={copied === "copied" ? "Code copied to clipboard" : copied === "failed" ? t("common.copyFailed") : "Copy code to clipboard"}
+            title={copied === "copied" ? t("markdown.copiedClipboard") : copied === "failed" ? t("common.copyFailed") : t("markdown.copyCode")}
+            aria-label={copied === "copied" ? t("markdown.codeCopied") : copied === "failed" ? t("common.copyFailed") : t("markdown.copyCodeClipboard")}
           >
             {copied === "failed" ? (
               <>
@@ -390,12 +390,12 @@ export function CodeBlock({ code, lang, initialWrap = false }: CodeBlockProps) {
             ) : copied === "copied" ? (
               <>
                 <Check size={12} className="text-success" aria-hidden="true" />
-                <span className="text-success font-medium hidden sm:inline">Copied!</span>
+                <span className="text-success font-medium hidden sm:inline">{t("markdown.copied")}</span>
               </>
             ) : (
               <>
                 <Copy size={12} aria-hidden="true" />
-                <span className="hidden sm:inline">Copy</span>
+                <span className="hidden sm:inline">{t("markdown.copy")}</span>
               </>
             )}
           </button>
@@ -505,8 +505,8 @@ export function MermaidDiagram({ code }: MermaidDiagramProps) {
   return (
     <div ref={frame} dir="ltr" className="my-2 overflow-hidden rounded-lg border border-hairline/40 bg-inset">
       <div className="flex items-center justify-between gap-2 border-b border-hairline/30 bg-raised/30 px-3 py-1.5 text-xs">
-        <span title="Mermaid diagram" className="min-w-0 truncate rounded border border-hairline/40 bg-raised px-1.5 py-0.5 text-[11px] font-medium tracking-wide text-ink select-none">
-          Mermaid diagram
+        <span title={t("markdown.mermaidDiagram")} className="min-w-0 truncate rounded border border-hairline/40 bg-raised px-1.5 py-0.5 text-[11px] font-medium tracking-wide text-ink select-none">
+          {t("markdown.mermaidDiagram")}
         </span>
         <div className="flex shrink-0 items-center gap-1 whitespace-nowrap">
           <button
@@ -517,19 +517,19 @@ export function MermaidDiagram({ code }: MermaidDiagramProps) {
                 ? "bg-accent/15 text-accent font-medium"
                 : "text-ink-secondary hover:bg-raised hover:text-ink"
             }`}
-            title={showSource ? "Hide diagram source" : "Show diagram source"}
-            aria-label={showSource ? "Hide diagram source" : "Show diagram source"}
+            title={showSource ? t("markdown.hideDiagramSource") : t("markdown.showDiagramSource")}
+            aria-label={showSource ? t("markdown.hideDiagramSource") : t("markdown.showDiagramSource")}
             aria-pressed={showSource}
           >
             <WrapText size={12} aria-hidden="true" />
-            <span className="hidden sm:inline">{showSource ? "Hide source" : "Show source"}</span>
+            <span className="hidden sm:inline">{showSource ? t("markdown.hideSource") : t("markdown.showSource")}</span>
           </button>
           <button
             type="button"
             onClick={copy}
             className="inline-flex items-center gap-1 rounded px-1.5 py-0.5 text-[11px] text-ink-secondary hover:bg-raised hover:text-ink transition-colors"
-            title={copied === "copied" ? "Copied to clipboard" : copied === "failed" ? t("common.copyFailed") : "Copy diagram source"}
-            aria-label={copied === "copied" ? "Diagram source copied to clipboard" : copied === "failed" ? t("common.copyFailed") : "Copy diagram source to clipboard"}
+            title={copied === "copied" ? t("markdown.copiedClipboard") : copied === "failed" ? t("common.copyFailed") : t("markdown.copyDiagramSource")}
+            aria-label={copied === "copied" ? t("markdown.diagramCopied") : copied === "failed" ? t("common.copyFailed") : t("markdown.copyDiagramSourceClipboard")}
           >
             {copied === "failed" ? (
               <>
@@ -539,12 +539,12 @@ export function MermaidDiagram({ code }: MermaidDiagramProps) {
             ) : copied === "copied" ? (
               <>
                 <Check size={12} className="text-success" aria-hidden="true" />
-                <span className="text-success font-medium hidden sm:inline">Copied!</span>
+                <span className="text-success font-medium hidden sm:inline">{t("markdown.copied")}</span>
               </>
             ) : (
               <>
                 <Copy size={12} aria-hidden="true" />
-                <span className="hidden sm:inline">Copy</span>
+                <span className="hidden sm:inline">{t("markdown.copy")}</span>
               </>
             )}
           </button>
@@ -552,7 +552,7 @@ export function MermaidDiagram({ code }: MermaidDiagramProps) {
       </div>
       {error && (
         <p role="alert" className="px-3 pt-2 text-[12px] text-danger">
-          Diagram could not be rendered: {error}
+          {t("markdown.diagramError", { error })}
         </p>
       )}
       {markup && (
@@ -573,14 +573,14 @@ export function MermaidDiagram({ code }: MermaidDiagramProps) {
 function LocalFileLink({ filePath, name, children, message }: { filePath: string; name?: string; children?: ReactNode; message?: MessageAttachmentContext }) {
   const save = useLocalFileSave(filePath, name, message);
   if (!message) {
-    return <span title="Unavailable legacy file reference" className="break-words text-ink-secondary">{children}</span>;
+    return <span title={t("markdown.legacyFileUnavailable")} className="break-words text-ink-secondary">{children}</span>;
   }
   const label = save.state === "saving"
-    ? "Saving…"
+    ? t("markdown.saving")
     : save.state === "saved"
-      ? "Saved"
+      ? t("markdown.saved")
       : save.state === "failed"
-        ? "Retry"
+        ? t("markdown.retry")
         : null;
 
   return (
@@ -590,7 +590,7 @@ function LocalFileLink({ filePath, name, children, message }: { filePath: string
         type="button"
         onClick={() => void save.save()}
         disabled={save.state === "saving"}
-        title="Save a copy"
+        title={t("markdown.saveCopy")}
         className="inline-flex items-center gap-1 break-words text-start text-accent underline decoration-accent/40 hover:decoration-accent disabled:cursor-wait"
       >
         {children}
@@ -636,8 +636,8 @@ function Spoiler({ children }: { children?: ReactNode }) {
         </span>
         <button
           type="button"
-          aria-label="Reveal spoiler"
-          title="Reveal spoiler"
+          aria-label={t("markdown.revealSpoiler")}
+          title={t("markdown.revealSpoiler")}
           onClick={() => setRevealed(true)}
           className="absolute inset-0 rounded bg-raised/90"
         />
@@ -649,12 +649,12 @@ function Spoiler({ children }: { children?: ReactNode }) {
       {children}
       <button
         type="button"
-        aria-label="Hide spoiler"
-        title="Hide spoiler"
+        aria-label={t("markdown.hideSpoiler")}
+        title={t("markdown.hideSpoiler")}
         onClick={() => setRevealed(false)}
         className="ms-1 rounded px-0.5 text-[11px] text-ink-secondary hover:text-ink"
       >
-        Hide
+        {t("markdown.hide")}
       </button>
     </span>
   );
@@ -972,7 +972,7 @@ const MAY_LINK_THREAD = /#|spdbot/i;
 const NO_THREAD_REFS: ThreadRefsValue = { threads: [] };
 
 function ChatMarkdownComponent({ text, message, mentionPeers = NO_MENTION_PEERS, everyone = false, mentionPerson, delivered }: {
-  text: string; message?: MessageAttachmentContext;
+  text: string; message?: MessageAttachmentContext; locale: string;
   mentionPeers?: readonly MentionPeer[]; everyone?: boolean; mentionPerson?: MentionPerson;
   delivered?: DeliveredFiles;
 }) {
@@ -1013,23 +1013,19 @@ function ChatMarkdownComponent({ text, message, mentionPeers = NO_MENTION_PEERS,
   );
 }
 
-export function samePeers(previous: readonly MentionPeer[], next: readonly MentionPeer[]): boolean {
-  if (previous === next) return true;
-  if (previous.length !== next.length) return false;
-  return previous.every((peer, index) => {
-    const other = next[index]!;
-    return peer.name === other.name && peer.hidden === other.hidden && peer.color === other.color;
-  });
-}
-
-export const ChatMarkdown = memo(ChatMarkdownComponent, (previous, next) => (
-  previous.text === next.text
+const MemoChatMarkdown = memo(ChatMarkdownComponent, (previous, next) => (
+  previous.locale === next.locale
+  && previous.text === next.text
   && samePeers(previous.mentionPeers ?? NO_MENTION_PEERS, next.mentionPeers ?? NO_MENTION_PEERS)
   && previous.everyone === next.everyone && sameMentionPerson(previous.mentionPerson, next.mentionPerson)
   && previous.message?.threadId === next.message?.threadId
   && previous.message?.messageId === next.message?.messageId
   && sameDelivered(previous.delivered, next.delivered)
 ));
+
+export function ChatMarkdown(props: Omit<Parameters<typeof ChatMarkdownComponent>[0], "locale">) {
+  return <MemoChatMarkdown {...props} locale={activeLocale()} />;
+}
 
 function sameDelivered(previous: DeliveredFiles | undefined, next: DeliveredFiles | undefined): boolean {
   if (previous === next) return true;

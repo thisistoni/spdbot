@@ -194,6 +194,6 @@ it("sends a login and the 1Password service account from this computer to My Clo
   expect(sessions.filter((session) => session.label === "Logins from this computer")).toEqual([]);
 
   await expect(logins.send({ kind: "login", id: "no-such-login" })).rejects.toThrow("This login is no longer saved on this computer.");
-  await expect(logins.send({ kind: "everything" } as never)).rejects.toThrow("Choose a login to send to My Cloud.");
+  await expect(logins.send({ kind: "everything" } as never)).rejects.toThrow("Wähle einen Zugang aus, den du an den externen Cloud-Dienst übertragen möchtest.");
   for (const where of [...answers, logs]) for (const value of SECRETS) expect(where).not.toContain(value);
 });

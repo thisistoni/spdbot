@@ -16,7 +16,7 @@ export async function discoverCliPort(options: { command: string; port: number }
     let found: number | undefined;
     for (const port of ports) if (await serverUp(port)) { found = port; break; }
     if (found === undefined) {
-      console.error("No SPDBot server found. Start SPDBot or pass its --port explicitly.");
+      console.error("Kein SPDBot-Server gefunden. Starte SPDBot oder gib seinen Port mit --port an.");
       return false;
     }
     options.port = found;

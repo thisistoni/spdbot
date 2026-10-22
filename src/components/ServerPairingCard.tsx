@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { QRCodeSVG } from "qrcode.react";
 
 import { t } from "@/lib/i18n";
+import { sessionMessage } from "@/pair/session-copy";
 import { copyText, type CopyFeedback } from "@/lib/copy-text";
 import { api } from "@/state/store";
 import { isOwnerOrAdmin, readSessionState, type SessionState } from "../lib/session";
@@ -77,7 +78,7 @@ export function ServerPairingCard({ initialSession = null, initialPairingCodes =
       setDevices(Array.isArray(body?.sessions) ? body.sessions : []);
       setCurrent(typeof body?.current === "string" ? body.current : null);
     } catch (e) {
-      setError(t("remote.serverPairing.error", { error: e instanceof Error ? e.message : String(e) }));
+      setError(t("remote.serverPairing.error", { error: sessionMessage(e instanceof Error ? e.message : String(e)) }));
     }
   }
 
@@ -106,8 +107,8 @@ export function ServerPairingCard({ initialSession = null, initialPairingCodes =
     if (pairingBlockedReason(session) !== "chat-only") return null;
     return (
       <div ref={root} tabIndex={-1} data-phone-pairing="server" className="scroll-mt-4 rounded-xl focus:outline-none">
-        <Card title={t("remote.serverPairing.title")} subtitle={t(pairingCodes ? "remote.serverPairing.subtitle" : "remote.serverPairing.portalSubtitle")}>
-          <p data-server-pairing-chat-only className="mt-3 text-[13px] text-ink-secondary">{t(pairingCodes ? "remote.serverPairing.chatOnly" : "remote.serverPairing.portalChatOnly")}</p>
+        <Card title={t("remote.serverPairing.title")} subtitle={t(pairingCodes ? "remote.serverPairing.browserSubtitle" : "remote.serverPairing.portalSubtitle")}>
+          <p data-server-pairing-chat-only className="mt-3 text-[13px] text-ink-secondary">{t(pairingCodes ? "remote.serverPairing.clientAccessHint" : "remote.serverPairing.portalChatOnly")}</p>
         </Card>
       </div>
     );
@@ -124,7 +125,7 @@ export function ServerPairingCard({ initialSession = null, initialPairingCodes =
       setOffer(body);
       setNow(Date.now());
     } catch (e) {
-      setError(t("remote.serverPairing.error", { error: e instanceof Error ? e.message : String(e) }));
+      setError(t("remote.serverPairing.error", { error: sessionMessage(e instanceof Error ? e.message : String(e)) }));
     } finally {
       setBusy(false);
     }
@@ -136,7 +137,7 @@ export function ServerPairingCard({ initialSession = null, initialPairingCodes =
       await api(`/api/auth/sessions/${encodeURIComponent(id)}`, { method: "DELETE" });
       await loadDevices();
     } catch (e) {
-      setError(t("remote.serverPairing.error", { error: e instanceof Error ? e.message : String(e) }));
+      setError(t("remote.serverPairing.error", { error: sessionMessage(e instanceof Error ? e.message : String(e)) }));
     }
   }
 
@@ -148,7 +149,7 @@ export function ServerPairingCard({ initialSession = null, initialPairingCodes =
 
   return (
     <div ref={root} tabIndex={-1} data-phone-pairing="server" className="scroll-mt-4 rounded-xl focus:outline-none">
-    <Card title={t("remote.serverPairing.title")} subtitle={t(pairingCodes ? "remote.serverPairing.subtitle" : "remote.serverPairing.portalSubtitle")}>
+    <Card title={t("remote.serverPairing.title")} subtitle={t(pairingCodes ? "remote.serverPairing.browserSubtitle" : "remote.serverPairing.portalSubtitle")}>
       {pairingCodes && cloudHome ? <p data-server-pairing-personal className="mt-3 text-[13px] text-ink-secondary">{t("remote.serverPairing.cloudPersonal")}</p> : null}
       {pairingCodes ? <div className="mt-3 flex flex-wrap items-center gap-3">
         {cloudHome ? null : <>
@@ -187,7 +188,7 @@ export function ServerPairingCard({ initialSession = null, initialPairingCodes =
                     </button>
                   </div>
                 ) : (
-                  <p className="mt-3 text-[12.5px] text-ink-secondary">{offer.hint ?? t("remote.serverPairing.noLink")}</p>
+                  <p className="mt-3 text-[12.5px] text-ink-secondary">{offer.hint == null ? t("remote.serverPairing.noLink") : sessionMessage(offer.hint)}</p>
                 )}
               </div>
             </div>

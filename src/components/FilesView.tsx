@@ -3,6 +3,7 @@ import { createPortal } from "react-dom";
 import { Folder, FolderOpen, MoreHorizontal } from "lucide-react";
 import type { CloudFilesBridge, CloudFilesDisk, CloudFilesState, FolderCheck, SharedFolder } from "../../electron/cloud-sync.mjs";
 import { cn } from "@/lib/cn";
+import { cloudOffersAvailable } from "@/lib/cloud-offers";
 import { cloudFilesBridge, useCloudFiles } from "@/lib/cloud-files";
 import { activeLocale, t } from "@/lib/i18n";
 import type { LocaleKey } from "@/locales";
@@ -65,6 +66,7 @@ export function FilesView() {
 
 function Unavailable() {
   const { dispatch } = useStore();
+  if (!cloudOffersAvailable()) return <p className="text-[14px] text-ink">{t("files.notOffered")}</p>;
   return <div className="flex flex-col items-start gap-3">
     <p className="text-[14px] text-ink">{t("files.unavailable")}</p>
     <button type="button" className="ui-button" onClick={() => dispatch(SETTINGS)}>{t("files.openSettings")}</button>

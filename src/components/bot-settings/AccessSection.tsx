@@ -503,8 +503,8 @@ function ResearchCard({ bot, patch }: { bot: Bot; patch: (patch: { xResearch: bo
   const ownKey = state.config?.treg?.configured === true, included = state.config?.xResearch?.included === true;
   const available = ownKey || included;
   const on = bot.xResearch !== false;
-  const line = !available ? t(connecting ? "research.connecting" : "research.addKey")
-    : !on ? t("research.off") : t(ownKey ? "research.ownOn" : "research.planOn");
+  const line = !available ? t(connecting ? "research.externalConnecting" : "research.addKey")
+    : !on ? t("research.off") : t(ownKey ? "research.ownOn" : "research.externalOn");
   return (
     <div className="flex items-center justify-between gap-4 rounded-xl bg-card p-4" data-testid="access-x-research">
       <div>

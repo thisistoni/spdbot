@@ -100,7 +100,7 @@ function workspaceMenuTemplate(state, { onSwitch, onConnect, onForget, onAddClou
   const active = activeEnvironment(state);
   return [
     ...(places ? [{ id: "workspace-places", label: places, enabled: false }, { type: "separator" }] : []),
-    { id: "workspace-local", label: "This computer", type: "radio", checked: !active, click: () => onSwitch(LOCAL_ID) },
+    { id: "workspace-local", label: "Dieser Computer", type: "radio", checked: !active, click: () => onSwitch(LOCAL_ID) },
     ...state.environments.map((entry) => {
       const icon = iconFor && cleanColor(entry.color) ? iconFor(entry.color) : null;
       const status = Object.hasOwn(sublabels, entry.id) ? sublabels[entry.id] : null;
@@ -113,8 +113,8 @@ function workspaceMenuTemplate(state, { onSwitch, onConnect, onForget, onAddClou
     ...(copyToCloud ? [{ id: "workspace-copy-to-cloud", label: copyToCloud.label, click: copyToCloud.click }] : []),
     ...(onAddCloud ? [{ id: "workspace-add-cloud", label: "Add a Cloud…", sublabel: "Keeps your bots running 24/7", click: onAddCloud }] : []),
     { type: "separator" },
-    { id: "workspace-connect", label: "Connect to a server…", click: onConnect },
-    ...(active ? [{ id: "workspace-forget", label: `Forget “${active.name}”…`, click: () => onForget(active.id) }] : []),
+    { id: "workspace-connect", label: "Mit einem Server verbinden…", click: onConnect },
+    ...(active ? [{ id: "workspace-forget", label: `„${active.name}“ entfernen…`, click: () => onForget(active.id) }] : []),
   ];
 }
 

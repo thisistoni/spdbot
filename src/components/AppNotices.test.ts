@@ -24,7 +24,7 @@ vi.mock("@/state/store", () => ({ useStore: () => ({ state: f.state, dispatch: f
   CLOUD_LINK_SETTINGS: { type: "toggleAppSettings", open: true, section: "cloudAccount", cloudLink: true } }));
 vi.mock("@/lib/analytics", () => ({ emailGateDone: () => false, track: vi.fn(), identifyEmail: vi.fn(), analyticsChoiceKnown: () => true }));
 vi.mock("@/lib/updater", () => ({ useUpdaterState: () => f.updater }));
-vi.mock("@/lib/brand", () => ({ brandStatus: () => ({ brand: { name: "OpenMausBot" }, source: f.brand, file: "" }) }));
+vi.mock("@/lib/brand", () => ({ brandStatus: () => ({ brand: { name: "SPDBot" }, source: f.brand, file: "" }) }));
 vi.mock("@/components/EngineLibrary", () => ({ engineReady: (instance: { snapshot: { state: string; authenticated?: boolean } }) =>
   instance.snapshot.state === "available" && instance.snapshot.authenticated !== false }));
 import { AppNotices } from "./AppNotices";
@@ -177,7 +177,7 @@ describe("the card after the update", () => {
   it("offers the free trial to someone signed out who has used the app before, in the Admin's numbers, with Start free trial and Show me how", async () => {
     returning();
     const html = await launch();
-    const words = [INTRO, "Free for 7 days", "MausBot Cloud is your own always-on computer in the cloud.", "Routines run on time, day and night",
+    const words = [INTRO, "Free for 7 days", "This external service provides an always-on cloud computer.", "Routines run on time, day and night",
       "Reach your bots from your phone, even with this computer off", "$5 of Claude credit to start", "Then from $29/month + tax. Cancel any time.",
       "14-day money-back on every plan.", "Start free trial", "Show me how", "Sign in to your Cloud plan", "Not now"];
     for (const text of words) expect(html).toContain(text);
@@ -366,7 +366,7 @@ describe("This computer's My Cloud card and the star", () => {
 });
 
 describe("the Cloud Pro popup after the update", () => {
-  const POPUP = "MausBot Cloud Pro";
+  const POPUP = "External subscription";
   const ID = CLOUD_PRO_UPDATE_NOTICE;
   const REFUSED = "switch to this computer just now. Try again, or choose This computer from the menu at the top of the sidebar.";
   let modal: boolean;
@@ -413,9 +413,9 @@ describe("the Cloud Pro popup after the update", () => {
   it("every install gets it once, before every other card, as a modal dialog with the Admin's offer; Start free trial opens Add a Cloud from it", async () => {
     returning();
     const html = await launch();
-    const words = [POPUP, "Free for 7 days", "MausBot Cloud is your own always-on computer in the cloud.", "Routines run on time, day and night",
+    const words = [POPUP, "Free for 7 days", "This external service provides an always-on cloud computer.", "Routines run on time, day and night",
       "Reach your bots from your phone, even with this computer off", "$5 of Claude credit to start", "Then from $29/month + tax. Cancel any time.",
-      "14-day money-back on every plan.", "Start free trial", "Compare plans", "OpenMausBot on this computer stays free and open source.", "Not now"];
+      "14-day money-back on every plan.", "Start free trial", "Compare plans", "SPDBot on this computer stays free and open source.", "Not now"];
     for (const text of words) expect(html).toContain(text);
     for (let i = 1; i < words.length; i++) expect(html.indexOf(words[i - 1]!), words[i]).toBeLessThan(html.indexOf(words[i]!));
     for (const part of ['role="dialog"', 'aria-modal="true"', 'aria-labelledby="cloud-pro-popup-title"', 'aria-describedby="cloud-pro-popup-body"']) expect(html).toContain(part);
@@ -464,7 +464,7 @@ describe("the Cloud Pro popup after the update", () => {
   it("someone signed in with no plan: each click is tied to their Cloud account's email before it is counted, and only once across reloads", async () => {
     account = free; offer = { ...PLAIN_OFFER };
     const html = await launch();
-    expect(html).toContain("Upgrade to Cloud Pro"); expect(html).toContain("MausBot Cloud plans from $29/month + tax.");
+    expect(html).toContain("Upgrade to Cloud Pro"); expect(html).toContain("External subscription: $29/month + tax.");
     for (const gone of ["Free for", "Start free trial", "Claude credit"]) expect(html).not.toContain(gone);
     expect(popupEvents("shown")).toEqual([event("shown", "none", true, "local")]);
     expect(identifyEmail).not.toHaveBeenCalled();
@@ -488,12 +488,12 @@ describe("the Cloud Pro popup after the update", () => {
     expect(lastOrder(vi.mocked(identifyEmail))).toBeLessThan(lastOrder(vi.mocked(track)));
   });
 
-  it("a trial or any plan gets Manage plan in Settings → MausBot Cloud, in the app; no Compare plans, never a checkout or the browser", async () => {
+  it("a trial or any plan gets Manage plan in Settings → the external cloud service, in the app; no Compare plans, never a checkout or the browser", async () => {
     const cases = [
-      { state: paid({ trial: trial("active") }), plan: "trial", line: "Pro free trial · verified by MausBot Cloud" },
-      { state: paid(), plan: "pro", line: "Pro active · verified by MausBot Cloud" },
-      { state: tierPlan("max"), plan: "max", line: "Max active · verified by MausBot Cloud" },
-      { state: tierPlan("personal"), plan: "personal", line: "Personal active · verified by MausBot Cloud" },
+      { state: paid({ trial: trial("active") }), plan: "trial", line: "Pro free trial · verified by the external cloud service" },
+      { state: paid(), plan: "pro", line: "Pro active · verified by the external cloud service" },
+      { state: tierPlan("max"), plan: "max", line: "Max active · verified by the external cloud service" },
+      { state: tierPlan("personal"), plan: "personal", line: "Personal active · verified by the external cloud service" },
     ];
     for (const { state, plan, line } of cases) {
       vi.clearAllMocks(); fresh(); account = state; showWindow(LOCAL_ORIGIN);
@@ -521,11 +521,11 @@ describe("the Cloud Pro popup after the update", () => {
     expect(popupEvents("shown")).toEqual([event("shown", "pro", true, "local")]);
   });
 
-  it("a desktop whose window opens on My Cloud gets it there once; Manage plan switches to This computer, whose page opens Settings → MausBot Cloud, tied to the email there", async () => {
+  it("a desktop whose window opens on My Cloud gets it there once; Manage plan switches to This computer, whose page opens Settings → the external cloud service, tied to the email there", async () => {
     account = paid();
     onMyCloud({ status: "paid", tier: "pro" });
     const html = await launch();
-    expect(html).toContain(POPUP); expect(html).toContain("Manage plan"); expect(html).toContain("Pro active · verified by MausBot Cloud");
+    expect(html).toContain(POPUP); expect(html).toContain("Manage plan"); expect(html).toContain("Pro active · verified by the external cloud service");
     for (const gone of ["Compare plans", "Upgrade to Cloud Pro", "Start free trial", "/month", "Continue on this computer"]) expect(html).not.toContain(gone);
     expect(popupEvents("shown")).toEqual([event("shown", "pro", true, "my_cloud")]);
     expect(bridges.cloud.state).not.toHaveBeenCalled();
@@ -553,8 +553,8 @@ describe("the Cloud Pro popup after the update", () => {
 
   it("on My Cloud: a trial, a lapsed plan and an ended sign-in get Manage plan, through This computer; no plan read, or one being checked, never offers one", async () => {
     const cases: Array<[CloudPlanSnapshot, string, boolean, string]> = [
-      [{ status: "paid", tier: "pro", trial: trial("active") }, "trial", true, "Pro free trial · verified by MausBot Cloud"],
-      [{ status: "paid", tier: "max" }, "max", true, "Max active · verified by MausBot Cloud"],
+      [{ status: "paid", tier: "pro", trial: trial("active") }, "trial", true, "Pro free trial · verified by the external cloud service"],
+      [{ status: "paid", tier: "max" }, "max", true, "Max active · verified by the external cloud service"],
       [{ status: "attention", tier: "pro" }, "none", true, "Pro · not active right now"],
       [{ status: "signin", tier: "pro" }, "unknown", false, "Sign in again to use My Cloud on this computer. Your plan is not affected."],
     ];
@@ -663,7 +663,7 @@ describe("the Cloud Pro popup after the update", () => {
     }
   });
 
-  it("for a plan, a payment being linked or an ended sign-in, Continue on this computer opens Settings → MausBot Cloud there at once, never a checkout; nothing switches without a click", async () => {
+  it("for a plan, a payment being linked or an ended sign-in, Continue on this computer opens Settings → the external cloud service there at once, never a checkout; nothing switches without a click", async () => {
     const cases: Array<[CloudAccountState, string, boolean]> = [
       [tierPlan("personal"), "personal", true], [paid({ trial: trial("active") }), "trial", true], [paid({ checking: true }), "pro", true],
       [{ ...free, purchase: { state: "confirming" } }, "none", true],
@@ -710,7 +710,7 @@ describe("the Cloud Pro popup after the update", () => {
     }
   });
 
-  it("a sign-in or plan still unknown once the wait is over gets Settings → MausBot Cloud, which says where it stands, counted as manage; nothing opens later", async () => {
+  it("a sign-in or plan still unknown once the wait is over gets Settings → the external cloud service, which says where it stands, counted as manage; nothing opens later", async () => {
     vi.useFakeTimers({ toFake: ["setTimeout", "clearTimeout", "setInterval", "clearInterval"] });
     for (const unsettled of [{ status: "connecting" }, { status: "unavailable", lastPlan: { tier: "pro", active: true } }] as CloudAccountState[]) {
       vi.clearAllMocks(); fresh(); account = free; offer = { ...PLAIN_OFFER };

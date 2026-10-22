@@ -1,3 +1,4 @@
+import { t } from "@/lib/i18n";
 import { reviewedSkillSha256, type SkillRequestCardData } from "../../shared/skill-request";
 
 /**
@@ -9,8 +10,7 @@ export function SkillRequestPreview({ request }: { request: SkillRequestCardData
   if (!reviewedSha256) {
     return (
       <div className="mt-3 rounded-lg border border-danger/30 bg-danger/5 p-3 text-[12px] leading-relaxed text-danger">
-        This proposal was created by an older build and cannot be safely applied. Deny it, then ask the bot to
-        {request.action === "update" ? " propose the update again." : " create the skill again."}
+        {request.action === "update" ? t("skillRequest.legacyUpdate") : t("skillRequest.legacyCreate")}
       </div>
     );
   }
@@ -18,16 +18,16 @@ export function SkillRequestPreview({ request }: { request: SkillRequestCardData
     <div className="mt-3 rounded-lg border border-hairline/40 bg-inset p-3">
       <div className="flex flex-wrap items-center justify-between gap-2 text-[11px] text-ink-secondary">
         <span>
-          Review the complete SKILL.md{request.references?.length ? " and its reference files" : ""} before {request.action === "update" ? "replacing the current version" : "enabling"}
+          {t(request.action === "update" ? (request.references?.length ? "skillRequest.reviewUpdateReferences" : "skillRequest.reviewUpdate") : (request.references?.length ? "skillRequest.reviewEnableReferences" : "skillRequest.reviewEnable"))}
         </span>
         <span className="font-mono" title={`sha256 ${reviewedSha256}`}>
           sha256 {reviewedSha256.slice(0, 8)}
         </span>
       </div>
-      <div className="mt-1 break-all text-[11px] text-ink-secondary">Source: {request.source || "Unknown"}</div>
+      <div className="mt-1 break-all text-[11px] text-ink-secondary">{t("skillRequest.source", { source: request.source || t("skillRequest.unknownSource") })}</div>
       <pre
         tabIndex={0}
-        aria-label={`Full SKILL.md for ${request.name}`}
+        aria-label={t("skillRequest.fullSkill", { name: request.name })}
         className="mt-2 max-h-64 overflow-auto whitespace-pre-wrap break-words font-mono text-[12px] leading-relaxed text-ink"
       >
         {request.preview}
@@ -37,7 +37,7 @@ export function SkillRequestPreview({ request }: { request: SkillRequestCardData
           <div className="font-mono text-[11px] text-ink-secondary">{file.path}</div>
           <pre
             tabIndex={0}
-            aria-label={`Full ${file.path} for ${request.name}`}
+            aria-label={t("skillRequest.fullReference", { path: file.path, name: request.name })}
             className="mt-1 max-h-64 overflow-auto whitespace-pre-wrap break-words font-mono text-[12px] leading-relaxed text-ink"
           >
             {file.content}

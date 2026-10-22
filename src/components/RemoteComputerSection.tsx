@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { t } from "@/lib/i18n";
+import { desktopErrorMessage } from "@/lib/desktop-errors";
 import { Laptop, Loader2, Unplug } from "lucide-react";
 import { Select } from "./Select";
 import { Card } from "./SettingsPrimitives";
@@ -7,12 +8,6 @@ import { Card } from "./SettingsPrimitives";
 const inputClass =
   "w-full rounded-lg border border-hairline/40 bg-inset px-3 py-2 text-[14px] text-ink placeholder:text-ink-secondary focus:outline-none";
 
-function errorText(error: unknown): string {
-  return String((error as { message?: string })?.message ?? error).replace(
-    /^Error invoking remote method '[^']*':\s*(?:Error:\s*)?/,
-    "",
-  );
-}
 
 export function isServerPairingLink(input: string): boolean {
   const link = input.trim();
@@ -73,7 +68,7 @@ export function RemoteComputerSection() {
         refreshState();
       }
     } catch (nextError) {
-      setError(errorText(nextError));
+      setError(desktopErrorMessage(nextError));
     } finally {
       pending.current = false;
       setBusy(false);
@@ -89,7 +84,7 @@ export function RemoteComputerSection() {
       await bridge.disconnect();
       refreshState();
     } catch (nextError) {
-      setError(errorText(nextError));
+      setError(desktopErrorMessage(nextError));
     } finally {
       pending.current = false;
       setBusy(false);
@@ -154,6 +149,7 @@ export function RemoteComputerSection() {
               <code className="select-all rounded-lg bg-inset px-3 py-2 text-[12px] text-ink">
                 pnpm spdbot pair --client
               </code>
+              <p className="text-[11.5px] leading-relaxed text-ink-secondary">{t("pairing.sourceHint")}</p>
               <label className="flex flex-col gap-1.5 text-[12px] text-ink-secondary">
                 {t("remote.client.server.pairingLink")}
                 <input
@@ -182,7 +178,7 @@ export function RemoteComputerSection() {
                 <input
                   value={endpoint}
                   onChange={(event) => setEndpoint(event.target.value)}
-                  placeholder="https://…openmausbot.com or computer.tailnet.ts.net"
+                  placeholder="computer.tailnet.ts.net"
                   disabled={busy}
                   autoCapitalize="none"
                   autoCorrect="off"

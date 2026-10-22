@@ -8,7 +8,7 @@ const pc: KnownLentComputer = { id: "c1", name: "ASH-PC", platform: "win32", onl
   lastSeenAt: NOW - 11 * 86_400_000, lastUsedAt: NOW - 11 * 86_400_000 - 3_600_000, scopes: { folders: 2, terminal: false, screen: true } };
 
 it("My Cloud says of each computer whether it is online, since when not, what it lends and when it last used it", () => {
-  expect(lentComputerLines(pc, NOW)).toEqual(["Offline, last online Oct 7. It reconnects by itself once OpenMausBot is open on it.", "Lends: 2 folders, apps and screen", "Last used Oct 7"]);
+  expect(lentComputerLines(pc, NOW)).toEqual(["Offline, last online Oct 7. It reconnects by itself once SPDBot is open on it.", "Lends: 2 folders, apps and screen", "Last used Oct 7"]);
   expect(lentComputerLines({ ...pc, online: true, lastUsedAt: null }, NOW)).toEqual(["Online now", "Lends: 2 folders, apps and screen", "Not used yet"]);
   expect(lentComputerLines({ ...pc, online: true, busy: true }, NOW)[0]).toBe("My Cloud is using it now");
   expect(lentComputerLines({ ...pc, lent: false }, NOW)).toEqual(["No longer lent: lending was turned off on it Oct 7.", "Last used Oct 7"]);

@@ -1,3 +1,4 @@
+import { t } from "@/lib/i18n";
 import { useEffect, useRef, useState } from "react";
 import { Bot as BotIcon, MessageSquare, Search, Users } from "lucide-react";
 import { api, openBot, useStore, type Bot, type Group } from "@/state/store";
@@ -154,7 +155,7 @@ export function CommandPalette({ onOpenChange }: { onOpenChange?: (open: boolean
       <div
         role="dialog"
         aria-modal="true"
-        aria-label="Command palette"
+        aria-label={t("commandPalette.title")}
         className="flex max-h-[min(480px,70vh)] w-full max-w-[560px] flex-col overflow-hidden rounded-xl border border-hairline/50 bg-card shadow-2xl shadow-black/60"
       >
         <div className="flex items-center gap-3 border-b border-hairline/40 px-4 py-3">
@@ -163,7 +164,7 @@ export function CommandPalette({ onOpenChange }: { onOpenChange?: (open: boolean
             autoFocus
             value={query}
             onChange={(e) => setQuery(e.target.value)}
-            placeholder="Search bots, channels, messages…"
+            placeholder={t("commandPalette.searchPlaceholder")}
             className="w-full bg-transparent text-[14px] text-ink placeholder:text-ink-secondary focus:outline-none"
           />
           <kbd className="shrink-0 rounded-md border border-hairline/40 px-1.5 py-0.5 text-[11px] text-ink-secondary">
@@ -173,12 +174,12 @@ export function CommandPalette({ onOpenChange }: { onOpenChange?: (open: boolean
         <div className="min-h-0 flex-1 overflow-y-auto p-2">
           {entries.length === 0 && (
             <div className="px-3 py-6 text-center text-[13px] text-ink-secondary">
-              {q ? `Nothing matches “${query}”` : "Nothing to switch to yet"}
+              {q ? t("commandPalette.noResults", { query }) : t("commandPalette.empty")}
             </div>
           )}
           {bots.length > 0 && (
             <div className="px-3 pb-1 pt-1.5 text-[11px] font-medium uppercase tracking-[0.08em] text-ink-secondary">
-              Bots
+              {t("commandPalette.bots")}
             </div>
           )}
           {bots.map((bot, i) =>
@@ -197,7 +198,7 @@ export function CommandPalette({ onOpenChange }: { onOpenChange?: (open: boolean
           )}
           {rooms.length > 0 && (
             <div className="px-3 pb-1 pt-2 text-[11px] font-medium uppercase tracking-[0.08em] text-ink-secondary">
-              Groups
+              {t("commandPalette.groups")}
             </div>
           )}
           {rooms.map((group, i) =>
@@ -213,7 +214,7 @@ export function CommandPalette({ onOpenChange }: { onOpenChange?: (open: boolean
           )}
           {q && messageHits.length > 0 && (
             <div className="px-3 pb-1 pt-2 text-[11px] font-medium uppercase tracking-[0.08em] text-ink-secondary">
-              Messages
+              {t("search.messages")}
             </div>
           )}
           {q &&

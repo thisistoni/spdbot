@@ -1,3 +1,4 @@
+import { t } from "./i18n";
 import type { ComputerHelpRef } from "../../shared/wire";
 
 export type ComputerControlAction = "take" | "release";
@@ -67,14 +68,14 @@ export async function transitionComputerControlLease<
 }): Promise<Snapshot> {
   const { action, syncNativeBrowser, requestControl, setNativeBrowserControl } = input;
   if (action === "take" && syncNativeBrowser && !(await setNativeBrowserControl(true))) {
-    throw new Error("OpenMausBot could not pause this bot's browser safely");
+    throw new Error(t("computer.controlError.pauseBrowser"));
   }
   const snap = await requestControl(action);
   if (snap.held !== (action === "take")) {
-    throw new Error(`OpenMausBot could not ${action === "take" ? "confirm" : "release"} computer control`);
+    throw new Error(t(action === "take" ? "computer.controlError.confirm" : "computer.controlError.release"));
   }
   if (action === "release" && syncNativeBrowser && !(await setNativeBrowserControl(false))) {
-    throw new Error("The computer was released, but the browser remains paused for safety");
+    throw new Error(t("computer.controlError.browserStillPaused"));
   }
   return snap;
 }

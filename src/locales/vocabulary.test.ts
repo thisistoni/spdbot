@@ -6,14 +6,15 @@ import ts from "typescript";
 import { describe, expect, it } from "vitest";
 
 import en from "./en.json";
+import de from "./de.json";
 import { locales } from "./index";
 
 const RETIRED: ReadonlyArray<readonly [string, RegExp, string]> = [
-  ["OMB Cloud", /OMB Cloud/i, "MausBot Cloud"],
-  ["OpenMausBot Cloud", /OpenMausBot Cloud/i, "MausBot Cloud"],
-  ["MausBot Pro", /MausBot Pro\b/, "MausBot Cloud"],
+  ["OMB Cloud", /OMB Cloud/i, "the external cloud service"],
+  ["OpenMausBot Cloud", /OpenMausBot Cloud/i, "the external cloud service"],
+  ["MausBot Pro", /MausBot Pro\b/, "the external cloud service"],
   // \b before "_" fails, so environment names such as OMB_PUBLIC_IPV4 pass.
-  ["OMB", /\bOMB\b/, "OpenMausBot"],
+  ["OMB", /\bOMB\b/, "SPDBot"],
   ["Cloud box", /Cloud box/i, "Cloud computer"],
   ["Hosted desktop", /Hosted desktop/i, "Cloud computer"],
   ["Cloud VM", /Cloud VM/i, "Cloud computer"],
@@ -100,7 +101,7 @@ const allows = (entry: (typeof ALLOWED)[number], finding: { file: string; text: 
   entry.file === finding.file && (entry.snippet === undefined || finding.text.includes(entry.snippet));
 
 describe("one name per thing", () => {
-  it("English copy uses MausBot Cloud, My Cloud, Cloud computer, This computer and Plan page", () => {
+  it("English copy uses consistent app, computer and external-service names", () => {
     const offending = Object.entries(en as Record<string, string>)
       .filter(([key]) => !PENDING_KEY_PREFIXES.some((prefix) => key.startsWith(prefix)) && !Object.hasOwn(EN_ALLOWED, key))
       // English keys are UI copy, so lower-case "boat" counts too.
@@ -133,8 +134,8 @@ describe("one name per thing", () => {
     expect(staleKeys).toEqual([]);
   });
 
-  it("the public docs name My Cloud and MausBot Cloud as the app does", () => {
-    const cloudNames = RETIRED.filter(([, , use]) => /My Cloud|MausBot Cloud/.test(use));
+  it("the public docs avoid retired names for cloud services", () => {
+    const cloudNames = RETIRED.filter(([, , use]) => /My Cloud|external cloud service/.test(use));
     const pages = (dir: string): string[] => readdirSync(dir).flatMap((name) => {
       const path = join(dir, name);
       return statSync(path).isDirectory() ? pages(path) : /\.mdx?$/.test(name) ? [path] : [];
@@ -149,24 +150,29 @@ describe("one name per thing", () => {
   it("copy that points at a control names it exactly as the control is labelled", () => {
     const e = en as Record<string, string>;
     const source = (file: string) => readFileSync(join(ROOT, file), "utf8");
-    const settings = `Settings → ${e["settings.section.cloudAccount"]}`;
     const myCloud = /CLOUD_HOME_NAME = "([^"]+)"/.exec(source("electron/cloud-home.mjs"))?.[1];
     const thisComputer = /id: "workspace-local", label: "([^"]+)"/.exec(source("electron/environments.cjs"))?.[1];
     const serverMenuLocal = /\{ label: "([^"]+)", type: "radio", checked: !active/.exec(source("electron/menu.mjs"))?.[1];
-    expect([myCloud, thisComputer, serverMenuLocal]).toEqual([e["cloudSetup.myCloud"], e["place.local"], e["place.local"]]);
-    const pointers: Array<[string, string[]]> = [
-      ["cloudHome.connectHelp", [e["place.local"]!]],
-      ["cloudPhone.step1", [myCloud!]],
-      ["lending.status.connectFirst", [e["cloudHome.connect"]!]],
-      ["computer.worksOnHintCloudHome", [e["lending.title"]!, settings]],
-      ["cloudMove.leftBehindLend", [e["lending.title"]!, settings]],
-      ["cloudAccount.onCloudSignIn", [e["cloudAccount.signInAgain"]!, settings]],
-      ["cloudAccount.storageFailed", [e["cloudAccount.signOut"]!]],
-      ["cloudAccount.codeExpired", [e["cloudAccount.signIn"]!]],
-      ["computer.routines.offWarning", [e["routines.runsOn.boat"]!]],
-    ];
-    const stale = pointers.flatMap(([key, labels]) => labels.filter((label) => !e[key]!.includes(label)).map((label) => `${key} → ${label}`));
-    expect(stale).toEqual([]);
+    expect(myCloud).toBe(e["cloudSetup.myCloud"]);
+    // Native local menus use German; the external cloud entry keeps its actual service label.
+    expect([thisComputer, serverMenuLocal]).toEqual([de["place.local"], de["place.local"]]);
+    for (const [locale, translated] of [["en", en], ["de", de]] as const) {
+      const copy: Record<string, string> = { ...en, ...translated };
+      const pointers: Array<[string, string[]]> = [
+        ["cloudHome.connectHelp", [copy["place.local"]!]],
+        ["cloudPhone.step1", [myCloud!]],
+        ["lending.status.connectFirst", [copy["cloudHome.connect"]!]],
+        ["cloudAccount.storageFailed", [copy["cloudAccount.signOut"]!]],
+        ["cloudAccount.codeExpired", [copy["cloudAccount.signIn"]!]],
+        ["computer.routines.offWarning", [copy["routines.runsOn.boat"]!]],
+      ];
+      const stale = pointers.flatMap(([key, labels]) => labels.filter((label) => !copy[key]!.includes(label)).map((label) => `${locale}: ${key} → ${label}`));
+      expect(stale).toEqual([]);
+    }
+    for (const key of ["computer.worksOnHintCloudHome", "cloudMove.leftBehindLend"]) {
+      expect(e[key]).toContain("not offered in SPDBot");
+      expect(e[key]).not.toContain("Settings →");
+    }
   });
 
   it("the check catches each retired word, and lets own-key Boat and env names through", () => {
@@ -178,7 +184,7 @@ describe("one name per thing", () => {
       "Auto uses this Boat", "New Boat computer",
     ]) expect(retiredIn(bad), bad).not.toEqual([]);
     for (const good of [
-      "Sign in to MausBot Cloud", "Pro active · verified by MausBot Cloud", "Restart OpenMausBot", "locked by another OpenMausBot process",
+      "Sign in to the external cloud service", "Pro active · verified by the external cloud service", "Restart SPDBot", "locked by another SPDBot process",
       "set OMB_PUBLIC_IPV4", "Open My Cloud", "Choose Cloud computer to wake",
       "Included with your Cloud plan", "Add a Boat API key in Settings → API keys", "Connect Boat", "Check boat.dev",
       "Local VM", "Open your Plan page",

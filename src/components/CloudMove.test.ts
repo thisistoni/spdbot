@@ -2,6 +2,9 @@ import { Children, createElement, isValidElement, type EffectCallback, type Reac
 import { renderToStaticMarkup } from "react-dom/server";
 import { afterEach, beforeEach, expect, it, vi } from "vitest";
 import type { CloudMoveBridge, CloudMoveOverview, CloudMoveState, MoveDestination } from "../../electron/cloud-move.mjs";
+const offers = vi.hoisted(() => ({ available: true }));
+vi.mock("@/lib/cloud-offers", () => ({ cloudOffersAvailable: () => offers.available }));
+
 import { setLocale } from "@/lib/i18n";
 const f = vi.hoisted(() => ({ values: [] as unknown[], index: 0, effects: [] as EffectCallback[] }));
 vi.mock("react", async original => ({ ...await original<typeof import("react")>(),
@@ -37,6 +40,7 @@ const local = { bots: 4, rooms: 1, chats: 37, bytes: 1.5 * 1024 ** 3, files: 900
 const emptyCloud = { contents: { bots: 1, rooms: 0, chats: 0 }, empty: true, freeBytes: 9 * 1024 ** 3, previous: null, heldBytes: 0 };
 const overview = (extra: Partial<CloudMoveOverview> = {}): CloudMoveOverview => ({ phase: "idle", local, cloud: emptyCloud, suggest: false, destination: CLOUD, blocked: null, ...extra });
 beforeEach(() => {
+  offers.available = true;
   f.values = []; f.index = 0; f.effects = []; push = () => {}; switched = [];
   bridge = {
     state: vi.fn().mockResolvedValue(overview()), start: vi.fn().mockResolvedValue({ phase: "done" }), cancel: vi.fn().mockResolvedValue({ phase: "failed" }),
@@ -54,7 +58,7 @@ async function ready(component: () => ReactNode, state = overview()) {
 const failed = (error: NonNullable<CloudMoveState["error"]>, destination = CLOUD, extra: Partial<CloudMoveState> = {}) =>
   moveView(null, { phase: "failed", action: "move", error, destination, ...extra });
 
-it("Settings → MausBot Cloud: what comes and its size, that sign-ins stay here, and one click that names the Cloud", async () => {
+it("Settings → the external cloud service: what comes and its size, that sign-ins stay here, and one click that names the Cloud", async () => {
   await ready(settings());
   const { html } = render(settings());
   expect(bridge.state).toHaveBeenCalledWith("cloud");
@@ -165,7 +169,7 @@ it("after a copy from a PC, one line says which of its folders and files stayed 
   const site = "C:\\Users\\Ada\\Projects\\site";
   expect(moveNextSteps(done(CLOUD, { bots: 2, paths: [site, "C:\\Users\\Ada\\Desktop\\x.docx"] }))).toEqual([
     `2 bots used folders on this computer, like ${site}. Those files didn't come over, so those bots now start in their own folder on My Cloud. Upload what they need there. `
-      + "Or turn on Let My Cloud use this computer in Settings → MausBot Cloud, so My Cloud can reach them here.",
+      + "Cloud lending is not offered in SPDBot. Use a supported direct connection to access another computer.",
     expect.stringContaining("To use My Cloud from your phone"),
   ]);
   expect(moveNextSteps(done(VPS, { bots: 1, paths: [site] }))[0])
@@ -182,6 +186,9 @@ it("after a move to My Cloud, offers to share the folders left on this computer 
   expect(leftBehindToShare(done())).toBeNull();
   vi.stubGlobal("window", { ogb: { platform: "darwin", cloudMove: bridge, cloudAccount: { files } } });
   expect(leftBehindToShare(done())).toEqual(left.paths);
+  offers.available = false;
+  expect(leftBehindToShare(done())).toBeNull();
+  offers.available = true;
   expect(leftBehindToShare(done({ destination: VPS }))).toBeNull();
   expect(leftBehindToShare(done({ leftBehind: undefined }))).toBeNull();
   expect(leftBehindToShare(done({ leftBehind: { bots: 1, paths: [] } }))).toBeNull();
@@ -208,16 +215,16 @@ it("every state reads as one sentence and one next step, for the Cloud and any o
   expect(view({}, { destination: CLOUD, cloud: { ...emptyCloud, empty: false } }, { onServerPage: true })).toMatchObject({
     action: null, message: { tone: "note", text: expect.stringContaining("open Settings → Servers in this computer's window and choose Copy this computer here") } });
   const blocked = (reason: CloudMoveOverview["blocked"], extra: Partial<CloudMoveOverview> = {}) => view({}, { destination: VPS, blocked: reason, ...extra });
-  expect(blocked("owner_needed")).toMatchObject({ message: { text: "This app isn't signed in to bots.example.test as its owner. Pair it again with an owner code (openmausbot pair), then copy." }, action: { kind: "open", label: "Open bots.example.test" } });
+  expect(blocked("owner_needed")).toMatchObject({ message: { text: "This app is not connected to bots.example.test as its owner. Create an owner code in that server's Settings → Remote access, then connect again before copying." }, action: { kind: "open", label: "Open bots.example.test" } });
   expect(blocked("shared_workspace")).toMatchObject({ message: { text: "bots.example.test is shared with other people, so it can't receive this computer's bots and chats. Copy to a server only you use." }, action: null });
   expect(blocked("same_computer")).toMatchObject({ message: { text: "bots.example.test is this computer's own server." }, action: null });
   expect(blocked("outdated", { cloud: { ...emptyCloud, appVersion: "0.1.90" } })).toMatchObject({ message: { text: "bots.example.test runs 0.1.90; this computer runs 0.1.96. Update bots.example.test, then copy again." }, action: { kind: "check", label: "Check again" } });
-  expect(blocked("outdated", { cloud: null }).message?.text).toBe("Update OpenMausBot on bots.example.test, then copy again.");
+  expect(blocked("outdated", { cloud: null }).message?.text).toBe("Update SPDBot on bots.example.test, then copy again.");
   expect(view({}, { destination: CLOUD, blocked: "outdated", cloud: null }).message?.text).toBe("My Cloud has not updated to a version that can receive a move yet. Try again once it has.");
   expect(blocked("unreachable")).toMatchObject({ message: { text: "bots.example.test didn't answer. Check that it's running, then try again." }, action: { kind: "check" } });
   expect(blocked("busy_elsewhere", { busyWith: "My Cloud" })).toMatchObject({ message: { text: "A copy to My Cloud is running. Wait for it to finish." }, action: null });
   expect(failed({ code: "restart_timeout", message: "" }, VPS)).toMatchObject({
-    message: { tone: "error", text: "bots.example.test hasn't come back yet. If it doesn't start again on its own, start OpenMausBot there; it finishes installing the copy when it starts." },
+    message: { tone: "error", text: "bots.example.test hasn't come back yet. If it doesn't start again on its own, start SPDBot there; it finishes installing the copy when it starts." },
     action: { kind: "open", label: "Open bots.example.test" } });
   expect(failed({ code: "restart_timeout", message: "" }).message?.text).toBe("My Cloud is taking longer than usual to restart. Check it again in a few minutes.");
   expect(failed({ code: "outdated", message: "", destVersion: "0.1.95", localVersion: "0.1.96" }, VPS)).toMatchObject({

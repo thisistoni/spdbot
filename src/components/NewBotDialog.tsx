@@ -314,7 +314,11 @@ function StartingRole({ draft, defaultsMode }: { draft: BotCreationDraft; defaul
       setError(cause instanceof Error ? cause.message : String(cause));
     }
   };
-  const roles = BOT_ROLES.map(role => <option key={role.id} value={role.id}>{role.title}</option>);
+  const roleLabels: Record<string, string> = {
+    assistant: t("newBot.role.assistant"), inbox: t("newBot.role.inbox"), research: t("newBot.role.research"),
+    coder: t("newBot.role.coder"), community: t("newBot.role.community"), ops: t("newBot.role.ops"),
+  };
+  const roles = BOT_ROLES.map(role => <option key={role.id} value={role.id}>{roleLabels[role.id] ?? role.title}</option>);
   return <div>
     <label className="block text-[13px] text-ink-secondary">{t("newBot.startingRole")}
       <Select size="lg" className="mt-1.5 w-full" value={draft.preset ? `preset:${draft.preset.id}` : ""} onChange={event => void choose(event.target.value)}>

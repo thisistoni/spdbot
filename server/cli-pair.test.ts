@@ -91,7 +91,7 @@ function expectPhonePairing(origin: string): void {
   expect(String(invitations[0]![0])).toBe(`http://127.0.0.1:${options.port}/api/auth/pairing`);
   expect(JSON.parse(String(invitations[0]![1]?.body))).toMatchObject({ scopes: ["client"] });
   const transcript = mocks.ui.log.mock.calls.map(([line]) => line).join("\n");
-  expect(transcript).toContain(`pairing code:  ${code}`);
+  expect(transcript).toContain(`Kopplungscode: ${code}`);
   expect(transcript).toContain(`${origin}/pair#code=${code}`);
   expect(transcript).toMatch(/[▀▄█]/);
   expect(mocks.createTunnelAccount).not.toHaveBeenCalled();
@@ -141,14 +141,14 @@ describe("guided phone pairing address discovery", () => {
     expect(mocks.ui.choose).not.toHaveBeenCalled();
     expect(fetchMock.mock.calls.filter(([url]) => String(url).startsWith("https://"))).toHaveLength(0);
     expect(fetchMock.mock.calls.filter(([, init]) => init?.method === "POST")).toHaveLength(0);
-    expect(console.log).toHaveBeenCalledWith(expect.stringContaining("running only on this computer"));
+    expect(console.log).toHaveBeenCalledWith(expect.stringContaining("läuft nur auf diesem Computer"));
   });
 
   it("does not mint a code when the advertised endpoint identifies another workspace", async () => {
     remoteWorkspaceId = "another-workspace";
     expect(await runPair(options)).toBe(1);
     expect(fetchMock.mock.calls.filter(([, init]) => init?.method === "POST")).toHaveLength(0);
-    expect(mocks.ui.log).toHaveBeenCalledWith(expect.stringContaining("no phone pairing code was created"));
+    expect(mocks.ui.log).toHaveBeenCalledWith(expect.stringContaining("kein Kopplungscode für das Telefon erstellt"));
   });
 
   it.each([2, new SetupCancelled()])("does not mint a code when phone selection is cancelled (%s)", async (cancel) => {
@@ -176,22 +176,23 @@ describe("the phone-app link `spdbot pair` prints", () => {
   };
   const printed = () => vi.mocked(console.log).mock.calls.map(([line]) => String(line)).join("\n");
 
-  it("prints the server's own invite unchanged", async () => {
+  it("prints the server browser link without advertising its native invite", async () => {
     const serverInvite = `spdbot://pair?address=${encodeURIComponent(advertisedOrigin)}&token=${credential}&name=Miguel's%20computer`;
     pairingResponse({ url: `${advertisedOrigin}/pair#code=${code}`, inviteUrl: serverInvite });
     expect(await runPair({ ...options, label: "Pixel" })).toBe(0);
-    expect(printed()).toContain(`phone app:     ${serverInvite}\n`);
+    expect(printed()).toContain(`${advertisedOrigin}/pair#code=${code}`);
+    expect(printed()).not.toContain(serverInvite);
   });
 
-  it("builds the invite for --public-url from the server's credential and name", async () => {
+  it("uses the explicit browser origin without printing a native invite", async () => {
     pairingResponse({
       url: `${advertisedOrigin}/pair#code=${code}`,
       inviteUrl: `spdbot://pair?address=${encodeURIComponent(advertisedOrigin)}&token=${credential}&name=Miguel's%20computer`,
     });
     expect(await runPair({ ...options, label: "Pixel", publicUrl: explicitOrigin })).toBe(0);
-    expect(printed()).toContain(
-      `phone app:     spdbot://pair?address=${encodeURIComponent(explicitOrigin)}&token=${credential}&name=Miguel's%20computer\n`,
-    );
+    expect(printed()).toContain(`${explicitOrigin}/pair#code=${code}`);
+    expect(printed()).not.toContain("spdbot://");
+    expect(printed()).not.toContain(credential);
     expect(printed()).not.toContain(encodeURIComponent(advertisedOrigin));
   });
 

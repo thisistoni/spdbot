@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import { EventEmitter } from "node:events";
 import { fileURLToPath } from "node:url";
 import test from "node:test";
-import { createStartupScreen } from "./startup-screen.mjs";
+import { createStartupScreen, startupScreenHtml } from "./startup-screen.mjs";
 import { createSystemTray } from "./system-tray.mjs";
 
 const iconPath = fileURLToPath(new URL("./resources/app-icon.png", import.meta.url));
@@ -177,4 +177,13 @@ test("without a Windows tray or on another platform splash close quits", async (
     splash.window.emit("close", { preventDefault() {} });
     assert.deepEqual(calls, ["quit"]); splash.dispose();
   }
+});
+
+// The native splash precedes React and therefore cannot use its active locale.
+test("the SPDBot startup surface is German before the workspace mounts", () => {
+  const html = startupScreenHtml(iconPath);
+  assert.match(html, /<html lang="de">/);
+  assert.match(html, /Dein Arbeitsbereich wird geöffnet…/);
+  assert.match(html, /aria-label="Schließen"/);
+  assert.doesNotMatch(html, /Opening your workspace|aria-label="Close"|OpenMausBot|MausBot Cloud/);
 });

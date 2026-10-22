@@ -4,6 +4,7 @@ import { Check, ExternalLink, Loader2 } from "lucide-react";
 import { api, useStore, type ConfigStatus } from "@/state/store";
 import { cn } from "@/lib/cn";
 import { t } from "@/lib/i18n";
+import { desktopErrorMessage } from "@/lib/desktop-errors";
 import type { LocaleKey } from "@/locales";
 import { Card, SettingRow, Switch } from "./SettingsPrimitives";
 import { Select } from "./Select";
@@ -29,8 +30,8 @@ const FAILURES: Record<string, LocaleKey> = {
 
 /** Cloud Pro's relay refuses an inactive subscription (402) and a used-up month of decisions (429). */
 const INCLUDED_FAILURES: Record<string, LocaleKey> = {
-  rejected: "decider.included.error.rejected",
-  rate_limited: "decider.included.error.limited",
+  rejected: "decider.external.rejected",
+  rate_limited: "decider.external.limited",
 };
 
 const OPENROUTER_FAILURES: Record<string, LocaleKey> = {
@@ -52,7 +53,7 @@ export function deciderFailureText(result: { reason: string; status?: number }, 
     const key = OPENROUTER_FAILURES[result.reason];
     return key ? t(key) : t("decider.error.other");
   }
-  if (included && result.reason === "http_error" && result.status === 402) return t("decider.included.error.subscription");
+  if (included && result.reason === "http_error" && result.status === 402) return t("decider.external.subscription");
   if (included && INCLUDED_FAILURES[result.reason]) return t(INCLUDED_FAILURES[result.reason]!);
   if (result.reason === "http_error") return t("decider.error.http", { status: String(result.status ?? "?") });
   const key = FAILURES[result.reason];
@@ -101,7 +102,7 @@ export function DecisionModelSettings() {
     try {
       applied(await api<ConfigStatus>("/api/config", { method: "PUT", body: JSON.stringify({ decider: decision }) }));
     } catch (cause) {
-      setError(cause instanceof Error ? cause.message : String(cause));
+      setError(desktopErrorMessage(cause));
     } finally {
       setSwitching(false);
     }
@@ -135,7 +136,7 @@ export function DecisionModelSettings() {
       applied(status);
       setValue("");
     } catch (cause) {
-      setError(cause instanceof Error ? cause.message : String(cause));
+      setError(desktopErrorMessage(cause));
     } finally {
       setSaving(false);
     }
@@ -162,7 +163,7 @@ export function DecisionModelSettings() {
         }
         : { ok: false, text: deciderFailureText(result, testingIncluded, provider) });
     } catch (cause) {
-      setVerdict({ ok: false, text: cause instanceof Error ? cause.message : String(cause) });
+      setVerdict({ ok: false, text: desktopErrorMessage(cause) });
     } finally {
       setTesting(false);
     }
@@ -230,7 +231,7 @@ export function DecisionModelSettings() {
           <span className={cn("size-1.5 rounded-full", configured ? "bg-success" : "bg-raised-hover")} />
           <span className={configured ? "text-success" : undefined}>
             {included
-              ? t("keys.includedWithCloudPro")
+              ? t("keys.externalServiceIncluded")
               : usingShared
                 ? t("decider.openrouter.status.shared")
                 : configured

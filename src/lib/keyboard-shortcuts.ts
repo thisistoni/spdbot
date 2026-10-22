@@ -1,3 +1,5 @@
+import { t } from "@/lib/i18n";
+import type { LocaleKey } from "@/locales";
 import type { SendKey } from "./send-key";
 
 export interface ShortcutItem {
@@ -127,10 +129,38 @@ const SEND_ROWS: Record<Exclude<SendKey, "enter">, [Keys, Keys]> = {
   "mod-enter": [{ macKeys: ["⌘", "Return"], winKeys: ["Ctrl", "Enter"] }, ENTER],
 };
 
+const SHORTCUT_LABELS: Record<string, LocaleKey> = {
+  "command-palette": "keyboardShortcuts.action.command-palette",
+  "new-bot": "keyboardShortcuts.action.new-bot",
+  "jump-bot": "keyboardShortcuts.action.jump-bot",
+  "switch-bot": "keyboardShortcuts.action.switch-bot",
+  "find-conversation": "keyboardShortcuts.action.find-conversation",
+  "send-message": "keyboardShortcuts.action.send-message",
+  "new-line": "keyboardShortcuts.action.new-line",
+  "edit-last-message": "keyboardShortcuts.action.edit-last-message",
+  "close-panel": "keyboardShortcuts.action.close-panel",
+  "shortcuts-cheat-sheet": "keyboardShortcuts.action.shortcuts-cheat-sheet",
+  "live-call-mute": "keyboardShortcuts.action.live-call-mute",
+  "live-call-hang-up": "keyboardShortcuts.action.live-call-hang-up",
+  "save-bulletin": "keyboardShortcuts.action.save-bulletin",
+  "reorder-section": "keyboardShortcuts.action.reorder-section",
+};
+const SHORTCUT_CATEGORIES: Record<string, LocaleKey> = {
+  "Navigation": "keyboardShortcuts.category.navigation",
+  "Chat & Composer": "keyboardShortcuts.category.chat",
+  "Calls": "keyboardShortcuts.category.calls",
+  "Management & Groups": "keyboardShortcuts.category.management",
+};
+
 export function shortcutGroupsFor(sendKey: SendKey): readonly ShortcutGroup[] {
-  if (sendKey === "enter") return SHORTCUT_GROUPS;
+  const localized = SHORTCUT_GROUPS.map((group) => ({
+    ...group,
+    category: t(SHORTCUT_CATEGORIES[group.category]!),
+    items: group.items.map((item) => ({ ...item, description: t(SHORTCUT_LABELS[item.id]!) })),
+  }));
+  if (sendKey === "enter") return localized;
   const [send, newLine] = SEND_ROWS[sendKey];
-  return SHORTCUT_GROUPS.map((group) => ({
+  return localized.map((group) => ({
     ...group,
     items: group.items.map((item) =>
       item.id === "send-message" ? { ...item, ...send }
