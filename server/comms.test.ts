@@ -1,8 +1,9 @@
 import { spawn, type ChildProcess } from "node:child_process";
 import { createHash, randomUUID } from "node:crypto";
+import { channel } from "node:diagnostics_channel";
 import { chmodSync, copyFileSync, existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
-import { createServer, type Server } from "node:http";
-import type { AddressInfo } from "node:net";
+import { createServer, get, type Server } from "node:http";
+import type { AddressInfo, Socket } from "node:net";
 import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -98,6 +99,19 @@ describe("routine comms e2e on the job runtime (fake ACP fleet)", () => {
   let home: string;
   let gateFile = "";
   let stderr = "";
+  let stdout = "";
+  let lifecycle = "not started";
+  const sent = channel("undici:client:sendHeaders");
+  const sockets = new WeakMap<Socket, number>();
+  let transport: Record<string, unknown> = {};
+  const noteTransport = (message: unknown) => {
+    const { request, socket } = message as { request: { origin: string; path: string }; socket: Socket };
+    if (String(request.origin) !== BASE) return;
+    const previous = sockets.get(socket);
+    transport = { path: request.path, reused: previous !== undefined, sincePreviousSendMs: previous === undefined ? null : Date.now() - previous,
+      localPort: socket.localPort, bytesRead: socket.bytesRead, bytesWritten: socket.bytesWritten };
+    sockets.set(socket, Date.now());
+  };
   // A loopback OpenAI-compatible engine under the workspace key: a request hangs until the engine is replaced ("hang"),
   // answers "ping from fake", loops on tool calls ("steps"), or is rate-limited ("limit").
   let compat: Server;
@@ -121,12 +135,22 @@ describe("routine comms e2e on the job runtime (fake ACP fleet)", () => {
     }
   };
   const api = async (method: string, path: string, body?: unknown): Promise<{ status: number; body: any }> => {
+    const started = Date.now();
     const res = await fetch(`${BASE}${path}`, {
       method,
       headers: body ? { "content-type": "application/json" } : undefined,
       body: body ? JSON.stringify(body) : undefined,
-    }).catch((cause) => {
-      throw new Error(`${method} ${path} failed (server exit: ${child?.exitCode ?? "running"}).\n${stderr.slice(-1500)}`, { cause });
+    }).catch(async (cause) => {
+      // Diagnose on a fresh connection; never retry the failed operation or turn a failure into a pass.
+      const state = `${lifecycle}; exit=${child?.exitCode}; signal=${child?.signalCode}`;
+      const connection = JSON.stringify(transport);
+      const health = await new Promise<string>((resolve) => {
+        get(`${BASE}/api/health`, { agent: false, signal: AbortSignal.timeout(2_000) }, (res) => {
+          res.resume();
+          resolve(String(res.statusCode));
+        }).on("error", (error) => resolve(String(error)));
+      });
+      throw new Error(`${method} ${path} failed after ${Date.now() - started}ms (${state}; fresh health=${health}).\ntransport: ${connection}\nstdout: ${stdout}\nstderr: ${stderr.slice(-1500)}`, { cause });
     });
     return { status: res.status, body: await res.json() };
   };
@@ -185,6 +209,7 @@ describe("routine comms e2e on the job runtime (fake ACP fleet)", () => {
   const runState = async (id: string) => (await api("GET", "/api/routines")).body.runs.find((run: any) => run.id === id);
 
   beforeAll(async () => {
+    sent.subscribe(noteTransport);
     chmodSync(FAKE_CLI, 0o755);
     home = mkdtempSync(join(tmpdir(), "omb-comms-test-"));
     gateFile = join(home, "helper-gate");
@@ -362,6 +387,12 @@ describe("routine comms e2e on the job runtime (fake ACP fleet)", () => {
       stdio: ["ignore", "pipe", "pipe"],
     });
     child.stderr!.on("data", (c) => (stderr += c));
+    // Drain both pipes: an unread stdout can block a long-lived fixture on Windows.
+    child.stdout!.on("data", (c) => { stdout = (stdout + c).slice(-1500); });
+    lifecycle = `spawned pid=${child.pid}`;
+    child.on("error", (error) => { lifecycle = `process error: ${error.message}`; });
+    child.on("exit", (code, signal) => { lifecycle = `exited code=${code} signal=${signal}`; });
+    child.on("close", (code, signal) => { lifecycle = `closed code=${code} signal=${signal}`; });
 
     const deadline = Date.now() + 20_000;
     for (;;) {
@@ -381,6 +412,7 @@ describe("routine comms e2e on the job runtime (fake ACP fleet)", () => {
   }, 30_000);
 
   afterAll(async () => {
+    sent.unsubscribe(noteTransport);
     await waitForExit(child, { signal: "SIGTERM" });
     compat.closeAllConnections();
     await new Promise((resolve) => compat.close(resolve));
