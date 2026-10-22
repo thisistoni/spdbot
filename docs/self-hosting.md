@@ -209,6 +209,11 @@ app's managed phone endpoint.
 
 ## Docker (with HTTPS on your own domain)
 
+When updating, keep the same Compose file, project name (`COMPOSE_PROJECT_NAME`),
+`.env` and data volume. The local recipe uses project `spdbot`; the public
+recipe below uses `spdbot-deploy`. Switching recipes starts a different workspace.
+The app links here instead of guessing which Compose project to update.
+
 For a single rootless Podman engine running the server, Caddy, and per-bot
 desktops, see the optional [Podman full-stack recipe](../deploy/podman/README.md)
 for Windows/WSL2 and Linux x64. It is separate from the Docker deployment below.

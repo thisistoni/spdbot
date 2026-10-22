@@ -8,8 +8,13 @@ export interface ServerUpdateCheck {
   latest?: string;
   available: boolean;
   releaseUrl?: string;
+  updateGuideUrl?: string;
   command?: string;
   restart?: boolean;
+}
+
+export function serverUpdateDestination(check: ServerUpdateCheck | null): string | undefined {
+  return check?.updateGuideUrl ?? check?.releaseUrl;
 }
 
 export type ServerUpdatePhase = "idle" | "checking" | "up-to-date" | "available" | "reload" | "error";
@@ -34,6 +39,7 @@ export function serverUpdateRow(
   if (check?.install === "desktop") return { label: t("sidebar.update.howDesktop") };
   if (check?.install === "managed") return { label: t("sidebar.update.managed") };
   if (phase === "available" && check?.latest) {
+    if (check.updateGuideUrl) return { label: t("update.card.title"), subtitle: `v${check.current} → v${check.latest}` };
     const subtitle = check.command
       ? t(check.restart ? "sidebar.update.howRestart" : "sidebar.update.how", { command: check.command })
       : undefined;

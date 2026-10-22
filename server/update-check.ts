@@ -2,6 +2,7 @@
 import { existsSync } from "node:fs";
 import { join, sep } from "node:path";
 
+export const DOCKER_UPDATE_GUIDE_URL = "https://github.com/thisistoni/spdbot/blob/main/docs/self-hosting.md#docker-with-https-on-your-own-domain";
 export const LATEST_RELEASE_URL = "https://api.github.com/repos/thisistoni/spdbot/releases/latest";
 const CACHE_MS = 60 * 60_000;
 
@@ -10,7 +11,7 @@ export type InstallKind = "desktop" | "managed" | "docker" | "podman" | "npm" | 
 
 /** As docs/self-hosting.md and deploy/podman/README.md give them. */
 export const UPDATE_COMMANDS: Partial<Record<InstallKind, { command: string; restart: boolean }>> = {
-  docker: { command: "git pull && docker build -t spdbot-runtime:local . && docker compose up -d --build", restart: false },
+  // Docker detection cannot identify the operator's Compose file/project. Use its specific recipe.
   podman: { command: "git pull && cd deploy/podman && PODMAN_COMPOSE_PROVIDER=podman-compose podman compose --env-file .env -f compose.yaml up -d --build", restart: false },
   // Locally built npm tarballs have no verified registry upgrade channel.
   git: { command: "git pull && pnpm install", restart: true },
@@ -65,6 +66,7 @@ export interface UpdateCheck {
   latest?: string;
   available: boolean;
   releaseUrl?: string;
+  updateGuideUrl?: string;
   command?: string;
   restart?: boolean;
 }
@@ -85,6 +87,7 @@ export function createUpdateChecker(options: {
     install: options.install,
     available: false,
     ...UPDATE_COMMANDS[options.install],
+    ...(options.install === "docker" ? { updateGuideUrl: DOCKER_UPDATE_GUIDE_URL } : {}),
   });
 
   return async function check(): Promise<UpdateCheck> {

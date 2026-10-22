@@ -1,7 +1,7 @@
 import { join, sep } from "node:path";
 import { describe, expect, it, vi } from "vitest";
 
-import { createUpdateChecker, installKind, isNewerVersion, LATEST_RELEASE_URL } from "./update-check.ts";
+import { createUpdateChecker, installKind, isNewerVersion, LATEST_RELEASE_URL, DOCKER_UPDATE_GUIDE_URL } from "./update-check.ts";
 
 const release = (tag: string) =>
   ({ ok: true, status: 200, json: async () => ({ tag_name: tag, html_url: `https://github.com/thisistoni/spdbot/releases/tag/${tag}` }) }) as Response;
@@ -38,17 +38,18 @@ describe("server update check", () => {
     expect(isNewerVersion("v0.1.93-rc.1.1", "0.1.93-rc.1")).toBe(true);
   });
 
-  it("reports a newer release with the update command for this install", async () => {
+  it.each(["/local/app/dist-server", "/public/app/dist-server"])("keeps the Compose project choice with its operator (%s)", async (serverRoot) => {
+    const install = installKind({ desktopManaged: false, managed: false, serverRoot, exists: (path) => path === "/.dockerenv" });
+    expect(install).toBe("docker");
     const fetch = vi.fn(async () => release("v0.1.93"));
-    const check = createUpdateChecker({ current: "0.1.92", install: "docker", fetch });
+    const check = createUpdateChecker({ current: "0.1.92", install, fetch });
     expect(await check()).toEqual({
       current: "0.1.92",
       install: "docker",
       latest: "0.1.93",
       available: true,
       releaseUrl: "https://github.com/thisistoni/spdbot/releases/tag/v0.1.93",
-      command: "git pull && docker build -t spdbot-runtime:local . && docker compose up -d --build",
-      restart: false,
+      updateGuideUrl: DOCKER_UPDATE_GUIDE_URL,
     });
     expect(fetch).toHaveBeenCalledWith(LATEST_RELEASE_URL, expect.anything());
   });
