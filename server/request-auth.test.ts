@@ -139,6 +139,9 @@ describe("scopes", () => {
     expect(clientBotPatchViolation({ unread: true })).toBeNull();
     expect(clientBotPatchViolation({ pinned: true, color: "green" })).toBeNull();
     expect(clientBotPatchViolation({ avatarCrop: "mascot", avatarZoom: 1, avatarFocusX: 0.5, avatarFocusY: 0.5, avatarUrl: null })).toBeNull();
+    expect(clientBotPatchViolation({ avatarCrop: "mascot", botttsAvatar: { eyes: "happy", texture: false } })).toBeNull();
+    expect(clientBotPatchViolation({ botttsAvatar: null })).toBeNull();
+    expect(clientBotPatchViolation({ botttsAvatar: { eyes: "happy" }, autoApprove: true })).toBe("autoApprove");
     expect(clientBotPatchViolation({ avatarCrop: "square", name: "Renamed" })).toBe("name");
     expect(clientBotPatchViolation({ unread: true, autoApprove: true })).toBe("autoApprove");
     expect(clientBotPatchViolation({ cwd: "/" })).toBe("cwd");

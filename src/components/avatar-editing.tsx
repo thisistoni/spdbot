@@ -1,5 +1,6 @@
 import { useRef, useState, type PointerEvent as ReactPointerEvent, type WheelEvent as ReactWheelEvent } from "react";
 
+import { t } from "@/lib/i18n";
 import { useStore, type Bot } from "@/state/store";
 import { imageAttachmentFromFile } from "@/lib/composer-attachments";
 import { useOrganizationBranding } from "@/lib/use-organization-branding";
@@ -13,14 +14,13 @@ import {
   type BotAvatarCrop,
 } from "../../shared/bot-avatar";
 import { BotAvatar } from "./Avatar";
-import { t } from "@/lib/i18n";
 import { useBotEditor } from "./bot-settings/BotEditorContext";
 
 export type AvatarPatch = Partial<
-  Pick<Bot, "avatarCrop" | "avatarUrl" | "avatarZoom" | "avatarFocusX" | "avatarFocusY" | "color" | "mascotExpression" | "mascotBody">
+  Pick<Bot, "avatarCrop" | "avatarUrl" | "avatarZoom" | "avatarFocusX" | "avatarFocusY" | "color" | "mascotExpression" | "mascotBody" | "botttsAvatar">
 >;
 
-export const RESET_DEFAULT_AVATAR_PATCH: AvatarPatch = { avatarCrop: "mascot" };
+export const RESET_DEFAULT_AVATAR_PATCH: AvatarPatch = { avatarCrop: "mascot", botttsAvatar: null };
 
 export const CROP_LABEL = {
   mascot: "Bottts",
@@ -81,7 +81,7 @@ export function AvatarFraming({
         <BotAvatar bot={bot} size={FRAME_SIZE} animated={false} label={t("botIdentity.framing.preview", { name: bot.name })} />
       </div>
       <div className="mb-1.5 mt-4 flex items-baseline justify-between">
-        <span className="text-[12px] font-medium uppercase tracking-[0.08em] text-ink-secondary">Zoom</span>
+        <span className="text-[12px] font-medium uppercase tracking-[0.08em] text-ink-secondary">{t("botttsAvatar.zoom")}</span>
         <span className="tabular-nums text-[12px] text-ink-secondary">{Math.round(zoom * 100)}%</span>
       </div>
       <input

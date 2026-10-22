@@ -1,5 +1,7 @@
 import { describe, expect, it, vi } from "vitest";
 
+import type { BotttsAvatarOptions } from "../shared/bottts-avatar.ts";
+
 import {
   avatarGenerationStateMatches,
   avatarGenerationPrompt,
@@ -42,6 +44,25 @@ describe("avatar image generation", () => {
 
     expect(avatarGenerationStateMatches(initial, mutable)).toBe(false);
     expect(initial).toEqual({ avatarUrl: "/api/attachments/old.webp", avatarCrop: "circle" });
+  });
+
+  it("deep-copies Bottts appearance so a concurrent edit invalidates generation", () => {
+    const mutable = { avatarCrop: "mascot" as const, botttsAvatar: { eyes: "happy", radius: 22 } as BotttsAvatarOptions };
+    const initial = snapshotAvatarGenerationState(mutable);
+    expect(initial.botttsAvatar).not.toBe(mutable.botttsAvatar);
+    expect(avatarGenerationStateMatches(initial, mutable)).toBe(true);
+    mutable.botttsAvatar.eyes = "hearts";
+    expect(avatarGenerationStateMatches(initial, mutable)).toBe(false);
+    expect(initial.botttsAvatar).toEqual({ eyes: "happy", radius: 22 });
+  });
+
+  it("detects a concurrent Bottts selection or reset without treating key order as a change", () => {
+    const plain = { avatarCrop: "mascot" as const };
+    const initial = snapshotAvatarGenerationState({ ...plain, botttsAvatar: { eyes: "happy", radius: 22 } });
+    expect(avatarGenerationStateMatches(initial, { ...plain, botttsAvatar: { radius: 22, eyes: "happy" } })).toBe(true);
+    expect(avatarGenerationStateMatches(initial, { ...plain, botttsAvatar: null })).toBe(false);
+    expect(avatarGenerationStateMatches(snapshotAvatarGenerationState(plain), { ...plain, botttsAvatar: { mouth: "smile01" } })).toBe(false);
+    expect(avatarGenerationStateMatches(snapshotAvatarGenerationState(plain), plain)).toBe(true);
   });
 
   it("uses one low-quality square GPT Image 2 request and decodes WebP bytes", async () => {

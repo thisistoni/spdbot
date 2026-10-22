@@ -11,6 +11,7 @@ import { MAUS_COLORS, type MausColor, type MausMotion, type MausState } from "@/
 import { CursorAvatar, type CursorAvatarHandle } from "./CursorAvatar";
 import { avatarCropRadius, botAvatarProfile, clampAvatarFocus, clampAvatarZoom, type BotAvatarCrop } from "../../shared/bot-avatar";
 import { MASCOT_BODIES, botMascotBody, type MascotBodyId } from "../../shared/mascot-bodies";
+import { botttsAvatarOptions, type BotttsAvatarOptions } from "../../shared/bottts-avatar";
 import { botttsAvatarUri } from "@/lib/bottts-avatar";
 
 export const EYE_SCALE = 1.12;
@@ -175,6 +176,7 @@ export type BotAvatarProps = Omit<MausAvatarProps, "color" | "gradient"> & {
     id?: string;
     name?: string;
     color: MausColor;
+    botttsAvatar?: BotttsAvatarOptions | null;
     avatarUrl?: string | null;
     avatarCrop?: BotAvatarCrop;
     avatarZoom?: number;
@@ -211,21 +213,23 @@ export function BotAvatar({ bot, size = 44, label, state = "idle", busy = false 
 
   if (outcome !== "flatImage") {
     const seed = bot.id || bot.name || "bot";
+    const appearance = botttsAvatarOptions(bot.botttsAvatar);
+    const borderRadius = `${appearance.radius ?? 22}%`;
     return (
       <span
-        className="relative block shrink-0 overflow-hidden rounded-[22%] bg-raised"
+        className="relative block shrink-0 overflow-hidden bg-raised"
         data-avatar-state={state}
-        style={{ width: size, height: size }}
+        style={{ width: size, height: size, borderRadius }}
       >
         <img
-          src={botttsAvatarUri(seed)}
+          src={botttsAvatarUri(seed, appearance)}
           alt={label ?? (bot.name ? `${bot.name} avatar` : "Bot avatar")}
           width={size}
           height={size}
           draggable={false}
           className={`block size-full ${state === "sleeping" ? "opacity-55" : ""}`}
         />
-        {busy && <span className="pointer-events-none absolute inset-0 rounded-[22%] ring-2 ring-inset ring-accent" aria-hidden="true" />}
+        {busy && <span className="pointer-events-none absolute inset-0 ring-2 ring-inset ring-accent" style={{ borderRadius }} aria-hidden="true" />}
       </span>
     );
   }

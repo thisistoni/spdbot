@@ -8,8 +8,9 @@ import {
   useRef,
   type ReactNode,
 } from "react";
+import { botCopyProfile } from "./bot-profile-copy";
 import { flushSync } from "react-dom";
-import type { BotVisibility, CardAnswerer, CloudBackend, ConnectorToolGrant, EffortLevel, InstalledPackageMetadata, LiveCallState, ServerFrame, GroupThreadUsage, SteerQueueReason, WireGroup, OptionCardData as WireOptionCard } from "../../shared/wire";
+import type { BotVisibility, CardAnswerer, CloudBackend, ConnectorToolGrant, EffortLevel, InstalledPackageMetadata, LiveCallState, ServerFrame, WireBot, GroupThreadUsage, SteerQueueReason, WireGroup, OptionCardData as WireOptionCard } from "../../shared/wire";
 import { movesThreadToTop } from "../../shared/wire";
 import { DATA_ROUTES, type DataSheet, type DataTable } from "../../shared/data-surface";
 import type { NotificationLogEntry } from "../../shared/notification";
@@ -293,7 +294,7 @@ export interface TaskUsage {
   context?: { tokens: number; window?: number };
 }
 
-export interface Bot {
+export interface Bot extends Pick<WireBot, "botttsAvatar"> {
   toolScope?: ToolScope;
   waitingForTeammates?: boolean;
   id: string;
@@ -2851,22 +2852,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
         case "duplicateBot": {
           const source = stateRef.current.bots.find((b) => b.id === action.botId);
           if (!source) break;
-          const duplicateProfile = {
-            name: `${source.name} copy`,
-            title: source.title,
-            description: source.description,
-            soul: source.soul,
-            notifications: source.notifications,
-            modelSelection: source.modelSelection,
-            computer: source.computer,
-            cloudBackend: source.cloudBackend,
-            autoStartVps: source.autoStartVps,
-            avatarUrl: source.avatarUrl,
-            avatarCrop: source.avatarCrop,
-            avatarZoom: source.avatarZoom,
-            avatarFocusX: source.avatarFocusX,
-            avatarFocusY: source.avatarFocusY,
-          };
+          const duplicateProfile = botCopyProfile(source);
           // A copy of a restricted bot is restricted from its first moment.
           api("/api/bots", {
             method: "POST",

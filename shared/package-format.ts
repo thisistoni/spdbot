@@ -7,6 +7,7 @@
 import { parse as parseYaml } from "yaml";
 import { z } from "zod";
 
+import { botttsAvatarSchema } from "./bottts-avatar.ts";
 import { BOT_PROFILE_LIMITS, fitsOnOneLine } from "./bot-profile.ts";
 import { redactSecretsInText } from "./redact.ts";
 import { normalizeCronSchedule } from "./routine-schedule.ts";
@@ -225,6 +226,7 @@ const packageDocumentV1Schema = z.object({
         color: z.enum(COLORS, { error: "is not supported" }),
         mascotExpression: optionalText(80),
         mascotBody: optionalText(40),
+        botttsAvatar: botttsAvatarSchema.nullable().optional(),
       }),
       playbooks: z.array(key).max(40).optional(),
       skills: z.array(skillName).max(PACKAGE_V1_MAX_SKILLS).optional(),
@@ -313,6 +315,7 @@ const appearanceSchema = z.object({
   color: z.enum(COLORS, { error: "is not supported" }),
   mascotExpression: optionalText(80),
   mascotBody: optionalText(40),
+  botttsAvatar: botttsAvatarSchema.nullable().optional(),
   avatar: avatarSchema.optional(),
 });
 

@@ -8,6 +8,7 @@ import {
   type MausState,
 } from "@/lib/mascot";
 import { BOT_AVATAR_CROPS } from "../../shared/bot-avatar";
+import { BotttsAvatarEditor } from "./BotttsAvatarEditor";
 import { BotAvatar } from "./Avatar";
 import { AvatarImageGenerator } from "./AvatarImageGenerator";
 import { AvatarFraming, OrganizationAvatarIcons, RESET_DEFAULT_AVATAR_PATCH, useAvatarImage, type AvatarPatch } from "./avatar-editing";
@@ -89,14 +90,14 @@ export function BotProfileAvatarCard({
         <div className="mt-1.5 text-[11.5px] text-ink-secondary">{t("botIdentity.imageTypes")}</div>
 
         <div className="mb-2 mt-4 text-[12px] font-medium uppercase tracking-[0.08em] text-ink-secondary">
-          {t("botIdentity.shape")}
+          {t("botttsAvatar.display")}
         </div>
         <div className="grid grid-cols-4 overflow-hidden rounded-lg border border-hairline/40">
           {BOT_AVATAR_CROPS.map((candidate, index) => (
             <button
               key={candidate}
               type="button"
-              disabled={busy}
+              disabled={busy || (candidate !== "mascot" && !bot.avatarUrl)}
               aria-pressed={crop === candidate}
               onClick={() => onPatch({ avatarCrop: candidate })}
               className={cn(
@@ -109,6 +110,8 @@ export function BotProfileAvatarCard({
             </button>
           ))}
         </div>
+
+        {crop === "mascot" && <div className="mt-4"><BotttsAvatarEditor bot={bot} disabled={busy} onPatch={onPatch} /></div>}
 
         <AvatarImageGenerator
           botLabel={bot.title || bot.name}

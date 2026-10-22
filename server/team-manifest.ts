@@ -1,5 +1,7 @@
 import { z } from "zod";
 
+import { botttsAvatarSchema, type BotttsAvatarOptions } from "../shared/bottts-avatar.ts";
+
 import { schemaIssue, type JsonValue } from "./schema.ts";
 import type { MausColor } from "./store.ts";
 import { botMascotBody, type MascotBodyId } from "../shared/mascot-bodies.ts";
@@ -54,6 +56,7 @@ const memberSchema = z.object({
     color: z.enum(COLORS, { error: "is not supported" }),
     mascotExpression: optionalText(80),
     mascotBody: optionalText(40),
+    botttsAvatar: botttsAvatarSchema.nullable().optional(),
   }),
 });
 
@@ -98,6 +101,7 @@ export interface TeamManifestMember {
     color: MausColor;
     mascotExpression?: string;
     mascotBody?: string;
+    botttsAvatar?: BotttsAvatarOptions | null;
   };
 }
 
@@ -145,6 +149,7 @@ interface ExportableBot {
   color: MausColor;
   mascotExpression?: string | null;
   mascotBody?: string | null;
+  botttsAvatar?: BotttsAvatarOptions | null;
 }
 
 interface ExportableTeam {
@@ -171,6 +176,7 @@ export function parseTeamManifest(value: TeamManifestInput): ParsedTeamManifest 
     const appearance: TeamManifestMember["appearance"] = { color: member.appearance.color };
     if (member.appearance.mascotExpression) appearance.mascotExpression = member.appearance.mascotExpression;
     if (member.appearance.mascotBody) appearance.mascotBody = member.appearance.mascotBody;
+    if (member.appearance.botttsAvatar !== undefined) appearance.botttsAvatar = member.appearance.botttsAvatar;
     return {
       key: member.key,
       name: member.name,
@@ -215,6 +221,7 @@ export interface ImportedMemberProfile {
   color: MausColor;
   mascotExpression?: string;
   mascotBody?: MascotBodyId;
+  botttsAvatar?: BotttsAvatarOptions | null;
 }
 
 /** Everything an untrusted manifest may seed into a new bot, and nothing else:
@@ -237,6 +244,7 @@ export function importedMemberProfile(
   if (member.appearance.mascotExpression) profile.mascotExpression = member.appearance.mascotExpression;
   // Free text in the manifest: safe-parsed so an untrusted value never reaches a BotRecord unvalidated.
   if (member.appearance.mascotBody) profile.mascotBody = botMascotBody(member.appearance.mascotBody);
+  if (member.appearance.botttsAvatar !== undefined) profile.botttsAvatar = member.appearance.botttsAvatar;
   return profile;
 }
 
@@ -267,6 +275,7 @@ export function createTeamManifest(team: ExportableTeam, bots: ExportableBot[]):
     const appearance: TeamManifestMember["appearance"] = { color: bot.color };
     if (bot.mascotExpression) appearance.mascotExpression = bot.mascotExpression;
     if (bot.mascotBody) appearance.mascotBody = bot.mascotBody;
+    if (bot.botttsAvatar !== undefined) appearance.botttsAvatar = bot.botttsAvatar;
     return {
       key,
       name: bot.name,

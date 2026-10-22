@@ -36,7 +36,7 @@ describe("presets in New bot", () => {
 
   it("fills only the name, words and look: never a model, computer, approval or connected apps", () => {
     const patch = presetDraftPatch(preset());
-    expect(patch).toEqual({ name: "Sky", title: "Support", description: "", soul: "Be kind.\n", color: "blue", mascotExpression: "happy" });
+    expect(patch).toEqual({ name: "Sky", title: "Support", description: "", soul: "Be kind.\n", color: "blue", mascotExpression: "happy", botttsAvatar: null });
     expect(presetDraftPatch(preset({ bot: {} })).name).toBe("Support agent");
     const draft = new BotCreationDraft({ ...EMPTY_BOT_DEFAULTS, profile: { approvalMode: "auto", computer: "local", composio: true, modelSelection: { instanceId: "claude", model: "opus" } } }, vi.fn());
     draft.patch(patch);

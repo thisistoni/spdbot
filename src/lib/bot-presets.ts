@@ -19,6 +19,7 @@ export interface BotPreset {
       color: NonNullable<BotDefaultsProfile["color"]>;
       mascotExpression?: string;
       mascotBody?: string;
+      botttsAvatar?: BotDefaultsProfile["botttsAvatar"];
       avatar?: { mime: "image/png" | "image/jpeg" | "image/webp"; data: string; crop: "circle" | "rounded" | "square" };
     };
   };
@@ -64,6 +65,7 @@ export function presetDraftPatch(preset: BotPreset): Partial<BotDefaultsProfile>
   if (look) {
     patch.color = look.color;
     patch.mascotExpression = look.mascotExpression ?? null;
+    patch.botttsAvatar = look.botttsAvatar ?? null;
     if (look.mascotBody) patch.mascotBody = look.mascotBody as BotDefaultsProfile["mascotBody"];
   }
   return patch;
