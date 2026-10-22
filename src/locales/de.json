@@ -6145,5 +6145,18 @@
   "lending.status.connectFirst": "Wähle „My Cloud öffnen“, damit die Verbindung zu diesem Computer hergestellt werden kann.",
   "computer.problem.installRuntime": "Installiere zuerst eine unterstützte Container-Laufzeit.",
   "computer.problem.startRuntime": "Starte zuerst {runtime}.",
-  "computer.problem.prepareImage": "Bereite das Cua-Desktop-Image mit Treiber {version} vor."
+  "computer.problem.prepareImage": "Bereite das Cua-Desktop-Image mit Treiber {version} vor.",
+  "pairPage.invalidCode": "Der Kopplungscode ist falsch oder abgelaufen. Erstelle auf dem Server einen neuen Code.",
+  "pairPage.emailUnavailable": "Die E-Mail-Anmeldung ist auf diesem Server nicht eingerichtet. Verwende einen Kopplungscode.",
+  "pairPage.emailNotAllowed": "Diese E-Mail-Adresse steht nicht auf der Anmeldeliste dieses Servers. Bitte den Eigentümer des Servers, sie hinzuzufügen.",
+  "pairPage.invalidEmail": "Gib eine gültige E-Mail-Adresse ein.",
+  "pairPage.emailCodeRequired": "Gib den achtstelligen Code aus der E-Mail ein.",
+  "pairPage.invalidEmailCode": "Der Code ist falsch oder abgelaufen. Fordere einen neuen Code an.",
+  "pairPage.waitForNewCode": "Zu viele Versuche. Warte eine Minute und fordere einen neuen Code an.",
+  "pairPage.sessionEnded": "Deine Sitzung ist beendet. Melde dich erneut an, bevor du einen Kopplungscode erstellst.",
+  "pairPage.pairingLockout": "Zu viele fehlgeschlagene Kopplungsversuche von deiner Adresse. Versuche es in {seconds} Sekunden erneut.",
+  "pairPage.signInLockout": "Zu viele fehlgeschlagene Anmeldeversuche von deiner Adresse. Versuche es in {seconds} Sekunden erneut.",
+  "pairPage.signInUnavailable": "Der Anmeldedienst ist nicht erreichbar ({detail}). Versuche es gleich noch einmal.",
+  "pairPage.noPublicAddress": "Dieser Server hat keine öffentliche Adresse für einen Link. Setze {variable} oder öffne /pair unter der Adresse, die du verwendest, und gib den Code ein.",
+  "settings.language.deviceHint": "Wähle eine Sprache für dieses Gerät. Ohne eigene Auswahl verwendet SPDBot die Serversprache oder Deutsch, wenn keine festgelegt ist. Nicht übersetzter Text erscheint auf Englisch."
 }

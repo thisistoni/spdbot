@@ -6148,7 +6148,20 @@
       "lending.status.connectFirst": "b86eea013b5fcdb6f7fb367776b512adddffbb83dd3ab20c2572f70815a67ea1",
       "computer.problem.installRuntime": "59e0aca083d462c7160bbffd01291d8de51b7be8c41bfbda2a498f1d4e0fb943",
       "computer.problem.startRuntime": "c95f7941b66c17735fe6dac538e9e6ebea816c7e6d9e0cdf350044bf9d16c46f",
-      "computer.problem.prepareImage": "45e584300aa3b3aaf356797ca8c96d2ddd9803785693a38572a93be013d7e6fc"
+      "computer.problem.prepareImage": "45e584300aa3b3aaf356797ca8c96d2ddd9803785693a38572a93be013d7e6fc",
+      "pairPage.invalidCode": "36f52b25763e05369990a04aef8408751da3befb16faa4b5c2897f7c67ef752e",
+      "pairPage.emailUnavailable": "18a3080733938572f1223a7dffa8d7a3a65ac8fa5fc850cd42c8f29980d00dab",
+      "pairPage.emailNotAllowed": "ebf068fd48996e2a74e1f999e4cde7fee110a9282af63b2cabb2cdd537418a68",
+      "pairPage.invalidEmail": "5d2d911e17d53dafbd71f337b778c33ace8b24800958e898a4ad41a6f5b682c6",
+      "pairPage.emailCodeRequired": "71db638c20a424c0a059190a46756681c5714f8176dcebd3dbdcfae20780d8fe",
+      "pairPage.invalidEmailCode": "e5f9085e2548234d8d34a594bd55e59fb1e95fc799dea87531b644f8370f518e",
+      "pairPage.waitForNewCode": "4c18020ae083fa9699e0a5f202475d1a1f36f6292d2682347680befc960d815c",
+      "pairPage.sessionEnded": "2ffd2371f463d2916162c5bd12d1fb7ff22a83310d4099a3e8336074dc5d19ba",
+      "pairPage.pairingLockout": "a1af0a9b43992ca06bab2d7f9867621d109e58f8e2b38c644a31209069a07e11",
+      "pairPage.signInLockout": "f3637e87cf43b6d6efff0505d121ca0ecfc059537981d573ec103c9855272c5d",
+      "pairPage.signInUnavailable": "1b5edac6c214f2c363146379eb9b23fd2139a70ab1ac069a1d1af52ffc267a1e",
+      "pairPage.noPublicAddress": "c12efe00b4171c932990fd3983a842d7ebd82317c517fd66d7bf07b3698d57da",
+      "settings.language.deviceHint": "26df26dc8254bf039736d9d948007ab00f7077d0b721de20b4ba0a46946a5d2c"
     },
     "es": {
       "whop.description": "1a07cf04ef17029448d3781415cbac16d54e66b821907a40d94e0e6349710e70",

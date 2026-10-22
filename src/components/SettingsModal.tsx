@@ -354,7 +354,7 @@ function LanguageRow() {
   return (
     <SettingRow
       title={t("settings.language.title")}
-      subtitle={t("settings.language.subtitle")}
+      subtitle={t("settings.language.deviceHint")}
     >
       <Select size="sm" className="w-full max-w-[240px]"
         value={current}

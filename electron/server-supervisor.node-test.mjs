@@ -293,7 +293,10 @@ test("forgetting a remote environment keeps its sign-out confirmation and answer
   const { calls, context } = runForget({ environments: [remote], activeId: "r1" });
   assert.deepEqual(plain(await context.forgetEnvironment("r1")), { ok: true });
   assert.equal(calls.dialogs.length, 1, "the remote dialog stays");
-  assert.match(calls.dialogs[0].detail, /signs out of that server/);
+  assert.match(calls.dialogs[0].detail, /meldet sich von dem Server ab/);
+  assert.deepEqual(Array.from(calls.dialogs[0].buttons), ["Entfernen", "Abbrechen"]);
+  assert.equal(calls.dialogs[0].defaultId, 1);
+  assert.equal(calls.dialogs[0].cancelId, 1);
   assert.deepEqual(plain(calls.persisted[0].environments), []);
 });
 
@@ -406,5 +409,5 @@ test("boot reads the environment decision before the boot lease and never create
   const lease = boot.indexOf("acquireDataDirLease(");
   assert.ok(decision > 0 && decision < lease, "the missing-dir decision must precede the boot lease");
   assert.match(boot, /activeId: LOCAL_ID/);
-  assert.match(boot, /showErrorBox\(\s*"[^"]*missing[^"]*"/i);
+  assert.match(boot, /showErrorBox\(\s*"Der Ordner des Arbeitsbereichs fehlt"/);
 });

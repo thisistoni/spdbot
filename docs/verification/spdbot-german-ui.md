@@ -28,8 +28,11 @@ native application/data identity are covered by their separate patches.
 `check-spd-german.mjs` records screenshots and visible text from the actual
 renderer with a disposable fake-engine workspace. Its Windows desktop bridge is
 synthetic, Chromium runs on Linux, and the startup HTML screenshot is not a
-native Electron/package run. The local executor cannot launch this fixture's
-Unix socket; use the CI artifact, not an unverified local screenshot claim.
+native Electron/package run. Run `node scripts/testing/run-spd-german-ci.mjs`
+with `OMB_VERIFY_PLAYWRIGHT` and `OMB_VERIFY_BROWSER_CHROME` pointing to the installed test client and browser.
+`OMB_SPD_EVIDENCE` selects the screenshot and text-inventory directory. The
+`spd-german` job is included in the CI gate; a failed or unexpectedly skipped
+German browser check cannot satisfy that gate.
 
 Component tests cover German dialogs, browser/approval states, pairing,
 markdown language changes, scheduling summaries and preservation of original

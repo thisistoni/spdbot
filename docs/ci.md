@@ -19,8 +19,8 @@ PR selection uses a local merge-base diff with rename detection disabled, so
 moving a source file into documentation still selects its original runtime
 path. There is no changed-files API truncation or new action dependency.
 
-The single `CI` gate keeps the existing required dependencies. It accepts a
-skipped runtime job only when static validation passed and explicitly selected
+The single `CI` gate includes the platform tests and the SPDBot Settings and
+German interface browser checks. It accepts a skipped runtime job only when static validation passed and explicitly selected
 the docs-only path. Failures, cancellations, missing selection and unexpected
 skips fail the gate. Existing advisory jobs remain advisory.
 

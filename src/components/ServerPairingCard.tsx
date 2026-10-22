@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { QRCodeSVG } from "qrcode.react";
 
 import { t } from "@/lib/i18n";
+import { sessionMessage } from "@/pair/session-copy";
 import { copyText, type CopyFeedback } from "@/lib/copy-text";
 import { api } from "@/state/store";
 import { isOwnerOrAdmin, readSessionState, type SessionState } from "../lib/session";
@@ -77,7 +78,7 @@ export function ServerPairingCard({ initialSession = null, initialPairingCodes =
       setDevices(Array.isArray(body?.sessions) ? body.sessions : []);
       setCurrent(typeof body?.current === "string" ? body.current : null);
     } catch (e) {
-      setError(t("remote.serverPairing.error", { error: e instanceof Error ? e.message : String(e) }));
+      setError(t("remote.serverPairing.error", { error: sessionMessage(e instanceof Error ? e.message : String(e)) }));
     }
   }
 
@@ -124,7 +125,7 @@ export function ServerPairingCard({ initialSession = null, initialPairingCodes =
       setOffer(body);
       setNow(Date.now());
     } catch (e) {
-      setError(t("remote.serverPairing.error", { error: e instanceof Error ? e.message : String(e) }));
+      setError(t("remote.serverPairing.error", { error: sessionMessage(e instanceof Error ? e.message : String(e)) }));
     } finally {
       setBusy(false);
     }
@@ -136,7 +137,7 @@ export function ServerPairingCard({ initialSession = null, initialPairingCodes =
       await api(`/api/auth/sessions/${encodeURIComponent(id)}`, { method: "DELETE" });
       await loadDevices();
     } catch (e) {
-      setError(t("remote.serverPairing.error", { error: e instanceof Error ? e.message : String(e) }));
+      setError(t("remote.serverPairing.error", { error: sessionMessage(e instanceof Error ? e.message : String(e)) }));
     }
   }
 
@@ -187,7 +188,7 @@ export function ServerPairingCard({ initialSession = null, initialPairingCodes =
                     </button>
                   </div>
                 ) : (
-                  <p className="mt-3 text-[12.5px] text-ink-secondary">{offer.hint ?? t("remote.serverPairing.noLink")}</p>
+                  <p className="mt-3 text-[12.5px] text-ink-secondary">{offer.hint == null ? t("remote.serverPairing.noLink") : sessionMessage(offer.hint)}</p>
                 )}
               </div>
             </div>

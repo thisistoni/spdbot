@@ -15,3 +15,16 @@ it("keeps browser and OS names, and honors an explicit English selection", () =>
   setLocale("de"); expect(defaultDeviceLabel("Chrome/123 Windows")).toBe("Chrome auf Windows");
   setLocale("en"); expect(defaultDeviceLabel("Chrome/123 Windows")).toBe("Chrome on Windows");
 });
+
+it("translates actual pairing and email refusals, preserves retry times and external diagnostics", () => {
+  setLocale("de");
+  expect(sessionMessage("pairing code is wrong or has expired; create a new one on the server")).toBe("Der Kopplungscode ist falsch oder abgelaufen. Erstelle auf dem Server einen neuen Code.");
+  expect(sessionMessage("too many failed pairing attempts from your address; try again in 73s")).toContain("73 Sekunden");
+  expect(sessionMessage("too many failed sign-in attempts from your address; try again in 21s")).toContain("Anmeldeversuche von deiner Adresse. Versuche es in 21 Sekunden");
+  expect(sessionMessage("the sign-in service could not be reached (provider_code (502)); try again in a moment")).toBe("Der Anmeldedienst ist nicht erreichbar (provider_code (502)). Versuche es gleich noch einmal.");
+  expect(sessionMessage("Your session ended. Sign in again before creating a pairing code.")).toBe("Deine Sitzung ist beendet. Melde dich erneut an, bevor du einen Kopplungscode erstellst.");
+  for (const detail of ["Provider says: that code is wrong", "constructor", "toString"]) expect(sessionMessage(detail)).toBe(detail);
+  expect(sessionMessage("this server has no public address to put in a link: set OMB_PUBLIC_URL, or open /pair on the address you use and type the code")).toBe("Dieser Server hat keine öffentliche Adresse für einen Link. Setze OMB_PUBLIC_URL oder öffne /pair unter der Adresse, die du verwendest, und gib den Code ein.");
+  setLocale("en");
+  expect(sessionMessage("pairing code is wrong or has expired; create a new one on the server")).toBe("pairing code is wrong or has expired; create a new one on the server");
+});

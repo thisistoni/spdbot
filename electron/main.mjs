@@ -364,9 +364,9 @@ const serverSupervisor = createServerSupervisor({
   onExhausted() {
     slog("server recovery paused after repeated failures; quit and reopen to retry");
     dialog.showErrorBox(
-      "The bot server stopped",
-      "Automatic recovery could not restart the background server. Quit and reopen SPDBot to try again. Interrupted chat turns were not resent.\n\n" +
-        `Server log: ${path.join(LOG_DIR, "server.log")}`,
+      "Der Bot-Server wurde beendet",
+      "Der Hintergrundserver konnte nicht automatisch neu gestartet werden. Beende SPDBot und öffne die App erneut. Unterbrochene Chatnachrichten wurden nicht erneut gesendet.\n\n" +
+        `Serverprotokoll: ${path.join(LOG_DIR, "server.log")}`,
     );
   },
   log: slog,
@@ -1694,7 +1694,7 @@ async function switchLocalEnvironmentTo(targetDir, targetId) {
   const failedSwitch = () => {
     dialog.showErrorBox(
       "Arbeitsbereich konnte nicht gewechselt werden",
-      "SPDBot could not switch to that environment. The app log has the details.",
+      "SPDBot konnte nicht zu diesem Arbeitsbereich wechseln. Einzelheiten findest du im App-Protokoll.",
     );
     return { ok: false, error: "switch-failed" };
   };
@@ -3138,7 +3138,7 @@ app.whenReady().then(async () => {
       persistEnvironments({ ...environmentsState, activeId: LOCAL_ID });
       dialog.showErrorBox(
         "Der Ordner des Arbeitsbereichs fehlt",
-        `${boot.missingDir} is not there anymore, so SPDBot came up on this computer's default data folder instead. Restore or remount that folder, then choose the environment again from the Server menu.`,
+        `${boot.missingDir} ist nicht mehr verfügbar. SPDBot verwendet deshalb den Standard-Datenordner dieses Computers. Stelle den Ordner wieder her oder binde ihn erneut ein. Wähle den Arbeitsbereich danach wieder im Servermenü aus.`,
       );
     }
     bootDataDir = boot.dataDir;
@@ -3152,7 +3152,7 @@ app.whenReady().then(async () => {
       runningDataDir = bootDataDir;
     } catch (error) {
       dialog.showErrorBox(
-        "SPDBot could not start safely",
+        "SPDBot konnte nicht sicher gestartet werden",
         error?.message ?? "Ein anderer Prozess verwendet diesen SPDBot-Datenordner.",
       );
       app.quit();
@@ -3280,7 +3280,7 @@ app.whenReady().then(async () => {
         runningDataDir = desktopDataDir();
       } catch (error) {
         dialog.showErrorBox(
-          "SPDBot could not start safely",
+          "SPDBot konnte nicht sicher gestartet werden",
           error?.message ?? "Ein anderer Prozess verwendet diesen SPDBot-Datenordner.",
         );
         app.quit();
@@ -3290,12 +3290,12 @@ app.whenReady().then(async () => {
       if (retried) {
         dialog.showErrorBox(
           "Der Arbeitsbereich war nicht funktionsfähig",
-          `SPDBot could not start on ${bootDataDir} and came up on this computer's default data folder instead. Choose that environment again from the Server menu once it is available.`,
+          `SPDBot konnte mit ${bootDataDir} nicht starten und verwendet deshalb den Standard-Datenordner dieses Computers. Wähle den Arbeitsbereich wieder im Servermenü aus, sobald er verfügbar ist.`,
         );
       } else {
         dialog.showErrorBox(
-          "SPDBot could not start",
-          `SPDBot could not start on ${bootDataDir} or on this computer's default data folder. Check that both folders are readable, then start the app again.`,
+          "SPDBot konnte nicht gestartet werden",
+          `SPDBot konnte weder mit ${bootDataDir} noch mit dem Standard-Datenordner dieses Computers starten. Prüfe, ob beide Ordner lesbar sind, und starte die App erneut.`,
         );
         app.quit();
       }

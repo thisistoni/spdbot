@@ -305,7 +305,7 @@ jobs:
   gate:
     # One aggregation, not three queued runners doing the same check.
     name: CI
-    needs: [static, vitest, behavior-evals, packaged-server, windows-cua, electron-smokes, spd-settings]
+    needs: [static, vitest, behavior-evals, packaged-server, windows-cua, electron-smokes, spd-settings, spd-german]
     # Still report failed/skipped dependencies, but don't keep a superseded
     # workflow alive just to schedule its summary jobs.
     if: ${{ !cancelled() }}
