@@ -67,13 +67,13 @@ function rememberEngineSession(child: ChildProcess): void {
 
 /** `bot`: an engine running bots' turns, whose own servers that bot's browser may open on a server host.
  * `openmausbot`: everything else (logins, probes, the browser engine itself). */
-export type CliOwner = "bot" | "spdbot";
+export type CliOwner = "bot" | "openmausbot";
 
 export function spawnCli(
   cli: string,
   args: string[],
   opts: SpawnOptions,
-  owner: CliOwner = "spdbot",
+  owner: CliOwner = "openmausbot",
 ): ChildProcessByStdio<Writable, Readable, Readable> {
   const resolved = resolveCli(cli, args);
   assertSafeCliArgv(resolved);
