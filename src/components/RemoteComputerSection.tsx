@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { t } from "@/lib/i18n";
+import { desktopErrorMessage } from "@/lib/desktop-errors";
 import { Laptop, Loader2, Unplug } from "lucide-react";
 import { Select } from "./Select";
 import { Card } from "./SettingsPrimitives";
@@ -7,12 +8,6 @@ import { Card } from "./SettingsPrimitives";
 const inputClass =
   "w-full rounded-lg border border-hairline/40 bg-inset px-3 py-2 text-[14px] text-ink placeholder:text-ink-secondary focus:outline-none";
 
-function errorText(error: unknown): string {
-  return String((error as { message?: string })?.message ?? error).replace(
-    /^Error invoking remote method '[^']*':\s*(?:Error:\s*)?/,
-    "",
-  );
-}
 
 export function isServerPairingLink(input: string): boolean {
   const link = input.trim();
@@ -73,7 +68,7 @@ export function RemoteComputerSection() {
         refreshState();
       }
     } catch (nextError) {
-      setError(errorText(nextError));
+      setError(desktopErrorMessage(nextError));
     } finally {
       pending.current = false;
       setBusy(false);
@@ -89,7 +84,7 @@ export function RemoteComputerSection() {
       await bridge.disconnect();
       refreshState();
     } catch (nextError) {
-      setError(errorText(nextError));
+      setError(desktopErrorMessage(nextError));
     } finally {
       pending.current = false;
       setBusy(false);

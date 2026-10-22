@@ -132,6 +132,18 @@ export async function checkSettings({ context, url, screenshot, check }) {
     assert.equal(await form.getByRole("button", { name: "Mit Server verbinden", exact: true }).isEnabled(), true);
     check("Pairing uses real source-install commands; malformed links never submit and cancelled fixture connections remain retryable");
 
+    await page.evaluate(() => {
+      window.ogb.environments.addFromLink = async () => {
+        throw new Error("Error invoking remote method 'environments:add-from-link': Error: Enter an HTTPS server address or a full pairing link. Keep the pairing code after #, not in the URL query.");
+      };
+    });
+    await form.getByRole("button", { name: "Mit Server verbinden", exact: true }).click();
+    await form.getByText("Füge einen vollständigen HTTPS-Kopplungslink ein, zum Beispiel https://bots.example.com/pair#code=XXXX-XXXX-XXXX. Der Code gehört hinter #, nicht in die URL-Abfrage.", { exact: true }).waitFor();
+    assert.equal(await form.getByRole("button", { name: "Mit Server verbinden", exact: true }).isEnabled(), true);
+    await form.getByRole("alert").scrollIntoViewIfNeeded();
+    await screenshot("settings-server-error-de.png", page);
+    check("Own native server refusal is German and retry stays enabled; external cancellation diagnostics above remain verbatim");
+
     await dialog.locator('[data-settings-section="general"]').click();
     await page.evaluate(() => { window.ogb.remoteClient.active = true; });
     await dialog.locator('[data-settings-section="companion"]').click();

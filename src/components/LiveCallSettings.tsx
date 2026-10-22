@@ -2,6 +2,7 @@ import { useCallback, useId, useState } from "react";
 
 import { LIVE_VOICE_OPTIONS } from "../../shared/live-call";
 import { t } from "@/lib/i18n";
+import { desktopErrorMessage } from "@/lib/desktop-errors";
 import { liveDisclosure } from "@/lib/call-mode";
 import { api, useStore, type ConfigStatus } from "@/state/store";
 import type { LiveSettings } from "../../shared/wire";
@@ -31,7 +32,7 @@ export function LiveCallSettings({ onClose }: { onClose: () => void }) {
       const body = await api<{ live: LiveSettings }>("/api/live/settings", { method: "PATCH", body: JSON.stringify(patch) });
       if (state.config) dispatch({ type: "configStatus", config: { ...state.config, live: body.live } });
     } catch (saveError) {
-      setError(saveError instanceof Error ? saveError.message : String(saveError));
+      setError(desktopErrorMessage(saveError));
     } finally {
       setSaving(false);
     }
@@ -46,7 +47,7 @@ export function LiveCallSettings({ onClose }: { onClose: () => void }) {
         : await api("/api/config", { method: "PUT", body: JSON.stringify({ live: { key: "" } }) });
       dispatch({ type: "configStatus", config: status });
     } catch (removeError) {
-      setError(removeError instanceof Error ? removeError.message : String(removeError));
+      setError(desktopErrorMessage(removeError));
     } finally {
       setSaving(false);
     }

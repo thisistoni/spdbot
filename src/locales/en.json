@@ -6847,5 +6847,19 @@
   "pairPage.signInLockout": "Too many failed sign-in attempts from your address. Try again in {seconds}s.",
   "pairPage.signInUnavailable": "The sign-in service could not be reached ({detail}). Try again in a moment.",
   "pairPage.noPublicAddress": "This server has no public address for a link. Set {variable}, or open /pair at the address you use and type the code.",
-  "settings.language.deviceHint": "Choose a language for this device. Without a choice, SPDBot uses the server's language, or German if none is set. Untranslated text appears in English."
+  "settings.language.deviceHint": "Choose a language for this device. Without a choice, SPDBot uses the server's language, or German if none is set. Untranslated text appears in English.",
+  "desktop.error.companionAddress": "Enter the companion HTTPS address or full Tailscale name ending in .ts.net.",
+  "desktop.error.companionCode": "Enter the six-digit code shown on the other computer.",
+  "desktop.error.deviceCredential": "The remote computer returned an invalid device credential.",
+  "desktop.error.pairingResponse": "The remote computer returned an invalid pairing response.",
+  "desktop.error.computerNoAnswer": "The remote computer did not answer.",
+  "desktop.error.viewerNoAnswer": "The remote viewer did not answer.",
+  "desktop.error.savedCredential": "The saved remote computer credential is invalid.",
+  "desktop.error.relayPorts": "Every desktop companion relay port is already in use.",
+  "desktop.error.storeUnread": "The operating-system credential store could not be read this launch.",
+  "desktop.error.storeUnavailable": "The operating-system credential store is unavailable.",
+  "desktop.error.storeSaveBlocked": "The credential store could not be read on this launch, so credentials cannot be saved.",
+  "desktop.error.remoteFile": "That file is on the computer this app is connected to.",
+  "desktop.error.clientUnavailable": "The desktop client window is unavailable.",
+  "desktop.error.http": "The remote computer answered HTTP {status}."
 }

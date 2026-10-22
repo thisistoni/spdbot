@@ -4,6 +4,7 @@ import { Check, ExternalLink, Loader2 } from "lucide-react";
 import { api, useStore, type ConfigStatus } from "@/state/store";
 import { cn } from "@/lib/cn";
 import { t } from "@/lib/i18n";
+import { desktopErrorMessage } from "@/lib/desktop-errors";
 import type { LocaleKey } from "@/locales";
 import { Card, SettingRow, Switch } from "./SettingsPrimitives";
 import { Select } from "./Select";
@@ -101,7 +102,7 @@ export function DecisionModelSettings() {
     try {
       applied(await api<ConfigStatus>("/api/config", { method: "PUT", body: JSON.stringify({ decider: decision }) }));
     } catch (cause) {
-      setError(cause instanceof Error ? cause.message : String(cause));
+      setError(desktopErrorMessage(cause));
     } finally {
       setSwitching(false);
     }
@@ -135,7 +136,7 @@ export function DecisionModelSettings() {
       applied(status);
       setValue("");
     } catch (cause) {
-      setError(cause instanceof Error ? cause.message : String(cause));
+      setError(desktopErrorMessage(cause));
     } finally {
       setSaving(false);
     }
@@ -162,7 +163,7 @@ export function DecisionModelSettings() {
         }
         : { ok: false, text: deciderFailureText(result, testingIncluded, provider) });
     } catch (cause) {
-      setVerdict({ ok: false, text: cause instanceof Error ? cause.message : String(cause) });
+      setVerdict({ ok: false, text: desktopErrorMessage(cause) });
     } finally {
       setTesting(false);
     }

@@ -8,6 +8,7 @@ import { cloudColor } from "@/lib/cloud-look";
 import { useStore } from "@/state/store";
 import { sharedComputersEnabled } from "@/lib/feature-flags";
 import { t } from "@/lib/i18n";
+import { desktopErrorMessage } from "@/lib/desktop-errors";
 
 type SavedWorkspaces = Awaited<ReturnType<NonNullable<NonNullable<Window["ogb"]>["environments"]>["state"]>>;
 
@@ -59,8 +60,7 @@ export function ConnectedWorkspacesSettings() {
       const state = await bridge.state();
       if (generation.current === current) setSaved(state);
     } catch (nextError) {
-      if (generation.current === current) fail(String((nextError as Error)?.message ?? nextError)
-        .replace(/^Error invoking remote method '[^']*':\s*(?:Error:\s*)?/, ""));
+      if (generation.current === current) fail(desktopErrorMessage(nextError));
     } finally {
       pending.current = false;
       if (generation.current === current) setBusy(false);

@@ -6161,7 +6161,21 @@
       "pairPage.signInLockout": "f3637e87cf43b6d6efff0505d121ca0ecfc059537981d573ec103c9855272c5d",
       "pairPage.signInUnavailable": "1b5edac6c214f2c363146379eb9b23fd2139a70ab1ac069a1d1af52ffc267a1e",
       "pairPage.noPublicAddress": "c12efe00b4171c932990fd3983a842d7ebd82317c517fd66d7bf07b3698d57da",
-      "settings.language.deviceHint": "26df26dc8254bf039736d9d948007ab00f7077d0b721de20b4ba0a46946a5d2c"
+      "settings.language.deviceHint": "26df26dc8254bf039736d9d948007ab00f7077d0b721de20b4ba0a46946a5d2c",
+      "desktop.error.companionAddress": "e7146b653b2891544b2dbd0ee6fcb18d1b23c4420a79f2c6f53610b46d427ec9",
+      "desktop.error.companionCode": "8d1519a418fd5d5ffb8f19262405c3e9ea79f8f6fe40c06955d734f20f2ef121",
+      "desktop.error.deviceCredential": "5826e60013e3efc4b82ab9bf6bde80b6c16f0ad6553af115a7ce23501087fd5a",
+      "desktop.error.pairingResponse": "873105051d8b92e8d776b82dcd0a90583b9ea4b30b3f8dea31f2c2d58bfe05fd",
+      "desktop.error.computerNoAnswer": "9327f1091ade69f735b4b3c31e4486305c099763d9b074bc517fc79b71362825",
+      "desktop.error.viewerNoAnswer": "275bfdb58dc587b7743be02c10a2f2fa084e2ca568136a1da9020dc2e29292d1",
+      "desktop.error.savedCredential": "cf669b6c2b1137199ed95e5cc458d249b886abe5b2d1af85bd3b8a38eef95e53",
+      "desktop.error.relayPorts": "17fbe405eb965bde17d06bd1a6903ee108255e1dd58d87ea4d73fcc0d3d2b33c",
+      "desktop.error.storeUnread": "e981fceb98a7ab5a9fcc44f3aa62451530d8c7b61d3f61da3bd59395ac4ed9cf",
+      "desktop.error.storeUnavailable": "8f2db9426fe9a086923eb27ac0fca71d3183c17f0d9572d084f687d22ea6cd39",
+      "desktop.error.storeSaveBlocked": "28384eced46c44427dafb6b482a57b7ad0497ed4a59723e367515539bd2e2b5c",
+      "desktop.error.remoteFile": "eae5de880ef740bd74af48db101c824ae7c521f18bb1d2677cf45667f0a8e1dc",
+      "desktop.error.clientUnavailable": "ee17ad4fba9d16cecbfb8e9e10ff1dc70c35b3c14d5a55a6be30ef3be85da200",
+      "desktop.error.http": "f2ee6d1ac421a9ceef86cf841cc3f8026b8f3d9400efb7cd5c93de332546bb54"
     },
     "es": {
       "whop.description": "1a07cf04ef17029448d3781415cbac16d54e66b821907a40d94e0e6349710e70",

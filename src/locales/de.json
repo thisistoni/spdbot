@@ -6158,5 +6158,19 @@
   "pairPage.signInLockout": "Zu viele fehlgeschlagene Anmeldeversuche von deiner Adresse. Versuche es in {seconds} Sekunden erneut.",
   "pairPage.signInUnavailable": "Der Anmeldedienst ist nicht erreichbar ({detail}). Versuche es gleich noch einmal.",
   "pairPage.noPublicAddress": "Dieser Server hat keine öffentliche Adresse für einen Link. Setze {variable} oder öffne /pair unter der Adresse, die du verwendest, und gib den Code ein.",
-  "settings.language.deviceHint": "Wähle eine Sprache für dieses Gerät. Ohne eigene Auswahl verwendet SPDBot die Serversprache oder Deutsch, wenn keine festgelegt ist. Nicht übersetzter Text erscheint auf Englisch."
+  "settings.language.deviceHint": "Wähle eine Sprache für dieses Gerät. Ohne eigene Auswahl verwendet SPDBot die Serversprache oder Deutsch, wenn keine festgelegt ist. Nicht übersetzter Text erscheint auf Englisch.",
+  "desktop.error.companionAddress": "Gib die HTTPS-Adresse des Desktop-Begleiters oder den vollständigen Tailscale-Namen mit der Endung .ts.net ein.",
+  "desktop.error.companionCode": "Gib den sechsstelligen Code ein, der auf dem anderen Computer angezeigt wird.",
+  "desktop.error.deviceCredential": "Der entfernte Computer hat einen ungültigen Gerätezugang zurückgegeben.",
+  "desktop.error.pairingResponse": "Der entfernte Computer hat eine ungültige Kopplungsantwort zurückgegeben.",
+  "desktop.error.computerNoAnswer": "Der entfernte Computer hat nicht geantwortet.",
+  "desktop.error.viewerNoAnswer": "Der entfernte Desktop-Viewer hat nicht geantwortet.",
+  "desktop.error.savedCredential": "Der gespeicherte Zugang zum entfernten Computer ist ungültig.",
+  "desktop.error.relayPorts": "Alle Relay-Ports des Desktop-Begleiters sind bereits belegt.",
+  "desktop.error.storeUnread": "Der Schlüsselspeicher des Betriebssystems konnte bei diesem Start nicht gelesen werden.",
+  "desktop.error.storeUnavailable": "Der Schlüsselspeicher des Betriebssystems ist nicht verfügbar.",
+  "desktop.error.storeSaveBlocked": "Der Schlüsselspeicher konnte bei diesem Start nicht gelesen werden. Zugangsdaten können deshalb nicht gespeichert werden.",
+  "desktop.error.remoteFile": "Diese Datei liegt auf dem Computer, mit dem diese App verbunden ist.",
+  "desktop.error.clientUnavailable": "Das Fenster des Desktop-Clients ist nicht verfügbar.",
+  "desktop.error.http": "Der entfernte Computer hat mit HTTP {status} geantwortet."
 }

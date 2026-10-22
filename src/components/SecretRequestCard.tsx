@@ -1,4 +1,5 @@
 import { t } from "@/lib/i18n";
+import { desktopErrorMessage } from "@/lib/desktop-errors";
 import { useState, type FormEvent } from "react";
 import { ExternalLink, KeyRound, Loader2, LockKeyhole, RefreshCw, X } from "lucide-react";
 
@@ -74,7 +75,7 @@ export function SecretRequestCard({
         body: JSON.stringify({ threadId }),
       });
     } catch (error) {
-      setLocalError(error instanceof Error ? error.message : String(error));
+      setLocalError(desktopErrorMessage(error));
     } finally {
       setSaving(false);
     }
@@ -108,7 +109,7 @@ export function SecretRequestCard({
       returnFocusToComposer();
     } catch (error) {
       if (!saved) keySaved(provider, "chat_request", keySaveFailure(error));
-      setLocalError(error instanceof Error ? error.message : String(error));
+      setLocalError(desktopErrorMessage(error));
     } finally {
       setSaving(false);
     }
