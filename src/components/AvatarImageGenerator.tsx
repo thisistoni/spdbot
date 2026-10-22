@@ -169,7 +169,7 @@ export function AvatarImageGenerator({
               value={customModel}
               disabled={busy}
               onChange={(event) => setModelDraft(event.target.value)}
-              placeholder="Model ID from your image provider"
+              placeholder={t("botIdentity.ai.modelPlaceholder")}
               autoComplete="off"
               className={`${INPUT_CLASS} mt-1`}
             />

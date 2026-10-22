@@ -6861,5 +6861,13 @@
   "desktop.error.storeSaveBlocked": "The credential store could not be read on this launch, so credentials cannot be saved.",
   "desktop.error.remoteFile": "That file is on the computer this app is connected to.",
   "desktop.error.clientUnavailable": "The desktop client window is unavailable.",
-  "desktop.error.http": "The remote computer answered HTTP {status}."
+  "desktop.error.http": "The remote computer answered HTTP {status}.",
+  "botIdentity.framing.preview": "{name} avatar preview",
+  "botIdentity.framing.zoom": "Zoom avatar",
+  "botIdentity.framing.help": "Drag the picture to reposition it. Scroll to zoom.",
+  "botIdentity.framing.reset": "Reset framing",
+  "botIdentity.organizationIcons": "{name} icons",
+  "botIdentity.useIcon": "Use {name} icon",
+  "botIdentity.uploadFailed": "The uploaded image could not be used as an avatar",
+  "botIdentity.ai.modelPlaceholder": "Model ID from your image provider"
 }

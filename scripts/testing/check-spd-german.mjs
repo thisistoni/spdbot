@@ -132,6 +132,23 @@ export async function checkGerman({ browser, url, botId, output, evidence }) {
     await capture("chat-sidebar-de", page);
     pass("Actual German synthetic chat and sidebar; This computer is Dieser Computer");
 
+    await page.locator('[data-tour="bot-pill"]').click();
+    await page.getByRole("button", { name: "Avatar bearbeiten", exact: true }).click();
+    const avatar = page.getByRole("dialog", { name: "Avatar bearbeiten", exact: true });
+    for (const [id, expected] of [["bot", "Bot"], ["generate", "Generieren"], ["upload", "Hochladen"]]) {
+      assertGerman(await avatar.locator(`[data-avatar-tab="${id}"]`).innerText(), expected, `Avatar ${id} tab`);
+    }
+    assertGerman(await avatar.locator("[data-avatar-reset]").innerText(), "Zurücksetzen", "Avatar reset");
+    await avatar.locator('[data-avatar-tab="upload"]').click();
+    await avatar.getByText("Ziehe ein Bild hierher oder wähle eines aus", { exact: true }).waitFor();
+    await avatar.getByText("Form", { exact: true }).waitFor();
+    await capture("avatar-editor-upload-de", page);
+    await avatar.press("Escape");
+    await avatar.waitFor({ state: "detached" });
+    await page.getByRole("button", { name: "Einstellungen schließen", exact: true }).click();
+    assert.deepEqual(await page.evaluate(() => window.__unexpectedDesktopWrites), []);
+    pass("Existing avatar editor has German tabs, upload and crop labels; closed without uploading or changing the avatar");
+
     await page.getByRole("button", { name: "Du", exact: true }).click();
     await page.getByRole("menuitem", { name: "Einstellungen", exact: true }).click();
     const dialog = page.locator('[role="dialog"][aria-labelledby="app-settings-title"]');
