@@ -236,15 +236,19 @@ process.stdout.write(JSON.stringify({jsonrpc:'2.0',id:m.id,result})+'\\n'); });`
 test("a protected directory spelled in another case is still refused", async t => {
   const { dir, folder, grant, run } = await fixture(t);
   if (!(await spellings(dir)).case) return t.skip("this filesystem is case-sensitive, so no case variant names the same directory");
-  await mkdir(path.join(dir, "OpenMausBot"));
-  await writeFile(path.join(dir, "OpenMausBot", "credentials.bin"), "credential blob");
-  grant.protectedPaths = [path.join(dir, "OpenMausBot")];
+  for (const app of ["OpenMausBot", "SPDBot"]) {
+    await mkdir(path.join(dir, app));
+    await writeFile(path.join(dir, app, "credentials.bin"), "credential blob");
+  }
+  grant.protectedPaths = [path.join(dir, "OpenMausBot"), path.join(dir, "SPDBot")];
   folder.write = true;
-  await assert.rejects(run({ action: "read_file", path: "OpenMausBot/credentials.bin" }), /Desktop credentials/);
-  await assert.rejects(run({ action: "read_file", path: "openmausbot/credentials.bin" }), /Desktop credentials/);
-  await assert.rejects(run({ action: "read_file", path: "OPENMAUSBOT/credentials.bin" }), /Desktop credentials/);
-  await assert.rejects(run({ action: "list_files", path: "spdbot" }), /Desktop credentials/);
-  await assert.rejects(run({ action: "write_file", path: "openmausbot/computer-sharing.json", content: "{}" }), /sharing settings/);
+  for (const app of ["OpenMausBot", "SPDBot"]) {
+    for (const spelling of [app, app.toLowerCase(), app.toUpperCase()]) {
+      await assert.rejects(run({ action: "read_file", path: `${spelling}/credentials.bin` }), /Desktop credentials/);
+      await assert.rejects(run({ action: "list_files", path: spelling }), /Desktop credentials/);
+      await assert.rejects(run({ action: "write_file", path: `${spelling}/computer-sharing.json`, content: "{}" }), /sharing settings/);
+    }
+  }
 });
 
 test("a protected directory spelled in another Unicode normalization is still refused", async t => {
