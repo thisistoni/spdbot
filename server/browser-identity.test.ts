@@ -1,5 +1,5 @@
 import { spawnSync } from "node:child_process";
-import { mkdirSync, mkdtempSync, rmSync } from "node:fs";
+import { mkdirSync, mkdtempSync, rmSync, symlinkSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { expect, it } from "vitest";
@@ -8,8 +8,10 @@ it("isolates relative workspaces and gives the same resolved directory one names
   const home = mkdtempSync(join(tmpdir(), "spdbot-namespace-"));
   const first = join(home, "first");
   const second = join(home, "second");
+  const alias = join(home, "alias");
   mkdirSync(first);
   mkdirSync(second);
+  symlinkSync(first, alias, process.platform === "win32" ? "junction" : "dir");
   const moduleUrl = new URL("./browser-identity.ts", import.meta.url).href;
   const namespace = (cwd: string, dataDir: string) => {
     const child = spawnSync(process.execPath, ["--input-type=module", "-e",
@@ -28,5 +30,10 @@ it("isolates relative workspaces and gives the same resolved directory one names
     expect(a).toMatch(/^spd-[0-9a-f]{20}$/);
     expect(b).not.toBe(a);
     expect(namespace(second, join(first, ".spdbot"))).toBe(a);
+    expect(namespace(second, join(alias, ".spdbot"))).toBe(a);
+    expect(namespace(alias, ".spdbot")).toBe(a);
+    mkdirSync(join(first, ".spdbot"));
+    expect(namespace(first, ".spdbot")).toBe(a);
+    expect(namespace(second, join(alias, ".spdbot"))).toBe(a);
   } finally { rmSync(home, { recursive: true, force: true }); }
 });

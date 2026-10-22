@@ -1,13 +1,27 @@
 // Browser daemons and saved sessions belong to this product and this workspace.
 // A PID file alone never proves ownership, even when both apps run as the same OS user.
 import { createHash } from "node:crypto";
-import { lstatSync, mkdirSync } from "node:fs";
-import { join, resolve } from "node:path";
+import { lstatSync, mkdirSync, realpathSync } from "node:fs";
+import { basename, dirname, join, resolve } from "node:path";
 import { homedir } from "node:os";
 import { DATA_DIR } from "./config.ts";
 
 export function browserNamespace(dataDir: string): string {
-  return `spd-${createHash("sha256").update(resolve(dataDir)).digest("hex").slice(0, 20)}`;
+  let ancestor = resolve(dataDir);
+  const missing: string[] = [];
+  // Canonicalize existing ancestors too: a fresh workspace must keep its namespace
+  // after mkdir, including macOS's /var -> /private/var and explicit directory aliases.
+  for (;;) {
+    try {
+      const canonical = join(realpathSync.native(ancestor), ...missing);
+      return `spd-${createHash("sha256").update(canonical).digest("hex").slice(0, 20)}`;
+    } catch (error) {
+      const parent = dirname(ancestor);
+      if ((error as NodeJS.ErrnoException).code !== "ENOENT" || parent === ancestor) throw error;
+      missing.unshift(basename(ancestor));
+      ancestor = parent;
+    }
+  }
 }
 
 export const BROWSER_NAMESPACE = browserNamespace(DATA_DIR);
