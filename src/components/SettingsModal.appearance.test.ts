@@ -401,7 +401,7 @@ describe("Settings → Appearance", () => {
     expect(local).toContain("Server address or pairing link");
     expect(local).toContain("Name (optional)");
     expect(local).toContain("Your servers");
-    expect(local).toContain("pnpm pair --label");
+    expect(local).toContain("pnpm spdbot pair --label");
     fixture.section = "general";
     vi.stubGlobal("window", { ogb: { workspaces: {} } });
     expect(render()).not.toContain('<option value="desktopWorkspaces"');

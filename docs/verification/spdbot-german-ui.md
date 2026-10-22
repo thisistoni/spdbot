@@ -12,6 +12,8 @@ native startup, tray and menu copy is German as well.
   attachments, code/diagram actions, citations, exports and confirmation dialogs.
 - Simple/advanced Settings navigation, appearance, provider/model selection,
   API keys, computer/browser controls, login settings, usage and local backups.
+- Existing avatar editor tabs, upload/crop labels and accessible image-framing copy.
+  Rendering, seeds, image persistence, crop/zoom behavior and color defaults are unchanged.
 - New bot tabs and presets; bot identity/instructions, permissions, tools,
   skills, memory, history, prompt preview and model settings.
 - Routine/automation calendar, schedules, advanced cron descriptions, run cards,
@@ -20,10 +22,21 @@ native startup, tray and menu copy is German as well.
   pairing/browser sign-in and first-use tour/import views.
 
 Unsupported upstream cloud/organization/mobile offers are removed by the
-companion Settings patch, not marketed as SPDBot services. Avatar controls and
-native application/data identity are covered by their separate patches.
+companion Settings patch, not marketed as SPDBot services. Avatar rendering and
+native application/data identity originate in their separate patches.
 
 ## Evidence and limits
+
+The integrated SPDBot identity comes from merged PR #12. The browser check
+keeps the real VM folder and image visible: fixture folders now use
+`spdbot-verify-data-`, and the local image uses `localhost/spdbot/cua-local-vm`.
+No branding exception or path masking is used. Source-install pairing commands
+use the existing `pnpm spdbot pair` entry point.
+
+Screenshots in `evidence/spdbot-german/` include the VM identity footer, actual
+unauthenticated PairPage, 390px pairing, avatar-editor copy and sandboxed native
+Electron startup on Linux. Browser checks use a synthetic desktop bridge; the
+native startup recipe separately exercises hidden startup, tray restore and quit.
 
 `check-spd-german.mjs` records screenshots and visible text from the actual
 renderer with a disposable fake-engine workspace. Its Windows desktop bridge is

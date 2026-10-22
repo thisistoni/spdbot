@@ -5957,7 +5957,7 @@
   "onboarding.reel.demo.terminal.connection": "Choose your AI connection",
   "onboarding.reel.demo.terminal.apiKey": "API key",
   "onboarding.reel.demo.terminal.model": "Choose your model",
-  "onboarding.reel.demo.terminal.ready": "SPDBot ready → http://127.0.0.1:8799",
+  "onboarding.reel.demo.terminal.ready": "SPDBot ready → http://127.0.0.1:8899",
   "onboarding.reel.demo.terminal.name": "Your name",
   "onboarding.reel.demo.continue": "Continue",
   "onboarding.reel.demo.hour": "{hour} AM",

@@ -38,7 +38,7 @@ jobs:
         run: |
           set -euo pipefail
           cd release/npm && npm pack --silent && cd ../..
-          rm -rf /tmp/omb-pack && mkdir -p /tmp/omb-pack && tar -xzf release/npm/openmausbot-*.tgz -C /tmp/omb-pack
+          rm -rf /tmp/omb-pack && mkdir -p /tmp/omb-pack && tar -xzf release/npm/spdbot-*.tgz -C /tmp/omb-pack
           cd /tmp/omb-pack/package
           # Every check below is a silent grep/test; say which one failed, and what the server said.
           set -x
@@ -55,14 +55,18 @@ jobs:
           OMB_PORT=18799 node cli.js sessions | grep -q "Noch keine gekoppelten Geräte"
           # the bundles also run directly by path (the image and docs do that), not only through cli.js:
           # a bundled module with a "run when executed directly" block would fire here
-          node dist-server/openmausbot.js --help | grep -q "pnpm spdbot serve"
+          node dist-server/spdbot.js --help | grep -q "pnpm spdbot serve"
           OMB_PORT=1 node dist-server/pair-cli.js > pair.out 2>&1 || true
           cat pair.out
           grep -q "Kein SPDBot-Server" pair.out
           # --tunnel ships its own processes and fails closed without an account
-          test -f dist-server/tunnel-guardian.js && test -f dist-server/prepare-cloudflared.js
-          # the enterprise layer ships bundled (inert without a key) so a white-label key works on an npm install
-          test -f enterprise/server/index.js && test -f enterprise/LICENSE
+          test -f dist-server/tunnel-guardian.js
+          test -f dist-server/prepare-cloudflared.js
+          # This fork distributes the permitted core edition only.
+          test ! -e enterprise
+          test ! -e dist-server/enterprise
+          test -s LICENSE
+          test -s NOTICE
           if HOME=/tmp/omb-pack/home node cli.js serve --tunnel --port 18798 --data-dir /tmp/omb-pack/data2 > tunnel.log 2>&1; then echo "serve --tunnel should refuse without login"; exit 1; fi
           grep -q "Für diesen Tunnel ist auf diesem Computer kein Dienstkonto eingerichtet" tunnel.log
           kill %1; wait %1 || true
@@ -71,7 +75,7 @@ jobs:
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
           name: npm-package
-          path: release/npm/openmausbot-*.tgz
+          path: release/npm/spdbot-*.tgz
           if-no-files-found: error
           retention-days: 1
 

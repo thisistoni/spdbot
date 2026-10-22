@@ -182,7 +182,7 @@ export function ConnectedWorkspacesSettings() {
         <p className="text-[12px] leading-relaxed text-ink-secondary">{t("desktopWorkspaces.pairHint")}</p>
         <details className="text-[12px] text-ink-secondary"><summary className="cursor-pointer">{t("desktopWorkspaces.needCode")}</summary>
           <p className="mt-2">{t("desktopWorkspaces.runCommand")}</p>
-          <code className="mt-1 block select-all break-words rounded-md bg-inset px-2 py-2 text-ink">pnpm pair --label "SPDBot Desktop"</code>
+          <code className="mt-1 block select-all break-words rounded-md bg-inset px-2 py-2 text-ink">pnpm spdbot pair --label "SPDBot Desktop"</code>
           <p className="mt-2">{t("pairing.sourceHint")}</p>
         </details>
         {error && <p role="alert" className="text-[12px] text-danger">{error}</p>}

@@ -10,16 +10,16 @@ if [ "$(podman info --format '{{.Host.Security.Rootless}}')" != true ]; then
 fi
 systemctl --user enable --now podman.socket >/dev/null
 if [ ! -f .env ]; then
-    data_root="$HOME/openmausbot/data"
+    data_root="$HOME/spdbot/data"
     mkdir -p "$data_root"
     chmod 700 "$data_root"
     umask 077
     cat > .env <<EOF
-COMPOSE_PROJECT_NAME=openmausbot-podman
+COMPOSE_PROJECT_NAME=spdbot-podman
 OMB_DATA_ROOT=$data_root
 PODMAN_SOCKET=/run/user/$(id -u)/podman/podman.sock
-OMB_PORT=8799
-OMB_WEBHOOK_PORT=8800
+OMB_PORT=8899
+OMB_WEBHOOK_PORT=8900
 OMB_HTTP_PORT=8080
 OMB_PUBLIC_URL=http://localhost:8080
 OMB_HTTPS_HOST=https-disabled.invalid

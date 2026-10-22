@@ -85,7 +85,7 @@ exports.createClient = async ({ auth }) => {
 
 async function start(name: string, env: NodeJS.ProcessEnv, port: number, extra: string[] = [], ipc = false): Promise<ChildProcess> {
   const home = join(root, name);
-  const dataDir = join(home, ".openmausbot");
+  const dataDir = join(home, ".spdbot");
   mkdirSync(dataDir, { recursive: true });
   const cli = join(home, "fixture-claude.mjs");
   writeFileSync(cli, `#!/usr/bin/env node

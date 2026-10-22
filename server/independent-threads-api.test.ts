@@ -646,7 +646,7 @@ describe("independent bot tasks through the isolated control surface", () => {
 
   it.skipIf(process.platform !== "darwin")("claims the shared computer only on first use and keeps a sibling stop from releasing it", async () => {
     // The fake provider only receives this inert descriptor; no UI driver is launched.
-    const descriptorDir = join(session.info.dataDir, "Library", "Application Support", "OpenMausBot");
+    const descriptorDir = join(session.info.dataDir, "Library", "Application Support", "SPDBot");
     mkdirSync(descriptorDir, { recursive: true });
     writeFileSync(join(descriptorDir, "cua-connection.json"), JSON.stringify({
       mode: "embedded", socketPath: join(session.info.dataDir, "never-used.sock"),

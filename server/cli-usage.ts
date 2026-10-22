@@ -15,7 +15,7 @@ export const HEADLESS_USAGE = `Einen laufenden Arbeitsbereich steuern (Skripte, 
   pnpm spdbot connect URL --code CODE --out FILE              Token für einen anderen Arbeitsbereich abrufen
   pnpm spdbot new-bot | new-channel | set-model | edit | mcp
 
-  Server: --url URL (oder SPDBOT_URL), --port N (oder SPDBOT_PORT), sonst dieser Computer.
+  Server: --url URL (oder SPDBOT_URL), --port N, sonst dieser Computer.
   Token: SPDBOT_TOKEN oder --token-file FILE. --json gibt ein JSON-Dokument aus.
   Fortschritt erscheint auf stderr; --quiet blendet ihn aus.
   Details zu einem Befehl: pnpm spdbot help VERB.`;
@@ -28,7 +28,7 @@ Befehle im Projektverzeichnis ausführen:
   pnpm spdbot start [dieselben Optionen wie serve]
   pnpm spdbot serve [--port 8899] [--data-dir DIR] [--label NAME]
                     [--public-url https://host] [--tailscale | --domain HOST] [--no-pair]
-  pnpm pair [--label NAME] [--client] [--phone ios|android] [--public-url https://host]
+  pnpm spdbot pair [--label NAME] [--client] [--phone ios|android] [--public-url https://host]
   pnpm spdbot sessions [revoke ID]
   pnpm spdbot status
   pnpm spdbot access list | add EMAIL [--chat-only] | remove EMAIL

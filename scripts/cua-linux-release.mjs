@@ -496,7 +496,7 @@ export async function stageLinuxCua({
     rootDirectory,
     "node_modules",
     ".cache",
-    "openmausbot",
+    "spdbot",
     LINUX_CUA_RELEASE.archiveName,
   );
   const archive = await readVerifiedArchive({

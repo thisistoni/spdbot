@@ -1,3 +1,4 @@
+import { BROWSER_NAMESPACE, browserSocketRoot } from "./browser-identity.ts";
 import { createHash, randomUUID } from "node:crypto";
 import { spawn } from "node:child_process";
 import { EventEmitter } from "node:events";
@@ -136,7 +137,7 @@ describe("deleting one browser session's saved logins", () => {
   function fixture(closeCode = 0) {
     const home = mkdtempSync(join(tmpdir(), "omb-browser-cleanup-"));
     scratch.push(home);
-    const directory = join(home, ".agent-browser", "sessions");
+    const directory = join(home, ".agent-browser", "namespaces", BROWSER_NAMESPACE, "state", "sessions");
     mkdirSync(join(directory, ".tmp"), { recursive: true });
     const running = new Set(["work"]);
     vi.mocked(spawn).mockImplementation(runningDaemons(running, { code: closeCode }));
@@ -176,7 +177,7 @@ describe("deleting one browser session's saved logins", () => {
       expect(env).not.toHaveProperty("AGENT_BROWSER_NO_WEBMCP");
       expect(env).not.toHaveProperty("AGENT_BROWSER_PROFILE");
       expect(env?.AGENT_BROWSER_SOCKET_DIR).toBe("/fixture/sockets");
-      expect(env?.AGENT_BROWSER_CONFIG).toBe(join(home, ".agent-browser", "omb-managed-config.json"));
+      expect(env?.AGENT_BROWSER_CONFIG).toBe(join(home, ".agent-browser", "namespaces", BROWSER_NAMESPACE, "state", "omb-managed-config.json"));
       expect(readFileSync(env!.AGENT_BROWSER_CONFIG!, "utf8")).toBe("{}\n");
     }
   });
@@ -276,8 +277,18 @@ describe("deleting one browser session's saved logins", () => {
 });
 
 describe("a browser daemon that will not close (#2603)", () => {
+  it("keeps product socket paths private and below the Unix socket limit", () => {
+    if (!posix) return;
+    const root = browserSocketRoot();
+    expect(statSync(root).mode & 0o077).toBe(0);
+    const socket = browserDaemonFile({ AGENT_BROWSER_SOCKET_DIR: root, AGENT_BROWSER_NAMESPACE: BROWSER_NAMESPACE,
+      AGENT_BROWSER_SESSION: `bot-${randomUUID()}` }, ".pid").replace(/\.pid$/, ".sock");
+    expect(Buffer.byteLength(socket)).toBeLessThanOrEqual(103);
+    expect(socket).toContain(`/namespaces/${BROWSER_NAMESPACE}/run/`);
+  });
+
   it.each([
-    [{ AGENT_BROWSER_SOCKET_DIR: "/s", XDG_RUNTIME_DIR: "/x", AGENT_BROWSER_NAMESPACE: "ns" }, "/s/work.pid"],
+    [{ AGENT_BROWSER_SOCKET_DIR: "/s", XDG_RUNTIME_DIR: "/x", AGENT_BROWSER_NAMESPACE: "ns" }, "/s/namespaces/ns/run/work.pid"],
     [{ XDG_RUNTIME_DIR: "/x" }, "/x/agent-browser/work.pid"],
     [{ XDG_RUNTIME_DIR: "/x", AGENT_BROWSER_NAMESPACE: "ns" }, "/x/agent-browser/namespaces/ns/run/work.pid"],
     [{ AGENT_BROWSER_NAMESPACE: "ns" }, "/h/.agent-browser/namespaces/ns/run/work.pid"],
@@ -331,7 +342,7 @@ describe("a browser daemon that will not close (#2603)", () => {
     const files = { BROWSER_PID: join(home, "browser.pid"), HELPER_PID: join(home, "helper.pid"), PROFILE_DIR: join(home, `agent-browser-chrome-${randomUUID()}`) };
     mkdirSync(join(files.PROFILE_DIR, "Default"), { recursive: true });
     // What agent-browser hands each daemon, and its Chrome inherits.
-    const daemonEnv = { ...process.env, ...files, AGENT_BROWSER_DAEMON: "1", AGENT_BROWSER_SESSION: "work" };
+    const daemonEnv = { ...process.env, ...files, AGENT_BROWSER_NAMESPACE: BROWSER_NAMESPACE, AGENT_BROWSER_DAEMON: "1", AGENT_BROWSER_SESSION: "work" };
     let daemon: number;
     if (options.via === "unreaped") {
       // No init: the daemon's parent never collects it, so once killed it stays a zombie.
@@ -452,7 +463,7 @@ describe("restoring exactly one browser profile", () => {
   function fixture() {
     const home = mkdtempSync(join(tmpdir(), "omb-browser-restore-"));
     scratch.push(home);
-    const directory = join(home, ".agent-browser", "sessions");
+    const directory = join(home, ".agent-browser", "namespaces", BROWSER_NAMESPACE, "state", "sessions");
     mkdirSync(directory, { recursive: true });
     vi.mocked(spawn).mockImplementation((_binary, args) => lifecycleChild(args));
     return { directory, options: { env: { HOME: home, USERPROFILE: home } } };
@@ -849,6 +860,7 @@ describe("what a bot gets", () => {
       },
     });
     expect(spec.env).toEqual({
+      AGENT_BROWSER_NAMESPACE: BROWSER_NAMESPACE, AGENT_BROWSER_SOCKET_DIR: browserSocketRoot(),
       AGENT_BROWSER_SESSION: "bot-1", AGENT_BROWSER_NO_WEBMCP: "1", AGENT_BROWSER_RESTORE: browserRestoreKey("bot-1"),
       AGENT_BROWSER_RESTORE_SAVE: "auto", AGENT_BROWSER_ENCRYPTION_KEY: "session-key",
       AGENT_BROWSER_CONFIG: expect.stringContaining("omb-managed-config.json"),
@@ -863,6 +875,7 @@ describe("what a bot gets", () => {
     vi.stubEnv("PRIVATE_WORKSPACE_SECRET", "synthetic-process-secret");
     const spec = agentBrowserIntegration({ binaryPath: "/x/agent-browser", session: "bot-1", encryptionKey: "session-key" });
     expect(spec.env).toEqual({
+      AGENT_BROWSER_NAMESPACE: BROWSER_NAMESPACE, AGENT_BROWSER_SOCKET_DIR: browserSocketRoot(),
       AGENT_BROWSER_SESSION: "bot-1", AGENT_BROWSER_NO_WEBMCP: "1", AGENT_BROWSER_RESTORE: browserRestoreKey("bot-1"),
       AGENT_BROWSER_RESTORE_SAVE: "auto", AGENT_BROWSER_ENCRYPTION_KEY: "session-key",
       AGENT_BROWSER_CONFIG: expect.stringContaining("omb-managed-config.json"),

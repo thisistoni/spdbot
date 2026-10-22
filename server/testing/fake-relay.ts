@@ -14,6 +14,7 @@ export interface FakeGeometry {
 export class FakeRelay {
   readonly dir: string;
   readonly session: string;
+  readonly namespace?: string;
   server!: Server;
   port = 0;
   readonly commands: Array<Record<string, unknown>> = [];
@@ -36,14 +37,16 @@ export class FakeRelay {
   /** Runs before each command is answered: a test's hook into the timeline. */
   onCommand?: (command: Record<string, unknown>) => void | Promise<void>;
 
-  constructor(session = "bot-test") {
+  constructor(session = "bot-test", namespace?: string) {
+    this.namespace = namespace;
     this.session = session;
     this.sessionName = session;
     this.dir = mkdtempSync(join(tmpdir(), "omb-relay-"));
-    mkdirSync(join(this.dir, "s"), { recursive: true });
+    mkdirSync(this.socketDirectory, { recursive: true });
   }
 
-  get env(): Record<string, string> { return { AGENT_BROWSER_SESSION: this.session, AGENT_BROWSER_SOCKET_DIR: join(this.dir, "s"), HOME: this.dir }; }
+  get socketDirectory(): string { return this.namespace ? join(this.dir, "s", "namespaces", this.namespace, "run") : join(this.dir, "s"); }
+  get env(): Record<string, string> { return { ...(this.namespace ? { AGENT_BROWSER_NAMESPACE: this.namespace } : {}), AGENT_BROWSER_SESSION: this.session, AGENT_BROWSER_SOCKET_DIR: join(this.dir, "s"), HOME: this.dir }; }
   get target() { return { session: this.session, binaryPath: join(this.dir, "agent-browser"), env: this.env }; }
   get spec() { return { command: join(this.dir, "agent-browser"), args: ["mcp"], env: { AGENT_BROWSER_SESSION: this.session, AGENT_BROWSER_SOCKET_DIR: join(this.dir, "s") } }; }
 
@@ -108,9 +111,9 @@ export class FakeRelay {
     return this;
   }
 
-  writeStreamFile(port = this.port): void { writeFileSync(join(this.dir, "s", `${this.session}.stream`), String(port)); }
+  writeStreamFile(port = this.port): void { writeFileSync(join(this.socketDirectory, `${this.session}.stream`), String(port)); }
   /** The daemon exited: it removes its `.stream` file. */
-  removeStreamFile(): void { rmSync(join(this.dir, "s", `${this.session}.stream`), { force: true }); }
+  removeStreamFile(): void { rmSync(join(this.socketDirectory, `${this.session}.stream`), { force: true }); }
 
   actions(): string[] { return this.commands.map((command) => `${String(command.action)}${command.clear === true ? ":clear" : ""}`); }
 

@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { serverCheckPhase, serverUpdateRow, type ServerUpdateCheck } from "./server-update";
+import { serverCheckPhase, serverUpdateDestination, serverUpdateRow, type ServerUpdateCheck } from "./server-update";
 
 const check = (patch: Partial<ServerUpdateCheck> = {}): ServerUpdateCheck => ({
   current: "0.1.92",
@@ -28,6 +28,15 @@ describe("self-hosted update row", () => {
       label: "Version 0.1.93 available — release notes",
       subtitle: undefined,
     });
+  });
+
+  it("opens the update recipe rather than selecting a different Compose project", () => {
+    const updateGuideUrl = "https://github.com/thisistoni/spdbot/blob/main/docs/self-hosting.md#docker-with-https-on-your-own-domain";
+    const docker = check({ available: true, latest: "0.1.93", releaseUrl: "https://github.com/thisistoni/spdbot/releases/tag/v0.1.93", updateGuideUrl });
+    expect(serverUpdateDestination(docker)).toBe(updateGuideUrl);
+    expect(serverUpdateRow("available", docker)).toEqual({ label: "Update available", subtitle: "v0.1.92 → v0.1.93" });
+    expect(docker.command).toBeUndefined();
+    expect(serverUpdateDestination(check({ install: "git", releaseUrl: docker.releaseUrl }))).toBe(docker.releaseUrl);
   });
 
   it("says when it is up to date, and with which version", () => {

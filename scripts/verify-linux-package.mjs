@@ -72,6 +72,7 @@ function requireUpdaterTarget(resources, label) {
   const updateFile = path.join(resources, "app-update.yml");
   requireFile(updateFile);
   const update = readFileSync(updateFile, "utf8");
+  if (!/^updaterCacheDirName: spdbot-updater$/m.test(update)) fail(`${label} updater cache is not SPDBot-specific`);
   if (!/^owner: thisistoni$/m.test(update) || !/^repo: spdbot$/m.test(update)) {
     fail(`${label} app-update.yml does not point at thisistoni/spdbot`);
   }
@@ -396,7 +397,7 @@ function verifyCloudflaredResources(resources, label, { directoryMode = 0o755 } 
 const appImage = exactlyOne(".AppImage");
 const deb = exactlyOne(".deb");
 const unpacked = path.join(releaseDir, "linux-unpacked");
-const executable = path.join(unpacked, "openmausbot");
+const executable = path.join(unpacked, "spdbot");
 const resources = path.join(unpacked, "resources");
 
 requireExecutable(appImage);
@@ -420,7 +421,7 @@ const fields = execFileSync(
   { encoding: "utf8" },
 );
 for (const expected of [
-  "Package: openmausbot",
+  "Package: spdbot",
   "Architecture: amd64",
   "Maintainer: Milind Soni",
   "Section: utils",
@@ -432,7 +433,7 @@ for (const expected of [
 const extracted = mkdtempSync(path.join(tmpdir(), "omb-deb-verify-"));
 try {
   execFileSync("dpkg-deb", ["--extract", deb, extracted]);
-  const debAppRoot = path.join(extracted, "opt", "OpenMausBot");
+  const debAppRoot = path.join(extracted, "opt", "SPDBot");
   requireDirectoryMode(debAppRoot, 0o755);
   const debResources = path.join(debAppRoot, "resources");
   // Routes the in-app updater to the package-manager hand-off.
@@ -452,7 +453,7 @@ try {
     "usr",
     "share",
     "applications",
-    "com.openmausbot.app.desktop",
+    "de.spdlabs.spdbot.desktop",
   );
   const scalableIcon = path.join(
     extracted,
@@ -462,16 +463,16 @@ try {
     "hicolor",
     "scalable",
     "apps",
-    "openmausbot.svg",
+    "spdbot.svg",
   );
   requireFile(desktopFile);
   requireFile(scalableIcon);
   const desktop = readFileSync(desktopFile, "utf8");
   for (const expected of [
     "Name=SPDBot",
-    "Exec=/opt/OpenMausBot/openmausbot %U",
-    "Icon=openmausbot",
-    "StartupWMClass=com.openmausbot.app",
+    "Exec=/opt/SPDBot/spdbot %U",
+    "Icon=spdbot",
+    "StartupWMClass=de.spdlabs.spdbot",
     "Categories=Utility;",
   ]) {
     if (!desktop.includes(expected)) fail(`desktop entry is missing ${JSON.stringify(expected)}`);

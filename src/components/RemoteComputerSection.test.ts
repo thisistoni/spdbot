@@ -34,7 +34,7 @@ describe("self-hosted server pairing links", () => {
     "https://bots.example.com/pair?code=secret#code=ABCD-EFGH-JKLM",
     "https://bots.example.com/pair#code=ABCD EFGH JKLM",
     "https://bots.example.com\\@other.example/pair#code=ABCD-EFGH-JKLM",
-    "openmausbot://pair?code=123456",
+    "spdbot://pair?code=123456",
   ])("rejects an incomplete, malformed, or insecure link: %s", (link) => {
     expect(isServerPairingLink(link)).toBe(false);
   });
@@ -53,7 +53,7 @@ describe("remote connection Settings", () => {
     expect(html).toContain('<option value="server" selected="">Self-hosted server</option>');
     expect(html).toContain('<option value="companion">Desktop companion</option>');
     expect(html).toContain("Server pairing link");
-    expect(html).toContain("pnpm pair --client");
+    expect(html).toContain("pnpm spdbot pair --client");
     expect(html).toContain("12-character code");
     expect(html).toContain("SPDBot repository folder on the server after completing setup");
     expect(html).not.toContain("npx openmausbot");
@@ -70,7 +70,7 @@ describe("remote connection Settings", () => {
     const html = renderToStaticMarkup(createElement(RemoteComputerSection));
     expect(html).toContain("Selbst gehosteter Server");
     expect(html).toContain("Kopplungslink des Servers");
-    expect(html).toContain("pnpm pair --client");
+    expect(html).toContain("pnpm spdbot pair --client");
     expect(html).toContain("SPDBot-Projektordner auf dem Server");
     expect(html).toContain("Mit Server verbinden");
     expect(html).not.toMatch(/OpenMausBot|openmausbot|Self-hosted server|Connection type/);

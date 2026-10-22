@@ -99,14 +99,14 @@ export async function checkSettings({ context, url, screenshot, check }) {
       await screenshot(`settings-${section}-de.png`, page);
     }
     await dialog.locator('[data-settings-section="desktopWorkspaces"]').click();
-    const ownerCommand = dialog.getByText('pnpm pair --label "SPDBot Desktop"', { exact: true });
+    const ownerCommand = dialog.getByText('pnpm spdbot pair --label "SPDBot Desktop"', { exact: true });
     await ownerCommand.locator("xpath=..").locator("summary").click();
     await ownerCommand.waitFor({ state: "visible" });
     assert.match(await ownerCommand.locator("xpath=..").innerText(), /SPDBot-Projektordner auf dem Server/);
     await screenshot("settings-server-source-command-de.png", page);
 
     await dialog.locator('[data-settings-section="companion"]').click();
-    const clientCommand = dialog.getByText("pnpm pair --client", { exact: true });
+    const clientCommand = dialog.getByText("pnpm spdbot pair --client", { exact: true });
     await clientCommand.scrollIntoViewIfNeeded();
     const form = clientCommand.locator("xpath=ancestor::form");
     assert.match(await form.innerText(), /SPDBot-Projektordner auf dem Server/);

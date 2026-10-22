@@ -1,17 +1,18 @@
-// `openmausbot` on the command line: run the server anywhere and pair devices to it.
+// `spdbot` on the command line: run the server anywhere and pair devices to it.
 //
-//   openmausbot setup [--data-dir ~/.openmausbot]
-//   openmausbot start [serve options]
-//   openmausbot serve [--port 8799] [--data-dir ~/.openmausbot] [--label "cab mini"]
+//   spdbot setup [--data-dir ~/.spdbot]
+//   spdbot start [serve options]
+//   spdbot serve [--port 8899] [--data-dir ~/.spdbot] [--label "cab mini"]
 //                     [--public-url https://host] [--tailscale | --tunnel | --domain HOST] [--no-pair]
-//   openmausbot pair  [--label "My MacBook"] [--client] [--public-url https://host]
-//   openmausbot sessions [revoke <id>]
-//   openmausbot status
-//   openmausbot login [--email you@example.com]
-//   openmausbot logout
-//   openmausbot run | send | wait | doctor | team apply | export | …
+//   spdbot pair  [--label "My MacBook"] [--client] [--public-url https://host]
+//   spdbot sessions [revoke <id>]
+//   spdbot status
+//   spdbot login [--email you@example.com]
+//   spdbot logout
+//   spdbot run | send | wait | doctor | team apply | export | …
 //
-// This module only exports: openmausbot.ts runs main(), so bundling this file into other entries never runs it twice.
+// This module only exports: spdbot.ts runs main(), so bundling this file into other entries never runs it twice.
+import { discoverCliPort, probeLocalProduct } from "./cli-discovery.ts";
 import { spawn, type ChildProcess } from "node:child_process";
 import { randomBytes } from "node:crypto";
 import { closeSync, existsSync, mkdirSync, openSync, readFileSync } from "node:fs";
@@ -120,8 +121,8 @@ export function parseArgs(argv: string[], env: NodeJS.ProcessEnv = process.env):
   }
   const options: CliOptions = {
     command: command === "--help" || command === "-h" ? "help" : (command as CliOptions["command"]),
-    port: Number(env.OMB_PORT || 8799),
-    dataDir: env.OMB_DATA_DIR || join(homedir(), ".openmausbot"),
+    port: Number(env.OMB_PORT || 8899),
+    dataDir: env.OMB_DATA_DIR || join(homedir(), ".spdbot"),
     tailscale: false,
     tunnel: false,
     client: false,
@@ -254,28 +255,21 @@ async function api(port: number, path: string, init: { method?: string; body?: s
   return { status: res.status, body };
 }
 
-export const SERVICE_TRUST_HELP = "Dieser Server behandelt Befehle auf diesem Computer nicht als Eigentümerzugriff (SPDBOT_LOOPBACK_TRUST=service oder gehosteter Arbeitsbereich). Deshalb können sie keine Geräte koppeln oder Sitzungen auflisten. Melde dich als Admin an und verwende Einstellungen → Fernzugriff, erlaube die Anmeldung per E-Mail (pnpm spdbot access add du@example.com) oder starte den Server bewusst mit SPDBOT_LOOPBACK_TRUST=owner neu.";
+export const SERVICE_TRUST_HELP = "Dieser Server behandelt Befehle auf diesem Computer nicht als Eigentümerzugriff (OMB_LOOPBACK_TRUST=service oder gehosteter Arbeitsbereich). Deshalb können sie keine Geräte koppeln oder Sitzungen auflisten. Melde dich als Admin an und verwende Einstellungen → Fernzugriff, erlaube die Anmeldung per E-Mail (pnpm spdbot access add du@example.com) oder starte den Server bewusst mit OMB_LOOPBACK_TRUST=owner neu.";
 
 function refusedAsService(status: number, body: any): boolean {
   return status === 403 && typeof body?.error === "string" && /shared server|Sign in through the workspace portal/.test(body.error);
 }
 
-async function serverUp(port: number, pid?: number): Promise<boolean> {
-  try {
-    const { status, body } = await api(port, "/api/health");
-    return status === 200 && body?.app === "openmausbot" && (pid === undefined || body.pid === pid);
-  } catch {
-    return false;
-  }
-}
+const serverUp = (port: number, pid?: number) => probeLocalProduct(api, port, pid);
 
 /** Never attach to another workspace just because it listens on the requested port. */
 export async function isWorkspaceRunning(options: CliOptions): Promise<boolean> {
   try {
     const { status, body } = await api(options.port, "/api/health");
-    if (status !== 200 || body?.app !== "openmausbot") return false;
+    if (status !== 200 || body?.app !== "spdbot") return false;
     const expected = readFileSync(join(options.dataDir, "environment-id"), "utf8").trim();
-    const descriptor = await api(options.port, "/.well-known/openmausbot/environment");
+    const descriptor = await api(options.port, "/.well-known/spdbot/environment");
     return /^[0-9a-f-]{36}$/i.test(expected) && descriptor.status === 200 && descriptor.body?.environmentId === expected;
   } catch { return false; }
 }
@@ -298,8 +292,8 @@ export async function openDashboard(port: number, env = process.env): Promise<bo
 export async function verifyPhoneEndpoint(port: number, origin: string): Promise<boolean> {
   if (!normalizePhoneOrigin(origin)) return false;
   try {
-    const local = await api(port, "/.well-known/openmausbot/environment");
-    const remote = await fetch(`${origin}/.well-known/openmausbot/environment`, { signal: AbortSignal.timeout(5000), redirect: "error" });
+    const local = await api(port, "/.well-known/spdbot/environment");
+    const remote = await fetch(`${origin}/.well-known/spdbot/environment`, { signal: AbortSignal.timeout(5000), redirect: "error" });
     if (local.status !== 200 || !remote.ok) return false;
     const descriptor = await remote.json() as { environmentId?: unknown };
     return typeof local.body?.environmentId === "string" && local.body.environmentId.length > 0
@@ -336,7 +330,7 @@ async function showPhonePairing(options: CliOptions, origin: string | undefined,
   const ready = !!origin && await verifyPhoneEndpoint(options.port, origin);
   if (!ready) {
     log("Der Telefonzugriff ist noch nicht erreichbar. SPDBot ist auf diesem Computer bereit; es wurde kein Kopplungscode für das Telefon erstellt.");
-    log("Prüfe die HTTPS-Verbindung und rufe dann pnpm pair erneut mit demselben --data-dir und --port auf.");
+    log("Prüfe die HTTPS-Verbindung und rufe dann pnpm spdbot pair erneut mit demselben --data-dir und --port auf.");
     return false;
   }
   for (const line of phonePairingInstructions(options.phone ?? "ios", { origin: origin!, ready })) log(line);
@@ -363,7 +357,7 @@ async function mintPairing(port: number, options: { label?: string; client?: boo
 
 export async function runPair(options: CliOptions): Promise<number> {
   if (!(await serverUp(options.port))) {
-    console.error(`Kein SPDBot-Server unter http://127.0.0.1:${options.port}; starte einen mit pnpm spdbot serve oder setze SPDBOT_PORT.`);
+    console.error(`Kein SPDBot-Server unter http://127.0.0.1:${options.port}; starte einen mit pnpm spdbot serve oder gib --port an.`);
     return 1;
   }
   if (process.stdin.isTTY && process.stdout.isTTY && !options.label && !options.client) {
@@ -402,6 +396,18 @@ export async function runPair(options: CliOptions): Promise<number> {
   return 0;
 }
 
+export function formatSessions(sessions: Array<{ id: string; label: string; scopes: string[]; lastSeenAt: number; expiresAt: number }>, now = Date.now()): string {
+  const age = (ms: number) => {
+    const m = Math.max(0, Math.floor((now - ms) / 60_000));
+    return m < 1 ? "gerade eben" : m < 60 ? `vor ${m} Min.` : m < 1440 ? `vor ${Math.round(m / 60)} Std.` : `vor ${Math.round(m / 1440)} Tagen`;
+  };
+  const rows = sessions.map((s) => [s.id, s.label || "(unbenannt)", s.scopes.includes("admin") ? "admin" : "client", age(s.lastSeenAt), new Date(s.expiresAt).toISOString().slice(0, 10)]);
+  const head = ["ID", "Gerät", "Rechte", "Zuletzt gesehen", "Läuft ab"];
+  const widths = head.map((h, i) => Math.max(h.length, ...rows.map((r) => r[i].length)));
+  const line = (r: string[]) => r.map((c, i) => c.padEnd(widths[i])).join("  ");
+  return [line(head), ...rows.map(line), "", "Sitzung widerrufen: pnpm spdbot sessions revoke <id>"].join("\n");
+}
+
 export async function runSessions(options: CliOptions): Promise<number> {
   if (!(await serverUp(options.port))) {
     console.error(`Kein SPDBot-Server unter http://127.0.0.1:${options.port}`);
@@ -435,29 +441,17 @@ export async function runSessions(options: CliOptions): Promise<number> {
     return 0;
   }
   if (!sessions.length) {
-    console.log("Noch keine gekoppelten Geräte. Rufe pnpm pair auf.");
+    console.log("Noch keine gekoppelten Geräte. Rufe pnpm spdbot pair auf.");
     return 0;
   }
   console.log(formatSessions(sessions));
   return 0;
 }
 
-export function formatSessions(sessions: Array<{ id: string; label: string; scopes: string[]; lastSeenAt: number; expiresAt: number }>, now = Date.now()): string {
-  const age = (ms: number) => {
-    const m = Math.max(0, Math.floor((now - ms) / 60_000));
-    return m < 1 ? "gerade eben" : m < 60 ? `vor ${m} Min.` : m < 1440 ? `vor ${Math.round(m / 60)} Std.` : `vor ${Math.round(m / 1440)} Tagen`;
-  };
-  const rows = sessions.map((s) => [s.id, s.label || "(unbenannt)", s.scopes.includes("admin") ? "admin" : "client", age(s.lastSeenAt), new Date(s.expiresAt).toISOString().slice(0, 10)]);
-  const head = ["ID", "Gerät", "Rechte", "Zuletzt gesehen", "Läuft ab"];
-  const widths = head.map((h, i) => Math.max(h.length, ...rows.map((r) => r[i].length)));
-  const line = (r: string[]) => r.map((c, i) => c.padEnd(widths[i])).join("  ");
-  return [line(head), ...rows.map(line), "", "Sitzung widerrufen: pnpm spdbot sessions revoke <id>"].join("\n");
-}
-
 export async function runStatus(options: CliOptions, io: CliIo = defaultIo()): Promise<number> {
   let code = 0;
   try {
-    const res = await fetch(`http://127.0.0.1:${options.port}/.well-known/openmausbot/environment`);
+    const res = await fetch(`http://127.0.0.1:${options.port}/.well-known/spdbot/environment`);
     const body: any = await res.json();
     io.log(options.json ? JSON.stringify(body, null, 2) : `${body.label} · SPDBot ${body.version} auf ${body.platform} · ID ${body.environmentId}`);
   } catch {
@@ -707,7 +701,7 @@ async function planTunnel(options: CliOptions, log: (line: string) => void, reco
 export async function runServe(options: CliOptions, log: (line: string) => void = console.log): Promise<number> {
   const { browserEngineStatus, describeBrowserEngine } = await import("./browser-engine.ts");
   if (await serverUp(options.port)) {
-    console.error(`Unter http://127.0.0.1:${options.port} antwortet bereits ein Dienst. Verwende pnpm pair für ihn oder --port für einen zweiten Server.`);
+    console.error(`Unter http://127.0.0.1:${options.port} antwortet bereits ein Dienst. Verwende pnpm spdbot pair für ihn oder --port für einen zweiten Server.`);
     return 1;
   }
   let publicUrl = options.publicUrl;
@@ -907,14 +901,14 @@ export async function runServe(options: CliOptions, log: (line: string) => void 
       log("");
       try {
         log(await mintPairing(options.port, { label: options.label ? `${options.label} owner` : undefined, client: options.client, publicUrl: publicUrl ?? undefined, guided: options.guided }));
-        if (!options.guided) log("\nSpäter ein weiteres Gerät koppeln: pnpm pair --label \"Küchen-iPad\"");
+        if (!options.guided) log("\nSpäter ein weiteres Gerät koppeln: pnpm spdbot pair --label \"Küchen-iPad\"");
       } catch (error) {
         log(`Kein Kopplungscode: ${message(error)}`);
         log("Nächstes Mal ohne Kopplungscode starten: pnpm spdbot serve --no-pair");
       }
     }
     log(options.guided ? "\nLass dieses Terminal geöffnet, solange du deine Bots nutzt. Ctrl+C stoppt den Server; deine gespeicherte Arbeit bleibt erhalten." : "Mit Ctrl+C stoppen");
-    if (options.guided) log("Nächstes Mal: pnpm spdbot · KI- oder Telefoneinrichtung ändern: pnpm spdbot setup · Weiteres Telefon koppeln: pnpm pair");
+    if (options.guided) log("Nächstes Mal: pnpm spdbot · KI- oder Telefoneinrichtung ändern: pnpm spdbot setup · Weiteres Telefon koppeln: pnpm spdbot pair");
     return await childExit;
   } finally {
     serveOwnerToken = undefined;
@@ -989,7 +983,7 @@ export async function runOnboardingCommand(
     }
     if (options.command === "setup") {
       io.log("\nAlles bereit. Starte mit: pnpm spdbot.");
-      if (options.dataDir !== join(homedir(), ".openmausbot") || options.port !== 8799) {
+      if (options.dataDir !== join(homedir(), ".spdbot") || options.port !== 8899) {
         io.log(`Verwende beim Start dieselben Optionen --data-dir (${options.dataDir}) und --port (${options.port}).`);
       }
       return 0;
@@ -1011,6 +1005,7 @@ export async function main(argv = process.argv.slice(2)): Promise<number> {
     console.error(`${options.error}\n\n${USAGE}`);
     return 2;
   }
+  if (!await discoverCliPort(options, argv, process.env, serverUp)) return 1;
   process.env.OMB_DATA_DIR = options.dataDir;
   switch (options.command) {
     case "setup":

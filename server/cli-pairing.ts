@@ -1,4 +1,4 @@
-// What `openmausbot serve` and `openmausbot pair` print for a pairing code. A browser on this computer is no longer the
+// What `spdbot serve` and `spdbot pair` print for a pairing code. A browser on this computer is no longer the
 // owner just by being here, so it signs in once with the link printed for it.
 import qrcode from "qrcode-terminal";
 
@@ -30,7 +30,7 @@ export function browserSignInLines(localUrl: string, code: string, expiresAt: nu
   return [
     "Melde dich im Browser auf diesem Computer mit diesem Link an (einmalig verwendbar, bis",
     `${new Date(expiresAt).toLocaleTimeString()}): ${localUrl}`,
-    `Oder gib den Code ${code} auf der Anmeldeseite ein. Später erneut koppeln: pnpm pair`,
+    `Oder gib den Code ${code} auf der Anmeldeseite ein. Später erneut koppeln: pnpm spdbot pair`,
   ].join("\n");
 }
 

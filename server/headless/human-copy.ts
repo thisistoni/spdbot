@@ -37,8 +37,8 @@ const COPY: Readonly<Record<string, string>> = {
   "--out is required (the folder to write)": "Gib mit --out den Zielordner an.",
   "run openmausbot help": "Rufe pnpm spdbot help auf.",
   "start `control-omb launch`, then pass its URL with --url": "Starte die gewünschte SPDBot-Instanz und übergib anschließend ihre URL mit --url.",
-  "pass --url (or --port), or set OPENMAUSBOT_URL or OMB_PORT": "Übergib --url oder --port oder setze SPDBOT_URL beziehungsweise SPDBOT_PORT.",
-  "pass --url (or --port), or set SPDBOT_URL or SPDBOT_PORT": "Übergib --url oder --port oder setze SPDBOT_URL beziehungsweise SPDBOT_PORT.",
+  "pass --url (or --port), or set OPENMAUSBOT_URL or OMB_PORT": "Übergib --url oder --port oder setze SPDBOT_URL.",
+  "pass --url (or --port), or set SPDBOT_URL or OMB_PORT": "Übergib --url oder --port oder setze SPDBOT_URL.",
   "start one with `openmausbot serve`, or name one with --url or OPENMAUSBOT_URL": "Starte einen Server mit pnpm spdbot serve oder gib ihn mit --url beziehungsweise SPDBOT_URL an.",
   "start one with `openmausbot serve`, or name one with --url or SPDBOT_URL": "Starte einen Server mit pnpm spdbot serve oder gib ihn mit --url beziehungsweise SPDBOT_URL an.",
   "get one with `openmausbot connect URL --out FILE`, then pass --token-file FILE or set SPDBOT_TOKEN": "Rufe pnpm spdbot connect URL --out FILE auf. Übergib danach --token-file FILE oder setze SPDBOT_TOKEN.",
@@ -66,6 +66,21 @@ const COPY: Readonly<Record<string, string>> = {
   "choose an empty folder, or pass --force to write into it": "Wähle einen leeren Ordner oder gib --force an, um in den vorhandenen Ordner zu schreiben.",
   "openmausbot export TARGET without --root writes all of it": "pnpm spdbot export TARGET ohne --root exportiert den gesamten Chat.",
   "openmausbot wait TARGET picks it up again": "Mit pnpm spdbot wait TARGET kannst du erneut auf den Auftrag warten.",
+  "run spdbot help": "Rufe pnpm spdbot help auf.",
+  "start one with `spdbot serve`, or name one with --url or SPDBOT_URL": "Starte einen Server mit pnpm spdbot serve oder gib ihn mit --url beziehungsweise SPDBOT_URL an.",
+  "get one with `spdbot connect URL --out FILE`, then pass --token-file FILE or set SPDBOT_TOKEN": "Rufe pnpm spdbot connect URL --out FILE auf. Übergib danach --token-file FILE oder setze SPDBOT_TOKEN.",
+  "this needs a paired session with the right scope: `spdbot connect` mints one on this computer": "Dafür brauchst du eine gekoppelte Sitzung mit den passenden Rechten. pnpm spdbot connect erstellt sie auf diesem Computer.",
+  "spdbot bots and spdbot channels list the ids": "pnpm spdbot bots und pnpm spdbot channels zeigen die IDs an.",
+  "check the server is running and the address is right (spdbot doctor)": "Prüfe mit pnpm spdbot doctor, ob der Server läuft und die Adresse stimmt.",
+  "run spdbot bots or spdbot channels": "Rufe pnpm spdbot bots oder pnpm spdbot channels auf.",
+  "run spdbot bots or spdbot channels for the names": "pnpm spdbot bots oder pnpm spdbot channels zeigen die Namen an.",
+  "spdbot models lists them": "pnpm spdbot models zeigt die verfügbaren Modelle an.",
+  "spdbot bots lists them": "pnpm spdbot bots zeigt die Bots an.",
+  "spdbot models lists the engines and their models": "pnpm spdbot models zeigt die Engines und ihre Modelle an.",
+  "name the team file: spdbot team apply FILE": "Gib die Teamdatei an: pnpm spdbot team apply FILE.",
+  "spdbot edit BOT --message ID TEXT, or --bot ID": "Verwende pnpm spdbot edit BOT --message ID TEXT oder --bot ID.",
+  "spdbot export TARGET without --root writes all of it": "pnpm spdbot export TARGET ohne --root exportiert den gesamten Chat.",
+  "spdbot wait TARGET picks it up again": "Mit pnpm spdbot wait TARGET kannst du erneut auf den Auftrag warten.",
 };
 
 const SUBJECT: Readonly<Record<string, string>> = { bot: "Bot", room: "Gruppe", "bot or room": "Bot oder Gruppe" };
@@ -110,10 +125,10 @@ const PATTERNS: readonly Pattern[] = [
   [/^(.+) already has files in it$/, (path) => `${path} enthält bereits Dateien.`],
   [/^no job with root (.+) in this conversation$/, (root) => `Dieser Chat enthält keinen Auftrag mit der Wurzel ${root}.`],
   [/^no conversation found for (.+)$/, (target) => `Kein Chat für ${target} gefunden.`],
-  [/^run openmausbot help (.+)$/, (verb) => `Rufe pnpm spdbot help ${verb} auf.`],
-  [/^wait again: openmausbot wait (.+)$/, (args) => `Erneut warten: pnpm spdbot wait ${args}`],
-  [/^openmausbot (.+) NAME, or --bot ID(, --channel ID)? or --thread ID$/, (verb, channel) => `Verwende pnpm spdbot ${verb} NAME, --bot ID${channel ? ", --channel ID" : ""} oder --thread ID.`],
-  [/^openmausbot (.+) TARGET "what to do", or --message-file FILE, or - to read it from stdin$/, (verb) => `Verwende pnpm spdbot ${verb} TARGET "Aufgabe", --message-file FILE oder - zum Einlesen von stdin.`],
+  [/^run (?:openmausbot|spdbot) help (.+)$/, (verb) => `Rufe pnpm spdbot help ${verb} auf.`],
+  [/^wait again: (?:openmausbot|spdbot) wait (.+)$/, (args) => `Erneut warten: pnpm spdbot wait ${args}`],
+  [/^(?:openmausbot|spdbot) (.+) NAME, or --bot ID(, --channel ID)? or --thread ID$/, (verb, channel) => `Verwende pnpm spdbot ${verb} NAME, --bot ID${channel ? ", --channel ID" : ""} oder --thread ID.`],
+  [/^(?:openmausbot|spdbot) (.+) TARGET "what to do", or --message-file FILE, or - to read it from stdin$/, (verb) => `Verwende pnpm spdbot ${verb} TARGET "Aufgabe", --message-file FILE oder - zum Einlesen von stdin.`],
 ];
 
 export function humanCliMessage(message: string): string {

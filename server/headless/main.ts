@@ -61,7 +61,7 @@ export const VERB_HELP: Record<string, string> = {
   team: "pnpm spdbot team apply FILE | team export --out FILE   (siehe help team apply und help team export)",
   "team apply": `pnpm spdbot team apply FILE [--dry-run | --check] [--prune] [--rotate-secrets] [--wait-idle 2m]
   Den Arbeitsbereich an eine Teamdatei (YAML oder JSON) anpassen: Teams und Anweisungen, Bots,
-  Skills, Stabschefs, Gruppen und Engines. Zeigt zuerst den Plan und wendet ihn dann an.
+  Skills, Stabschefs, Gruppen und Engines. Zeigt zuerst den Plan und wendet ihn dann an. Ein zweiter unveränderter Aufruf meldet „Keine Änderungen.“.
   --dry-run zeigt nur den Plan. --check endet mit 6, wenn Änderungen nötig wären.
   --prune löscht nicht aufgeführte Bots und Gruppen in Teams mit prune: true.
   Schlüssel kommen aus { env } oder { file }. Vorhandene Schlüssel bleiben ohne --rotate-secrets erhalten.

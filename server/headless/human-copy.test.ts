@@ -17,7 +17,7 @@ describe("SPDBot CLI presentation", () => {
       expect(help).not.toMatch(/OpenMausBot|openmausbot|npm install -g|npx |--tunnel|OPENMAUSBOT_|OMB_PORT/);
       expect(help).toContain("pnpm spdbot");
     }
-    expect(USAGE).toContain("pnpm pair");
+    expect(USAGE).toContain("pnpm spdbot pair");
     expect(USAGE).toContain("--port 8899");
     expect(USAGE).toContain("kein veröffentlichtes npm-Paket");
     expect(VERB_HELP.connect).toContain("Einstellungen → Fernzugriff");
@@ -58,4 +58,10 @@ describe("SPDBot CLI presentation", () => {
     expect(human.err.join("\n")).not.toContain("sk-ant-abcdefghijklmnopqrstuv0123");
     expect(human.err[0]).toContain("Fehler: Nicht erlaubt:");
   });
+});
+
+it("uses the actual SPDBot command and environment hints after identity integration", () => {
+  expect(humanCliMessage("pass --url (or --port), or set SPDBOT_URL or OMB_PORT")).toBe("Übergib --url oder --port oder setze SPDBOT_URL.");
+  expect(humanCliMessage("run spdbot help connect")).toBe("Rufe pnpm spdbot help connect auf.");
+  expect(humanCliMessage("get one with `spdbot connect URL --out FILE`, then pass --token-file FILE or set SPDBOT_TOKEN")).toContain("--token-file FILE oder setze SPDBOT_TOKEN");
 });

@@ -147,7 +147,7 @@ export function RemoteComputerSection() {
                 {t("remote.client.server.hint")}
               </p>
               <code className="select-all rounded-lg bg-inset px-3 py-2 text-[12px] text-ink">
-                pnpm pair --client
+                pnpm spdbot pair --client
               </code>
               <p className="text-[11.5px] leading-relaxed text-ink-secondary">{t("pairing.sourceHint")}</p>
               <label className="flex flex-col gap-1.5 text-[12px] text-ink-secondary">

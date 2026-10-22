@@ -148,7 +148,7 @@ export function Terminal({ playing, onCue, onEnded, label }: SceneProps) {
             <div className="flex flex-1 items-center gap-1.5 rounded-full bg-[#202124] px-2.5 py-1 text-[9.5px] tabular-nums text-[#e8eaed]">
               <span className="text-[8px] text-[#9aa0a6]">🔒</span>
               <span className="text-[#9aa0a6]">127.0.0.1</span>
-              <span className="text-[#9aa0a6]">:8799</span>
+              <span className="text-[#9aa0a6]">:8899</span>
             </div>
             <span className="text-[11px] leading-none tracking-[0.15em] text-[#9aa0a6]">⋮</span>
           </div>

@@ -132,8 +132,12 @@ async function closeOnce(binaryPath: string, env: NodeJS.ProcessEnv, session: st
   const pidFile = browserDaemonFile(env, ".pid");
   const daemonPid = () => { try { return readFileSync(pidFile, "utf8").trim(); } catch { return null; } };
   const closing = daemonPid();
-  // Read first: once the daemon exits, its Chrome is re-parented and can no longer be found under it.
-  const tree = closing === null ? null : await browserProcessTree(binaryPath, Number(closing), session).catch(() => null);
+  let recordedAtNs: bigint | undefined;
+  try { recordedAtNs = statSync(pidFile, { bigint: true }).mtimeNs; } catch {}
+  // Read first: once the daemon exits, its Chrome is re-parented. Refuse a
+  // changed record; Windows also checks birth against the file's timestamp.
+  const tree = closing === null || daemonPid() !== closing ? null
+    : await browserProcessTree(binaryPath, Number(closing), session, recordedAtNs).catch(() => null);
   if ((await runBrowserCommand(binaryPath, closeEnv, ["close"], deadline)).ok) {
     // Native close answers before the daemon exits, and Chrome's helper processes can outlive the answer.
     while (Date.now() < deadline) {
@@ -171,9 +175,8 @@ export async function inRunningBrowser(binaryPath: string, env: NodeJS.ProcessEn
  * AGENT_BROWSER_SOCKET_DIR, else `$XDG_RUNTIME_DIR/agent-browser` or `~/.agent-browser`, plus `namespaces/<name>/run`. */
 export function browserDaemonFile(env: NodeJS.ProcessEnv, suffix: ".pid" | ".stream"): string {
   const session = env.AGENT_BROWSER_SESSION ?? "";
-  if (env.AGENT_BROWSER_SOCKET_DIR) return join(env.AGENT_BROWSER_SOCKET_DIR, `${session}${suffix}`);
   const home = (process.platform === "win32" ? env.USERPROFILE : env.HOME) || homedir();
-  const base = env.XDG_RUNTIME_DIR ? join(env.XDG_RUNTIME_DIR, "agent-browser") : join(home, ".agent-browser");
+  const base = env.AGENT_BROWSER_SOCKET_DIR || (env.XDG_RUNTIME_DIR ? join(env.XDG_RUNTIME_DIR, "agent-browser") : join(home, ".agent-browser"));
   const namespace = env.AGENT_BROWSER_NAMESPACE;
   return join(namespace ? join(base, "namespaces", namespace, "run") : base, `${session}${suffix}`);
 }
@@ -185,11 +188,33 @@ function portInFile(path: string): number[] {
   } catch { return []; }
 }
 
-/** The stream servers of this machine's agent-browser daemons: agent-browser 0.37 upgrades a WebSocket from any origin. */
+/** Defensive port discovery includes other products/workspaces. It must never be used for process ownership. */
 export function agentBrowserStreamPorts(env: NodeJS.ProcessEnv = browserRuntimeEnv({ AGENT_BROWSER_SESSION: "omb" })): number[] {
-  const directory = dirname(browserDaemonFile(env, ".stream"));
-  try { return readdirSync(directory).filter((name) => name.endsWith(".stream")).flatMap((name) => portInFile(join(directory, name))); }
-  catch { return []; }
+  const home = (process.platform === "win32" ? env.USERPROFILE : env.HOME) || homedir();
+  const roots = new Set([
+    env.AGENT_BROWSER_SOCKET_DIR,
+    join(home, ".agent-browser"),
+    env.XDG_RUNTIME_DIR ? join(env.XDG_RUNTIME_DIR, "agent-browser") : undefined,
+  ].filter((root): root is string => Boolean(root)));
+  const ports = new Set<number>();
+  const scan = (directory: string) => {
+    try {
+      for (const entry of readdirSync(directory, { withFileTypes: true })) {
+        if (entry.isFile() && entry.name.endsWith(".stream")) {
+          for (const port of portInFile(join(directory, entry.name))) ports.add(port);
+        }
+      }
+    } catch { /* A stopped daemon or unavailable runtime root contributes no ports. */ }
+  };
+  for (const root of roots) {
+    scan(root);
+    try {
+      for (const entry of readdirSync(join(root, "namespaces"), { withFileTypes: true })) {
+        if (entry.isDirectory()) scan(join(root, "namespaces", entry.name, "run"));
+      }
+    } catch { /* Legacy runtimes have no namespaces. */ }
+  }
+  return [...ports];
 }
 
 /** The DevTools ports of the Chromes agent-browser launched, from the profiles it creates in the temp folder. */
@@ -552,7 +577,10 @@ export function agentBrowserIntegration(input: {
   launcher?: Record<string, string>;
 }): { command: string; args: string[]; env: Record<string, string> } {
   const sourceEnv = input.env ?? process.env;
+  const identity = browserRuntimeEnv({});
   const env: Record<string, string> = {
+    AGENT_BROWSER_NAMESPACE: identity.AGENT_BROWSER_NAMESPACE!,
+    AGENT_BROWSER_SOCKET_DIR: identity.AGENT_BROWSER_SOCKET_DIR!,
     AGENT_BROWSER_SESSION: input.session,
     // agent-browser's MCP server runs child CLI commands without its own global flags, so these go through the env.
     AGENT_BROWSER_NO_WEBMCP: "1",

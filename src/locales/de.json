@@ -2259,7 +2259,7 @@
   "onboarding.reel.demo.terminal.connection": "Wähle deine KI-Verbindung",
   "onboarding.reel.demo.terminal.apiKey": "API-Schlüssel",
   "onboarding.reel.demo.terminal.model": "Wähle dein Modell",
-  "onboarding.reel.demo.terminal.ready": "SPDBot bereit → http://127.0.0.1:8799",
+  "onboarding.reel.demo.terminal.ready": "SPDBot bereit → http://127.0.0.1:8899",
   "onboarding.reel.demo.terminal.name": "Dein Name",
   "onboarding.reel.demo.continue": "Weiter",
   "onboarding.reel.demo.hour": "{hour} Uhr",

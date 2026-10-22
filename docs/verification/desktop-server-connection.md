@@ -73,7 +73,7 @@ sidebar search → **Connect to a server…**, or open **Settings →
 Servers**. Enter the server's HTTPS address or full pairing link and an
 optional name. Confirm the host in the native dialog, then complete pairing or
 email sign-in on that server. To generate an owner link without the CLI's
-phone wizard, run `pnpm pair --label "SPDBot Desktop"` from the SPDBot repository
+phone wizard, run `pnpm spdbot pair --label "SPDBot Desktop"` from the SPDBot repository
 folder on the server after completing its source-install setup. Use the same
 port and data directory as the running server; pass `--port` and `--data-dir`
 if they are not the defaults. Alternatively, create a link in the server’s

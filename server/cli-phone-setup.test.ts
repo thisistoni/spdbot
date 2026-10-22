@@ -63,7 +63,7 @@ describe("phone origin validation", () => {
     "https://[::ffff:0.0.0.0]", "https://user:password@maus.example", "https://maus.example/pair",
     "https://maus.example/?token=secret", "https://maus.example/#code=ABCD-EFGH-JKLM",
     "https://maus.example/?", "https://maus.example/#", "https://maus.\nexample",
-    "https://maus.example\\private", "openmausbot://pair?token=secret",
+    "https://maus.example\\private", "spdbot://pair?token=secret",
   ])("rejects a local, credential-bearing or non-origin input: %s", (input) => {
     expect(normalizePhoneOrigin(input)).toBeNull();
   });
@@ -114,6 +114,40 @@ describe("optional phone setup", () => {
     expect(await runPhoneSetup(options, ui.io, deps)).toEqual({ options });
     expect(deps.accountReady).not.toHaveBeenCalled();
     expect(deps.login).not.toHaveBeenCalled();
+    ui.consumed();
+  });
+
+  it("does not inspect or reuse a saved account for an unsupported managed tunnel", async () => {
+    const deps = dependencies();
+    deps.accountReady.mockReturnValue(true);
+    const ui = prompts();
+    const input = { ...options, tunnel: true };
+    await expect(runPhoneSetup(input, ui.io, deps)).rejects.toThrow(/nicht verfügbar/);
+    expect(input).toEqual({ ...options, tunnel: true });
+    expect(deps.accountReady).not.toHaveBeenCalled();
+    expect(deps.login).not.toHaveBeenCalled();
+    ui.consumed();
+  });
+
+  it.each([1, new Error("secret-token-never-print")])("never starts managed sign-in or exposes its possible failure: %s", async (failure) => {
+    const deps = dependencies();
+    if (failure instanceof Error) deps.login.mockRejectedValue(failure);
+    else deps.login.mockResolvedValue(failure);
+    const ui = prompts();
+    await expect(runPhoneSetup({ ...options, tunnel: true }, ui.io, deps)).rejects.toThrow(/keine Verbindung geändert/);
+    expect(deps.login).not.toHaveBeenCalled();
+    expect(ui.lines.join("\n")).not.toContain("secret-token-never-print");
+    ui.consumed();
+  });
+
+  it("does not attempt sign-in or expose a failed credential inspection", async () => {
+    const deps = dependencies();
+    deps.accountReady.mockRejectedValue(new Error("credential-document-secret"));
+    const ui = prompts();
+    await expect(runPhoneSetup({ ...options, tunnel: true }, ui.io, deps)).rejects.toThrow(/nicht verfügbar/);
+    expect(deps.accountReady).not.toHaveBeenCalled();
+    expect(deps.login).not.toHaveBeenCalled();
+    expect(ui.lines.join("\n")).not.toContain("credential-document-secret");
     ui.consumed();
   });
 
