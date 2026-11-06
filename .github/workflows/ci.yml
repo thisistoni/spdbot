@@ -278,7 +278,9 @@ jobs:
     # PR's macOS checks live in this one job: macOS runners are the scarce
     # ones, and each extra job pays its own queue wait and install.
     name: macOS smokes (packaged server + Electron)
-    runs-on: macos-latest
+    # PRs use Intel capacity; main, merge queues and manual runs retain ARM.
+    # Both architectures run the same complete smoke suite.
+    runs-on: ${{ github.event_name == 'pull_request' && 'macos-15-intel' || 'macos-latest' }}
     timeout-minutes: 25
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1

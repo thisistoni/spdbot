@@ -77,11 +77,21 @@ describe("CI concurrency", () => {
 
   it("keeps each PR to one macOS job", () => {
     const macosJobs = Object.entries(workflow.jobs as Record<string, { "runs-on": string; strategy?: { matrix?: { os?: unknown } } }>)
-      .filter(([, job]) => job["runs-on"] === "macos-latest" || JSON.stringify(job.strategy?.matrix?.os ?? "").includes("macos"))
+      .filter(([, job]) => job["runs-on"].includes("macos") || JSON.stringify(job.strategy?.matrix?.os ?? "").includes("macos"))
       .map(([name]) => name);
     expect(macosJobs.sort()).toEqual(["electron-smokes"]);
     const smokes = workflow.jobs["electron-smokes"].steps.map((step: { run?: string }) => step.run);
     expect(smokes).toContain("pnpm test:packaged-server");
+  });
+
+  it("uses Intel capacity for PR smokes and preserves ARM validation for main and release runs", () => {
+    const expression = workflow.jobs["electron-smokes"]["runs-on"] as string;
+    const source = expression.match(/^\$\{\{\s*([\s\S]*?)\s*\}\}$/);
+    expect(source).not.toBeNull();
+    for (const event of ["pull_request", "push", "merge_group", "workflow_dispatch"]) {
+      const runner = runInNewContext(source![1], { github: { event_name: event } }, { timeout: 1000 });
+      expect(runner).toBe(event === "pull_request" ? "macos-15-intel" : "macos-latest");
+    }
   });
 
   it("checks delegated approval modes on the receipt's work thread, not the selected sibling", () => {
