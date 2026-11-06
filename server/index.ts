@@ -1,10 +1,10 @@
-import { guardPurchaseBackground } from "./purchase-background.ts";
-import { purchaseProvider } from "./purchase-provider.ts";
-import { purchaseAccess } from "./purchase-access.ts";
-import { guardPurchaseRoutines, installPurchaseRuntime } from "./purchase-runtime.ts";
-import type { DesktopPrivateMessage } from "./desktop-private-message.ts";
 // Import first: it reads a Cloud home's secrets off the launcher's pipe before any module can start a process.
 import { BOOT_CLOUD_SECRETS } from "./cloud-secrets-boot.ts";
+import { guardPurchaseBackground } from "./purchase-background.ts";
+import { purchaseProvider } from "./purchase-provider.ts";
+import { purchaseAccess, type ParentPort as UtilityParentPort } from "./purchase-access.ts";
+import { guardPurchaseRoutines, installPurchaseRuntime } from "./purchase-runtime.ts";
+import type { DesktopPrivateMessage } from "./desktop-private-message.ts";
 import { AsyncLocalStorage } from "node:async_hooks";
 import { createHash, randomBytes, randomUUID, timingSafeEqual } from "node:crypto";
 import { existsSync, readFileSync, realpathSync, rmSync } from "node:fs";
@@ -1602,10 +1602,6 @@ await registry.load(providerConfigs(), decorateHostedProvider);
 const bundledSkills = loadBundledSkills();
 const availableSkills = () => mergeSkills(bundledSkills, loadUserSkills(join(DATA_DIR, "skills")));
 
-type UtilityParentPort = {
-  on(event: "message", listener: (event: { data?: object }) => void): void;
-  postMessage(message: object): void;
-};
 // Only Electron's utility process supplies parentPort, private to the desktop main process; plain Node leaves it absent.
 const utilityParentPort = (process as NodeJS.Process & { parentPort?: UtilityParentPort }).parentPort;
 
@@ -1762,6 +1758,10 @@ utilityParentPort?.on("message", event => {
     utilityParentPort.postMessage({ type: "openmausbot:managed-desktop-result", requestId, ok: false, error: "Company connection could not be applied. Reconnect from desktop Settings." });
   });
 });
+
+// Start purchase possession only after the desktop's startup-message receivers
+// are registered. Merely importing a gate must not drain their private port.
+purchaseAccess.attach(utilityParentPort);
 
 // Identity, source thread, depth and route family come from this server-side record; caller fields are assertions, never authority.
 type InternalCapability = {

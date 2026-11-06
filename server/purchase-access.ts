@@ -6,7 +6,7 @@ import { PurchaseClock, type PurchaseClockState } from "../electron/purchase-clo
 import { deviceThumbprint, usableLease, validateSecurity, verifyToken, type PurchaseAuthority, type PurchaseSecurity } from "../electron/purchase-verifier.mjs";
 import { exact, opaque, possessionBytes, publicJwk } from "../electron/purchase-wire.mjs";
 
-type ParentPort = { on(event: "message", listener: (event: { data?: unknown }) => void): void; postMessage(value: unknown): void };
+export type ParentPort = { on(event: "message", listener: (event: { data?: unknown }) => void): void; postMessage(value: unknown): void };
 const error = () => Object.assign(new Error("SPDBot verbinden, um Aufgaben auszuführen."), { status: 402, code: "purchase_access_required" });
 
 // Restricted mode is an explicit read allowlist: new GET side effects and new routes fail closed.
@@ -35,6 +35,7 @@ export class PurchaseGate {
   private ready = false;
   private epoch = 0;
   private deadline = 0;
+  private parentPort: ParentPort | undefined;
 
   constructor({ authority = PURCHASE_AUTHORITY, clockOptions, trust = validateAuthority }: { authority?: PurchaseAuthority; clockOptions?: { wall?: () => number; mono?: () => number }; trust?: (authority: PurchaseAuthority) => unknown } = {}) {
     this.authority = authority; this.clockOptions = clockOptions; this.trust = trust;
@@ -135,7 +136,9 @@ export class PurchaseGate {
     return true;
   }
   attach(port: ParentPort | undefined) {
-    if (!port) return;
+    if (!port || this.parentPort === port) return;
+    if (this.parentPort) throw new Error("Purchase gate already has a private parent");
+    this.parentPort = port;
     port.on("message", event => {
       const m = event.data as { type?: unknown } | undefined;
       if (typeof m?.type !== "string" || !m.type.startsWith("spdbot:purchase-")) return;
@@ -149,6 +152,8 @@ export class PurchaseGate {
 
 // Every standalone backend/CLI starts restricted; only a private Electron parent can supply possession.
 export const purchaseAccess = new PurchaseGate();
-purchaseAccess.attach((process as NodeJS.Process & { parentPort?: ParentPort }).parentPort);
+// The entry attaches after its other private receivers. Electron starts draining
+// queued startup messages on the first listener; an import-time listener would
+// discard the desktop owner capability before index.ts can receive it.
 const timer = setInterval(() => { void purchaseAccess.check(); }, 250);
 timer.unref();

@@ -37,3 +37,5 @@ port.postMessage = message => {
   })().catch(() => { process.exitCode = 1; });
 };
 if (!prior) Object.defineProperty(process, "parentPort", { value: port });
+const { purchaseAccess } = await import("../purchase-access.ts");
+purchaseAccess.attach(port);

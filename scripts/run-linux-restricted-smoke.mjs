@@ -54,6 +54,7 @@ if (process.argv[2] !== "--child") {
   async function until(probe, label, timeout = 45_000) {
     const deadline = Date.now() + timeout;
     while (Date.now() < deadline) {
+      assert.ok(!output.includes("[smoke] renderer-failed"), `Packaged renderer failed waiting for ${label}\n${output}`);
       const result = await probe();
       if (result) return result;
       assert.ok(alive(), `Electron exited waiting for ${label}\n${output}`);

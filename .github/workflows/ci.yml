@@ -251,6 +251,9 @@ jobs:
           cache: pnpm
       - run: pnpm install --frozen-lockfile
       - run: pnpm test:packaged-server
+      - name: Verify private desktop authentication (Windows)
+        if: runner.os == 'Windows'
+        run: pnpm exec electron scripts/smoke-desktop-auth.cjs
 
   windows-cua:
     needs: static
@@ -304,6 +307,8 @@ jobs:
         # Builds dist-server/ and runs a copy of it outside the repo; the
         # phone-relay smoke below forks the same dist-server/index.js.
         run: pnpm test:packaged-server
+      - name: Verify private desktop authentication (macOS)
+        run: pnpm exec electron scripts/smoke-desktop-auth.cjs
       - name: Verify native approval mode transitions
         run: pnpm exec electron scripts/smoke-approval-modes.cjs
       - name: Verify app permissions and guarded display capture
