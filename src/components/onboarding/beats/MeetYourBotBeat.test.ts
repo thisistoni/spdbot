@@ -2,8 +2,6 @@ import { createElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { setLocale } from "@/lib/i18n";
-
-vi.mock("@/components/Avatar", () => ({ MausAvatar: () => null }));
 import { MeetYourBotBeat } from "./MeetYourBotBeat";
 
 beforeEach(() => setLocale("en"));

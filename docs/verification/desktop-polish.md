@@ -57,6 +57,15 @@ Targeted Vitest: 178 tests in 13 files passed. Targeted Node tests: 14 passed.
 `build:server`, icon regeneration check and `git diff --check` passed.
 Build warnings remain for CSS `::highlight` optimization and large chunks.
 
+## CI follow-up
+
+The full CI shard found an obsolete `MausAvatar` mock in
+`beats/MeetYourBotBeat.test.ts` after the component switched to `BotAvatar`.
+The missing-export failure was reproduced locally. Removing that mock lets the
+existing German form test render the real avatar; no application code changed.
+`corepack pnpm exec vitest run src/components/onboarding --reporter=dot` then
+passed all 72 tests in 14 files on Windows.
+
 ## Limits and release checks
 
 This is a native Windows Electron component/startup smoke, not an installed
