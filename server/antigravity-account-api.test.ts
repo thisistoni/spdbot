@@ -1,6 +1,7 @@
+import { spawnSourcePurchaseServer, sourcePurchaseHome } from "./testing/source-purchase-fixture.ts";
 // Real server and provider registry; only synthetic Google profiles and ACP.
-import { spawn, type ChildProcess } from "node:child_process";
-import { closeSync, copyFileSync, existsSync, mkdirSync, mkdtempSync, openSync, readFileSync, writeFileSync } from "node:fs";
+import { type ChildProcess } from "node:child_process";
+import { closeSync, copyFileSync, existsSync, mkdirSync, openSync, readFileSync, writeFileSync } from "node:fs";
 import { createHash } from "node:crypto";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
@@ -24,7 +25,7 @@ async function api(method: string, path: string, body?: unknown, headers: Record
 async function launch(port: number) {
   const log = openSync(logPath, "a", 0o600);
   try {
-    child = spawn(process.execPath, ["--experimental-strip-types", join(ROOT, "server/index.ts")], {
+    child = spawnSourcePurchaseServer(process.execPath, ["--experimental-strip-types", join(ROOT, "server/index.ts")], {
       cwd: ROOT, env: verificationServerEnvironment({}, home, port), stdio: ["ignore", log, log],
     });
   } finally { closeSync(log); }
@@ -34,7 +35,7 @@ async function launch(port: number) {
   }, { timeout: 20_000, interval: 100 });
 }
 beforeAll(async () => {
-  home = mkdtempSync(join(tmpdir(), "omb-google-accounts-"));
+  home = sourcePurchaseHome(join(tmpdir(), "omb-google-accounts-"));
   mkdirSync(join(home, "tmp"));
   const port = await freePortBlock([0, 1]); base = `http://127.0.0.1:${port}`;
   logPath = join(tmpdir(), `omb-google-accounts-${port}-${process.pid}.log`);

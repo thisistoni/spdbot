@@ -4,16 +4,19 @@
 const { app, utilityProcess } = require("electron");
 const assert = require("node:assert/strict");
 const { randomUUID, createHash } = require("node:crypto");
-const { mkdtempSync, mkdirSync, copyFileSync, chmodSync, writeFileSync, readFileSync, rmSync } = require("node:fs");
+const { mkdirSync, copyFileSync, chmodSync, writeFileSync, readFileSync, rmSync } = require("node:fs");
 const { tmpdir } = require("node:os");
-const { join, resolve } = require("node:path");
+const { dirname, join, resolve } = require("node:path");
+const { execFileSync } = require("node:child_process");
 const { createServer } = require("node:net");
 const { once } = require("node:events");
 const { setTimeout: delay } = require("node:timers/promises");
 const { createTrustedApprovalModeCoordinator } = require("../electron/approval-trusted-mode.cjs");
+const { sourcePurchaseHome, sourcePurchaseEnvironment } = require("../server/testing/source-purchase-fixture.ts");
 
 const root = resolve(__dirname, "..");
-const home = mkdtempSync(join(tmpdir(), "omb-approval-smoke-"));
+const home = sourcePurchaseHome(join(tmpdir(), "omb-approval-smoke-"));
+const nodeDirectory = dirname(execFileSync("node", ["-p", "process.execPath"], { encoding: "utf8", windowsHide: true }).trim());
 app.setPath("userData", join(home, "electron"));
 let child;
 let logs = "";
@@ -91,18 +94,18 @@ app.whenReady().then(async () => {
   const dump = join(home, "claude-argv.json");
   const testCapabilityKey = randomUUID();
   const coordinator = createTrustedApprovalModeCoordinator({ randomId: randomUUID });
-  child = utilityProcess.fork(join(root, "server/index.ts"), [], {
+  child = utilityProcess.fork(join(root, "server/testing/purchase-source-entry.mjs"), [], {
     cwd: root,
     execArgv: ["--experimental-strip-types"],
-    env: {
-      HOME: home, USERPROFILE: home, OMB_DATA_DIR: home, PATH: "",
+    env: sourcePurchaseEnvironment({
+      HOME: home, USERPROFILE: home, OMB_DATA_DIR: home, PATH: nodeDirectory, OMB_TEST_SEALED_PATH: "1",
       ...(process.env.SystemRoot ? { SystemRoot: process.env.SystemRoot } : {}),
       OMB_PORT: String(port), OMB_WEBHOOK_PORT: String(webhookPort),
       OMB_TEST_INTERNAL_CAPABILITY_KEY: testCapabilityKey,
       FAKE_CLAUDE_MODE: "happy", FAKE_CLAUDE_DUMP: dump,
       FAKE_ACP_MODE: "permission", FAKE_ACP_AUTH_METHOD: "oauth-personal",
       FAKE_ACP_MODELS: "gemini-3.8-flash-high,gemini-3.8-flash-low", FAKE_ACP_MODES: "default,yolo",
-    },
+    }),
     stdio: "pipe",
   });
   child.stdout.on("data", (chunk) => { logs += chunk; });
@@ -117,6 +120,8 @@ app.whenReady().then(async () => {
     return { status: response.status, body: await response.json() };
   };
   await until(() => api("/api/health").catch(() => null));
+  await until(async () => (await api("/api/instances")).body.instances
+    .find(instance => instance.instanceId === "claude")?.snapshot?.state === "available");
   const verifyUi = () => require("./testing/approval-ui-smoke.cjs")({ root, url: `http://127.0.0.1:${port}`, api, until,
     grant: (botId, mode, options) => coordinator.request(child, botId, mode, options),
   });
@@ -139,8 +144,12 @@ app.whenReady().then(async () => {
   }
   // One explicit grant covers old, archived and future threads, even if their
   // provider differs. Use the real private bridge, not fixture state edits.
-  const whole = (await api("/api/bots", "POST", { name: "All threads fixture", modelSelection: { instanceId: "claude", model: "claude-sonnet-5" } })).body.bot;
-  const untouched = (await api("/api/bots", "POST", { name: "Unrelated bot" })).body.bot;
+  const wholeResponse = await api("/api/bots", "POST", { name: "All threads fixture", modelSelection: { instanceId: "claude", model: "claude-sonnet-5" } });
+  assert.equal(wholeResponse.status, 201, JSON.stringify(wholeResponse.body));
+  const whole = wholeResponse.body.bot;
+  const untouchedResponse = await api("/api/bots", "POST", { name: "Unrelated bot" });
+  assert.equal(untouchedResponse.status, 201, JSON.stringify(untouchedResponse.body));
+  const untouched = untouchedResponse.body.bot;
   await coordinator.request(child, whole.id, "ask");
   const threads = [];
   for (const [instanceId, model] of [["claude", "claude-sonnet-5"], ["codex", "gpt-6-astra"], ["grok-reads", "grok-4.6"], ["agy", "gemini-3.8-flash-high"]]) {
@@ -437,6 +446,9 @@ app.whenReady().then(async () => {
   console.error(error);
   process.exitCode = 1;
 }).finally(async () => {
+  const evidence = join(tmpdir(), `spdbot-approval-smoke-${Date.now()}.log`);
+  writeFileSync(evidence, logs);
+  console.log(`Fixture log: ${evidence}`);
   if (child?.pid) {
     const exited = once(child, "exit");
     child.kill();

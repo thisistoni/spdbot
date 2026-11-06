@@ -1,8 +1,9 @@
+import { spawnSourcePurchaseServer, sourcePurchaseHome } from "./testing/source-purchase-fixture.ts";
 // Real server, fake Claude CLI, and a loopback Boat that fails the test on any call to Boat's own agent
 // (/prompt, /prompts/{id}, /events, /interrupt).
-import { spawn, type ChildProcess } from "node:child_process";
+import { type ChildProcess } from "node:child_process";
 import { createServer, type Server } from "node:http";
-import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
@@ -79,7 +80,7 @@ function install(home: string, boatPort: () => number) {
     const port = await freePortBlock([0, 1]);
     base = `http://127.0.0.1:${port}`;
     output = "";
-    const proc = spawn(process.execPath, [join(ROOT, "server/index.ts")], {
+    const proc = spawnSourcePurchaseServer(process.execPath, [join(ROOT, "server/index.ts")], {
       cwd: ROOT, env: {
         PATH: dirname(process.execPath), ...(process.env.SystemRoot ? { SystemRoot: process.env.SystemRoot } : {}),
         HOME: home, USERPROFILE: home, OMB_DATA_DIR: data,
@@ -128,7 +129,7 @@ describe("removing the Computer engine", () => {
   const agentCalls: string[] = [];
   const boatPort = () => (boatServer.address() as { port: number }).port;
   const fresh = () => {
-    const home = mkdtempSync(join(tmpdir(), "omb-computer-engine-"));
+    const home = sourcePurchaseHome(join(tmpdir(), "omb-computer-engine-"));
     homes.push(home);
     const server = install(home, boatPort);
     running.push(server);

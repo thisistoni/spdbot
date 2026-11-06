@@ -1,3 +1,4 @@
+import { spawnSourcePurchaseServer, sourcePurchaseHome } from "./testing/source-purchase-fixture.ts";
 // The config pins one deliberately unknown driver, so the suite is deterministic with or without agent CLIs installed.
 import { HIGHLEVEL_TOOLS } from "./highlevel/tools.js";
 import { spawn, type ChildProcess } from "node:child_process";
@@ -379,7 +380,7 @@ const statusWithHeaders = (headers: Record<string, string>): Promise<number> =>
   });
 
 beforeAll(async () => {
-  home = mkdtempSync(join(tmpdir(), "omb-api-test-"));
+  home = sourcePurchaseHome(join(tmpdir(), "omb-api-test-"));
   writeFileSync(join(home, "fake-agent-browser"), "#!/bin/sh\nexit 0\n", { mode: 0o755 });
   staticDir = join(home, "static");
   fakeClaudeDump = join(home, "fake-claude-dump.json");
@@ -450,6 +451,8 @@ beforeAll(async () => {
   writeFileSync(
     join(home, ".spdbot", "config.json"),
     JSON.stringify({
+      // Search and seeded-message assertions below use an explicit fixture locale.
+      language: "en",
       // generated titles are opt-in; this suite owns the one-shot's reply file (FAKE_CLAUDE_TEXT_FILE below)
       features: { llmThreadTitles: true, browser: false },
       instances: {
@@ -1181,7 +1184,7 @@ beforeAll(async () => {
     };
     syncBuiltinESMExports();
   `)}`;
-  child = spawn(process.execPath, ["--import", browserPrelude, join(SERVER_DIR, "index.ts")], {
+  child = spawnSourcePurchaseServer(process.execPath, ["--import", browserPrelude, join(SERVER_DIR, "index.ts")], {
     cwd: ROOT,
     env: {
       ...(process.env.PATH ? { PATH: process.env.PATH } : {}),
@@ -1292,7 +1295,7 @@ describe("harness HTTP API", () => {
   });
 
   it("restores a live unanswered provider question after a server restart", async () => {
-    const isolatedHome = mkdtempSync(join(tmpdir(), "omb-question-restart-"));
+    const isolatedHome = sourcePurchaseHome(join(tmpdir(), "omb-question-restart-"));
     const isolatedData = join(isolatedHome, ".spdbot");
     const isolatedStatic = join(isolatedHome, "static");
     const isolatedDump = join(isolatedHome, "fake-claude-dump.json");
@@ -1311,7 +1314,7 @@ describe("harness HTTP API", () => {
     let activeServer: { child: ChildProcess; stderr: () => string } | undefined;
     const startServer = () => {
       let capturedStderr = "";
-      const serverChild = spawn(process.execPath, [join(SERVER_DIR, "index.ts")], {
+      const serverChild = spawnSourcePurchaseServer(process.execPath, [join(SERVER_DIR, "index.ts")], {
         cwd: ROOT,
         env: {
           ...(process.env.PATH ? { PATH: process.env.PATH } : {}),
@@ -3558,7 +3561,7 @@ describe("harness HTTP API", () => {
     const requestId = randomUUID();
     const section = `Park machine ${requestId.slice(0, 8)}`;
     // The main fixture runs the production ceiling (minutes); this test boots its own server with a seconds-scale cap.
-    const isolatedHome = mkdtempSync(join(tmpdir(), "omb-computer-wait-park-"));
+    const isolatedHome = sourcePurchaseHome(join(tmpdir(), "omb-computer-wait-park-"));
     const isolatedData = join(isolatedHome, ".spdbot");
     const isolatedStatic = join(isolatedHome, "static");
     const isolatedPort = await freePortBlock([0, 1]);
@@ -3572,7 +3575,7 @@ describe("harness HTTP API", () => {
       },
     }));
     let isolatedStderr = "";
-    const isolatedChild = spawn(process.execPath, [join(SERVER_DIR, "index.ts")], {
+    const isolatedChild = spawnSourcePurchaseServer(process.execPath, [join(SERVER_DIR, "index.ts")], {
       cwd: ROOT,
       env: {
         ...(process.env.PATH ? { PATH: process.env.PATH } : {}),
@@ -3745,7 +3748,7 @@ describe("harness HTTP API", () => {
     const requestId = randomUUID();
     const section = `Park goal machine ${requestId.slice(0, 8)}`;
     // An isolated server with a seconds-scale computer wait ceiling, plus scripted coordinator replies.
-    const isolatedHome = mkdtempSync(join(tmpdir(), "omb-computer-wait-goal-"));
+    const isolatedHome = sourcePurchaseHome(join(tmpdir(), "omb-computer-wait-goal-"));
     const isolatedData = join(isolatedHome, ".spdbot");
     const isolatedStatic = join(isolatedHome, "static");
     const isolatedPort = await freePortBlock([0, 1]);
@@ -3797,7 +3800,7 @@ describe("harness HTTP API", () => {
       },
     }));
     let isolatedStderr = "";
-    const isolatedChild = spawn(process.execPath, [join(SERVER_DIR, "index.ts")], {
+    const isolatedChild = spawnSourcePurchaseServer(process.execPath, [join(SERVER_DIR, "index.ts")], {
       cwd: ROOT,
       env: {
         ...(process.env.PATH ? { PATH: process.env.PATH } : {}),
@@ -5333,7 +5336,7 @@ describe("harness HTTP API", () => {
   });
 
   it("carries a Full bot's access across engines silently, and keeps Custom bots on Codex", async () => {
-    const isolatedHome = mkdtempSync(join(tmpdir(), "omb-trusted-mode-model-"));
+    const isolatedHome = sourcePurchaseHome(join(tmpdir(), "omb-trusted-mode-model-"));
     const isolatedData = join(isolatedHome, ".spdbot");
     const isolatedStatic = join(isolatedHome, "static");
     const isolatedPort = await freePortBlock([0, 1]);
@@ -5373,7 +5376,7 @@ describe("harness HTTP API", () => {
     writeFileSync(join(isolatedData, "bots.json"), JSON.stringify([...trustedBots, carrier, customThread]));
 
     let isolatedStderr = "";
-    const isolatedChild = spawn(process.execPath, [join(SERVER_DIR, "index.ts")], {
+    const isolatedChild = spawnSourcePurchaseServer(process.execPath, [join(SERVER_DIR, "index.ts")], {
       cwd: ROOT,
       env: {
         ...(process.env.PATH ? { PATH: process.env.PATH } : {}),
@@ -6525,7 +6528,7 @@ describe("harness HTTP API", () => {
   });
 
   it("keeps credential-card ownership stable while an encrypted phone save is in flight", async () => {
-    const isolatedHome = mkdtempSync(join(tmpdir(), "omb-phone-secret-races-"));
+    const isolatedHome = sourcePurchaseHome(join(tmpdir(), "omb-phone-secret-races-"));
     const isolatedData = join(isolatedHome, ".spdbot");
     const isolatedStatic = join(isolatedHome, "static");
     const isolatedGate = join(isolatedHome, "credential-gate");
@@ -6600,7 +6603,7 @@ describe("harness HTTP API", () => {
       });
     `)}`;
     let isolatedStderr = "";
-    const isolatedChild = spawn(
+    const isolatedChild = spawnSourcePurchaseServer(
       process.execPath,
       ["--import", desktopPrelude, join(SERVER_DIR, "index.ts")],
       {
@@ -9602,7 +9605,7 @@ describe("harness HTTP API", () => {
     }
   }, 60_000);
   it("reconciles a committed crash-stale bot reference before ACK and profile-id reuse", async () => {
-    const isolatedHome = mkdtempSync(join(tmpdir(), "omb-browser-cleanup-restart-"));
+    const isolatedHome = sourcePurchaseHome(join(tmpdir(), "omb-browser-cleanup-restart-"));
     const isolatedData = join(isolatedHome, ".spdbot");
     const isolatedStatic = join(isolatedHome, "static");
     const isolatedPort = await freePortBlock([0, 1]);
@@ -9657,7 +9660,7 @@ describe("harness HTTP API", () => {
       });
     `)}`;
     let isolatedStderr = "";
-    const isolatedChild = spawn(
+    const isolatedChild = spawnSourcePurchaseServer(
       process.execPath,
       ["--import", ackDesktopPrelude, join(SERVER_DIR, "index.ts")],
       {

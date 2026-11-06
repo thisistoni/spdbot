@@ -5,7 +5,7 @@ import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { expect, it } from "vitest";
-import { launchVerificationServer, runControlOmb, verificationServerEnvironment } from "../scripts/control-omb.ts";
+import { verificationServerArgs, launchVerificationServer, runControlOmb, verificationServerEnvironment } from "../scripts/control-omb.ts";
 import type { WireBot } from "../shared/wire.ts";
 import { CAPTURE_MARKER } from "./memory-capture.ts";
 import { waitForExit } from "./testing/cleanup.ts";
@@ -46,9 +46,11 @@ it.skipIf(process.platform === "win32")("captures a turn that was still waiting 
 
     const config = JSON.parse(readFileSync(join(dataDir, "config.json"), "utf8"));
     writeFileSync(join(dataDir, "config.json"), JSON.stringify({ ...config, memory: { ...config.memory, captureQuietMs: 1_000 } }, null, 2));
-    restarted = spawn(process.execPath, ["--experimental-strip-types", join(ROOT, "server", "index.ts")], {
+    const purchaseEnv: NodeJS.ProcessEnv = verificationServerEnvironment(parentEnv, dataDir, Number(new URL(url).port));
+    purchaseEnv.OMB_TEST_PURCHASE = "fixture";
+    restarted = spawn(process.execPath, verificationServerArgs(purchaseEnv), {
       cwd: ROOT,
-      env: verificationServerEnvironment(parentEnv, dataDir, Number(new URL(url).port)),
+      env: purchaseEnv,
       stdio: "ignore",
     });
     await expect.poll(async () => {

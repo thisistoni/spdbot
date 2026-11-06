@@ -16,6 +16,8 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { createRequire } from "node:module";
 import { LICENSE_FILES } from "./cua-linux-release.mjs";
+import { packageIdentity, restrictedMarker } from "./linux-package-identity.mjs";
+import { assertRestrictedResources } from "./ci-restricted-builder.mjs";
 import {
   CLOUDFLARED_ASSETS,
   CLOUDFLARED_VERSION,
@@ -27,6 +29,14 @@ const { validateDriverCandidate } = require("../electron/cua-linux.cjs");
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const releaseDir = path.resolve(process.argv[2] ?? path.join(root, "release"));
+const identity = packageIdentity(process.argv[3]);
+const restricted = identity.name !== "spdbot";
+if (restricted) {
+  for (const name of readdirSync(releaseDir)) {
+    if (/^latest.*\.ya?ml$/.test(name)) fail(`CI fixture emitted update metadata: ${name}`);
+    if (/\.(?:deb|AppImage)$/.test(name) && !name.startsWith("SPDBot-CI-RESTRICTED-NOT-FOR-DISTRIBUTION-")) fail(`ambiguous CI artifact: ${name}`);
+  }
+}
 
 function fail(message) {
   throw new Error(`[verify-linux-package] ${message}`);
@@ -69,6 +79,11 @@ function requirePackageType(resources, label, expected) {
 }
 
 function requireUpdaterTarget(resources, label) {
+  if (restricted) {
+    assertRestrictedResources(resources);
+    if (readFileSync(path.join(resources, "CI-RESTRICTED-NOT-FOR-DISTRIBUTION"), "utf8") !== restrictedMarker) fail(`${label} missing CI identity`);
+    return;
+  }
   const updateFile = path.join(resources, "app-update.yml");
   requireFile(updateFile);
   const update = readFileSync(updateFile, "utf8");
@@ -397,7 +412,7 @@ function verifyCloudflaredResources(resources, label, { directoryMode = 0o755 } 
 const appImage = exactlyOne(".AppImage");
 const deb = exactlyOne(".deb");
 const unpacked = path.join(releaseDir, "linux-unpacked");
-const executable = path.join(unpacked, "spdbot");
+const executable = path.join(unpacked, identity.name);
 const resources = path.join(unpacked, "resources");
 
 requireExecutable(appImage);
@@ -421,7 +436,7 @@ const fields = execFileSync(
   { encoding: "utf8" },
 );
 for (const expected of [
-  "Package: spdbot",
+  `Package: ${identity.name}`,
   "Architecture: amd64",
   "Maintainer: Milind Soni",
   "Section: utils",
@@ -433,11 +448,12 @@ for (const expected of [
 const extracted = mkdtempSync(path.join(tmpdir(), "omb-deb-verify-"));
 try {
   execFileSync("dpkg-deb", ["--extract", deb, extracted]);
-  const debAppRoot = path.join(extracted, "opt", "SPDBot");
+  const debAppRoot = path.join(extracted, "opt", identity.product);
   requireDirectoryMode(debAppRoot, 0o755);
   const debResources = path.join(debAppRoot, "resources");
-  // Routes the in-app updater to the package-manager hand-off.
-  requirePackageType(debResources, "DEB", "deb");
+  // FpmTarget emits this updater marker only with a publish configuration.
+  // Restricted packages deliberately have neither a feed nor an updater marker.
+  requirePackageType(debResources, "DEB", restricted ? null : "deb");
   requireUpdaterTarget(debResources, "DEB");
   const debHashes = verifyCuaResources(debResources, "DEB");
   const debCloudflaredHash = verifyCloudflaredResources(debResources, "DEB");
@@ -453,7 +469,7 @@ try {
     "usr",
     "share",
     "applications",
-    "de.spdlabs.spdbot.desktop",
+    `${identity.appId}.desktop`,
   );
   const scalableIcon = path.join(
     extracted,
@@ -463,16 +479,16 @@ try {
     "hicolor",
     "scalable",
     "apps",
-    "spdbot.svg",
+    `${identity.name}.svg`,
   );
   requireFile(desktopFile);
   requireFile(scalableIcon);
   const desktop = readFileSync(desktopFile, "utf8");
   for (const expected of [
-    "Name=SPDBot",
-    "Exec=/opt/SPDBot/spdbot %U",
-    "Icon=spdbot",
-    "StartupWMClass=de.spdlabs.spdbot",
+    `Name=${identity.product}`,
+    `Exec=/opt/${identity.product}/${identity.name} %U`,
+    `Icon=${identity.name}`,
+    `StartupWMClass=${identity.appId}`,
     "Categories=Utility;",
   ]) {
     if (!desktop.includes(expected)) fail(`desktop entry is missing ${JSON.stringify(expected)}`);

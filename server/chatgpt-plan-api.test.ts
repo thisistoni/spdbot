@@ -1,6 +1,7 @@
+import { spawnSourcePurchaseServer, sourcePurchaseHome } from "./testing/source-purchase-fixture.ts";
 // Real HTTP server, disposable home, fake CLI; OAuth stops before its callback.
-import { spawn, type ChildProcess } from "node:child_process";
-import { closeSync, existsSync, mkdirSync, mkdtempSync, openSync, readFileSync, writeFileSync } from "node:fs";
+import { type ChildProcess } from "node:child_process";
+import { closeSync, existsSync, mkdirSync, openSync, readFileSync, writeFileSync } from "node:fs";
 import { createHash } from "node:crypto";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
@@ -48,7 +49,7 @@ function expectSignedOut(instance: Record<string, any>) {
 }
 
 beforeAll(async () => {
-  home = mkdtempSync(join(tmpdir(), "omb-chatgpt-api-"));
+  home = sourcePurchaseHome(join(tmpdir(), "omb-chatgpt-api-"));
   mkdirSync(join(home, "tmp"));
   const port = await freePortBlock([0, 1]);
   base = `http://127.0.0.1:${port}`;
@@ -60,7 +61,7 @@ beforeAll(async () => {
   } }));
   const log = openSync(logPath, "a", 0o600);
   try {
-    child = spawn(process.execPath, ["--experimental-strip-types", join(ROOT, "server/index.ts")], {
+    child = spawnSourcePurchaseServer(process.execPath, ["--experimental-strip-types", join(ROOT, "server/index.ts")], {
       cwd: ROOT, env: verificationServerEnvironment({}, home, port), stdio: ["ignore", log, log],
     });
   } finally { closeSync(log); }

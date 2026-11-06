@@ -1,9 +1,9 @@
 import { spawn, type ChildProcess } from "node:child_process";
 import { closeSync, existsSync, openSync, readFileSync, writeFileSync } from "node:fs";
-import { dirname, join } from "node:path";
+import { join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { expect, it } from "vitest";
-import { launchVerificationServer, runControlOmb } from "../scripts/control-omb.ts";
+import { launchVerificationServer, runControlOmb, verificationServerArgs, verificationServerEnvironment } from "../scripts/control-omb.ts";
 import { waitForExit } from "./testing/cleanup.ts";
 
 it("retains empty teams, moves existing bots, and keeps legacy imports additive through restart", async () => {
@@ -75,22 +75,12 @@ it("retains empty teams, moves existing bots, and keeps legacy imports additive 
     await api("/api/sidebar-sections?section=missing", "DELETE", undefined, 404);
 
     await waitForExit(fixture.child, { signal: "SIGTERM" });
-    const env: NodeJS.ProcessEnv = {};
-    for (const key of ["SYSTEMROOT", "WINDIR", "COMSPEC", "PATHEXT", "LANG", "LC_ALL", "TZ"]) {
-      if (process.env[key]) env[key] = process.env[key];
-    }
-    Object.assign(env, {
-      HOME: dataDir, USERPROFILE: dataDir, OMB_DATA_DIR: dataDir,
-      APPDATA: join(dataDir, "AppData", "Roaming"), LOCALAPPDATA: join(dataDir, "AppData", "Local"),
-      XDG_CONFIG_HOME: join(dataDir, ".config"), XDG_CACHE_HOME: join(dataDir, ".cache"),
-      XDG_DATA_HOME: join(dataDir, ".local", "share"), HERMES_HOME: join(dataDir, ".hermes"),
-      TEMP: join(dataDir, "tmp"), TMP: join(dataDir, "tmp"), TMPDIR: join(dataDir, "tmp"),
-      OMB_PORT: new URL(url).port, OMB_WEBHOOK_PORT: String(Number(new URL(url).port) + 1),
-      PATH: dirname(process.execPath), FAKE_CLAUDE_MODE: "happy",
-    });
+    const env = verificationServerEnvironment(process.env, dataDir, Number(new URL(url).port));
+    // Retain the signed source fixture across both restarts, just as at launch.
+    env.OMB_TEST_PURCHASE = "fixture";
     const restartFixture = async () => {
       const log = openSync(logPath, "a", 0o600);
-      restarted = spawn(process.execPath, ["--experimental-strip-types", fileURLToPath(new URL("./index.ts", import.meta.url))], {
+      restarted = spawn(process.execPath, verificationServerArgs(env), {
         cwd: fileURLToPath(new URL("..", import.meta.url)), env, stdio: ["ignore", log, log],
       });
       closeSync(log);

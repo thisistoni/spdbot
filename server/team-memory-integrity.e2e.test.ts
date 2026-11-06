@@ -4,7 +4,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { expect, it } from "vitest";
-import { launchVerificationServer, verificationServerEnvironment } from "../scripts/control-omb.ts";
+import { verificationServerArgs, launchVerificationServer, verificationServerEnvironment } from "../scripts/control-omb.ts";
 import { waitForExit } from "./testing/cleanup.ts";
 import { CAPTURE_MARKER } from "./memory-capture.ts";
 import type { TeamMemoryEntry } from "./team-memory.ts";
@@ -26,9 +26,11 @@ it("preserves team identity, rejects stale writes and searches omitted shared no
   try {
     await waitForExit(fixture.child, { signal: "SIGTERM" });
     const log = openSync(fixture.info.logPath, "a", 0o600);
-    child = spawn(process.execPath, ["--experimental-strip-types", fileURLToPath(new URL("./index.ts", import.meta.url))], {
+    const purchaseEnv: NodeJS.ProcessEnv = { ...verificationServerEnvironment({ FAKE_CLAUDE_TEXT_ROUTES: routes }, fixture.info.dataDir, Number(new URL(fixture.info.url).port)), OMB_TEST_INTERNAL_CAPABILITY_KEY: capabilityKey };
+    purchaseEnv.OMB_TEST_PURCHASE = "fixture";
+    child = spawn(process.execPath, verificationServerArgs(purchaseEnv), {
       cwd: fileURLToPath(new URL("..", import.meta.url)), stdio: ["ignore", log, log],
-      env: { ...verificationServerEnvironment({ FAKE_CLAUDE_TEXT_ROUTES: routes }, fixture.info.dataDir, Number(new URL(fixture.info.url).port)), OMB_TEST_INTERNAL_CAPABILITY_KEY: capabilityKey },
+      env: purchaseEnv,
     });
     closeSync(log);
     await expect.poll(async () => { try { return (await fetch(fixture.info.url + "/api/health")).ok; } catch { return false; } }, { timeout: 30_000 }).toBe(true);

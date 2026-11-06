@@ -4,7 +4,7 @@ import { createServer } from "node:http";
 import { dirname, isAbsolute, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { expect, it } from "vitest";
-import { launchVerificationServer, runControlOmb } from "../scripts/control-omb.ts";
+import { verificationServerArgs, launchVerificationServer, runControlOmb } from "../scripts/control-omb.ts";
 import { waitForExit } from "./testing/cleanup.ts";
 
 // Deliberate opt-in: never discover the user's CLI; the supplied binary runs against synthetic config and an owned loopback API.
@@ -86,8 +86,10 @@ test("persists per-conversation OpenCode efforts and sends them through ACP afte
   const restart = async () => {
     await waitForExit(restarted ?? fixture.child, { signal: "SIGTERM" });
     const log = openSync(logPath, "a", 0o600);
-    restarted = spawn(process.execPath, ["--experimental-strip-types", fileURLToPath(new URL("./index.ts", import.meta.url))], {
-      cwd: fileURLToPath(new URL("..", import.meta.url)), env: isolatedEnv, stdio: ["ignore", log, log],
+    const purchaseEnv: NodeJS.ProcessEnv = isolatedEnv;
+    purchaseEnv.OMB_TEST_PURCHASE = "fixture";
+    restarted = spawn(process.execPath, verificationServerArgs(purchaseEnv), {
+      cwd: fileURLToPath(new URL("..", import.meta.url)), env: purchaseEnv, stdio: ["ignore", log, log],
     });
     closeSync(log);
     await expect.poll(async () => {

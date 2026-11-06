@@ -1,6 +1,7 @@
-import { spawn, type ChildProcess } from "node:child_process";
+import { spawnSourcePurchaseServer, sourcePurchaseHome } from "./testing/source-purchase-fixture.ts";
+import { type ChildProcess } from "node:child_process";
 import { request } from "node:http";
-import { mkdirSync, mkdtempSync, writeFileSync } from "node:fs";
+import { mkdirSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -117,7 +118,7 @@ async function pairingCode(scopes?: string[]): Promise<{ code: string; credentia
 }
 
 beforeAll(async () => {
-  home = mkdtempSync(join(tmpdir(), "omb-remote-test-"));
+  home = sourcePurchaseHome(join(tmpdir(), "omb-remote-test-"));
   const staticDir = join(home, "static");
   mkdirSync(join(home, ".spdbot"), { recursive: true });
   mkdirSync(join(staticDir, "assets"), { recursive: true });
@@ -129,7 +130,7 @@ beforeAll(async () => {
     vps: { sshAlias: "fixture-private-host" },
     browserProfiles: [{ id: "fixture", name: "Fixture browser", partitionId: "fixture-private-partition" }],
   }));
-  child = spawn(process.execPath, [join(SERVER_DIR, "index.ts")], {
+  child = spawnSourcePurchaseServer(process.execPath, [join(SERVER_DIR, "index.ts")], {
     cwd: ROOT,
     env: {
       ...(process.env.PATH ? { PATH: process.env.PATH } : {}),

@@ -1,8 +1,8 @@
 // Boots the real harness behind the real proxy: the bugs this design can have
 // live in the seam between them.
-import { spawn, type ChildProcess } from "node:child_process";
+import { type ChildProcess } from "node:child_process";
 import { createServer, request, type IncomingMessage, type Server } from "node:http";
-import { mkdirSync, mkdtempSync, writeFileSync } from "node:fs";
+import { mkdirSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -13,6 +13,7 @@ import { MAX_SSE_EVENT_BYTES } from "../src/wire.ts";
 import { createConnectedDeviceTracker } from "../src/connected-devices.ts";
 import type { CompanionEndpoint } from "../src/endpoints.ts";
 import { removeTempDir, waitForExit } from "../../server/testing/cleanup.ts";
+import { sourcePurchaseHome, spawnSourcePurchaseServer } from "../../server/testing/source-purchase-fixture.ts";
 
 const HERE = dirname(fileURLToPath(import.meta.url));
 const ROOT = join(HERE, "..", "..");
@@ -105,14 +106,14 @@ beforeAll(async () => {
   HARNESS = `http://127.0.0.1:${HARNESS_PORT}`;
   SIDECAR = `http://127.0.0.1:${SIDECAR_PORT}`;
 
-  home = mkdtempSync(join(tmpdir(), "companion-test-"));
+  home = sourcePurchaseHome(join(tmpdir(), "companion-test-"));
   mkdirSync(join(home, ".spdbot"), { recursive: true });
   writeFileSync(
     join(home, ".spdbot", "config.json"),
     JSON.stringify({ instances: { ghost: { driver: "not-a-real-driver", displayName: "Ghost" } } }),
   );
 
-  harness = spawn(process.execPath, [join(ROOT, "server", "index.ts")], {
+  harness = spawnSourcePurchaseServer(process.execPath, [join(ROOT, "server", "index.ts")], {
     cwd: ROOT,
     env: {
       ...(process.env.PATH ? { PATH: process.env.PATH } : {}),

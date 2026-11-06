@@ -6917,5 +6917,15 @@
   "botttsAvatar.resetFraming": "Reset framing",
   "botttsAvatar.preview": "{name} avatar preview",
   "botttsAvatar.uploadError": "The uploaded image could not be used as an avatar",
-  "botttsAvatar.display": "Display"
+  "botttsAvatar.display": "Display",
+  "purchase.active": "SPDBot connected",
+  "purchase.required": "Connect your SPDBot purchase",
+  "purchase.connecting": "Waiting for browser confirmation",
+  "purchase.connect": "Connect SPDBot",
+  "purchase.refresh": "Verify access",
+  "purchase.signOut": "Disconnect",
+  "purchase.reset": "Reset connection",
+  "purchase.clock": "Verify your system clock and reconnect",
+  "purchase.storage": "Secure access storage unavailable",
+  "purchase.unavailable": "Access service unavailable"
 }

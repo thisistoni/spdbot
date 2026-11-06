@@ -7,7 +7,7 @@ import { delimiter, dirname, join } from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
 import { expect, it } from "vitest";
 
-import { launchVerificationServer, runControlOmb, verificationServerEnvironment } from "../scripts/control-omb.ts";
+import { verificationServerArgs, launchVerificationServer, runControlOmb, verificationServerEnvironment } from "../scripts/control-omb.ts";
 import { request } from "../scripts/mcp-server.ts";
 import { ENVELOPE_MARK } from "./runtime/envelope.ts";
 import { waitForExit } from "./testing/cleanup.ts";
@@ -155,8 +155,10 @@ async function fixture(test: (f: any) => Promise<void>, options: { env?: NodeJS.
       writeFileSync(join(dataDir, "bots.json"), JSON.stringify(bots, null, 2));
       const env = { ...verificationServerEnvironment(parentEnv, dataDir, Number(new URL(session.info.url).port)), ...extraEnv };
       const log = openSync(session.info.logPath, "a", 0o600);
-      restarted = spawn(process.execPath, ["--experimental-strip-types", fileURLToPath(new URL("./index.ts", import.meta.url))],
-        { cwd: fileURLToPath(new URL("..", import.meta.url)), env, stdio: ["ignore", log, log] });
+      const purchaseEnv: NodeJS.ProcessEnv = env;
+      purchaseEnv.OMB_TEST_PURCHASE = "fixture";
+      restarted = spawn(process.execPath, verificationServerArgs(purchaseEnv),
+        { cwd: fileURLToPath(new URL("..", import.meta.url)), env: purchaseEnv, stdio: ["ignore", log, log] });
       closeSync(log);
       await expect.poll(async () => {
         try { return (await fetch(`${session.info.url}/api/health`, { signal: AbortSignal.timeout(1_000) })).ok; } catch { return false; }

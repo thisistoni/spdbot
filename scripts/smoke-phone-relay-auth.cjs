@@ -4,18 +4,23 @@
 const { app, utilityProcess } = require("electron");
 const assert = require("node:assert/strict");
 const { randomBytes } = require("node:crypto");
-const { mkdtempSync, writeFileSync, rmSync } = require("node:fs");
+const { writeFileSync, rmSync } = require("node:fs");
 const { tmpdir } = require("node:os");
-const { join, resolve } = require("node:path");
+const { dirname, isAbsolute, join, resolve } = require("node:path");
+const { execFileSync } = require("node:child_process");
 const { createServer } = require("node:net");
 const { once } = require("node:events");
 const { setTimeout: delay } = require("node:timers/promises");
+const { sourcePurchaseHome } = require("../server/testing/source-purchase-fixture.ts");
+const { buildPurchaseServerFixture, attachPurchaseFixtureParent } = require("./testing/purchase-server-fixture.mjs");
 
 const root = resolve(__dirname, "..");
-const home = mkdtempSync(join(tmpdir(), "omb-phone-auth-smoke-"));
+const home = sourcePurchaseHome(join(tmpdir(), "omb-phone-auth-smoke-"));
+const nodeDirectory = dirname(execFileSync("node", ["-p", "process.execPath"], { encoding: "utf8", windowsHide: true }).trim());
 app.setPath("userData", join(home, "electron"));
 const children = [];
 let logs = "";
+let purchaseError;
 const owner = randomBytes(32).toString("base64url");
 const relay = randomBytes(32).toString("base64url");
 const control = randomBytes(32).toString("base64url");
@@ -31,6 +36,7 @@ async function freePort() {
 async function until(check) {
   const deadline = Date.now() + 40_000;
   do {
+    if (purchaseError) throw purchaseError;
     const result = await check();
     if (result) return result;
     await delay(100);
@@ -46,7 +52,7 @@ async function api(port, path, method = "GET", body, headers = {}) {
   return { status: response.status, body: await response.json() };
 }
 function fork(entry, env) {
-  const child = utilityProcess.fork(join(root, entry), [], {
+  const child = utilityProcess.fork(isAbsolute(entry) ? entry : join(root, entry), [], {
     cwd: root, env, stdio: "pipe",
   });
   children.push(child);
@@ -62,17 +68,33 @@ app.whenReady().then(async () => {
     claude: { driver: "claudeAgent", config: { cli: join(root, "server/testing/fake-claude-cli.ts") } },
   } }));
   const env = {
-    HOME: home, USERPROFILE: home, OMB_DATA_DIR: home, PATH: "",
+    HOME: home, USERPROFILE: home, OMB_DATA_DIR: home, PATH: nodeDirectory, OMB_TEST_SEALED_PATH: "1",
     ...(process.env.SystemRoot ? { SystemRoot: process.env.SystemRoot } : {}),
     OMB_PORT: String(harnessPort), OMB_WEBHOOK_PORT: String(webhookPort),
     OMB_COMPANION_PORT: String(phonePort), OMB_CONTROL_PORT: String(controlPort),
     FAKE_CLAUDE_MODE: "happy",
   };
-  const harness = fork("dist-server/index.js", { ...env, OMB_DESKTOP_PARENT: "1" });
+  // The ordinary compiled artifact stays restricted even with the authentic
+  // desktop owner capability. Only the separate TEMP bundle below has test pins.
+  const restricted = fork("dist-server/index.js", { ...env, OMB_DESKTOP_PARENT: "1" });
+  await until(() => api(harnessPort, "/api/health").catch(() => null));
+  restricted.postMessage({ type: "openmausbot:desktop-mutation-token", token: owner, companionToken: relay });
+  const denied = await until(async () => {
+    const response = await api(harnessPort, "/api/bots", "POST", {}, { "x-openmausbot-desktop-owner": owner });
+    return response.status !== 403 && response;
+  });
+  assert.equal(denied.status, 402, JSON.stringify(denied.body));
+  assert.equal(denied.body.code, "purchase_access_required");
+  const restrictedExited = once(restricted, "exit"); restricted.kill(); await restrictedExited;
+  const fixtureEntry = await buildPurchaseServerFixture(home);
+  const harness = fork(fixtureEntry, { ...env, OMB_DESKTOP_PARENT: "1" });
+  const purchaseFailure = attachPurchaseFixtureParent(harness);
+  // Surface a failed proof instead of leaving the smoke waiting for HTTP.
+  void purchaseFailure.catch(error => { purchaseError = error; });
   await until(() => api(harnessPort, "/api/health").catch(() => null));
   assert.equal((await api(harnessPort, "/api/bots", "POST", {})).status, 403);
   harness.postMessage({ type: "openmausbot:desktop-mutation-token", token: owner, companionToken: relay });
-  const sidecar = fork("dist-companion/index.js", env);
+  const sidecar = fork("scripts/testing/phone-sidecar-fixture.mjs", env);
   // The app hands over the control token at spawn, as Electron main does; the relay credential comes later.
   sidecar.once("spawn", () => sidecar.postMessage({ type: "openmausbot:companion-mutation-token", controlToken: control }));
   await until(() => api(controlPort, "/state", "GET", undefined, controlHeaders).catch(() => null));
@@ -111,7 +133,7 @@ app.whenReady().then(async () => {
   await sidecarExited;
   const nextRelay = randomBytes(32).toString("base64url");
   harness.postMessage({ type: "openmausbot:desktop-mutation-token", token: owner, companionToken: nextRelay });
-  const restarted = fork("dist-companion/index.js", env);
+  const restarted = fork("scripts/testing/phone-sidecar-fixture.mjs", env);
   restarted.once("spawn", () => restarted.postMessage({ type: "openmausbot:companion-mutation-token", token: nextRelay, controlToken: control }));
   await until(() => phone("/api/bots").then((r) => r.status === 200).catch(() => false));
   assert.equal((await phone(`/api/bots/${id}/read`, "POST", {})).status, 200);
@@ -120,22 +142,31 @@ app.whenReady().then(async () => {
   assert.equal((await phone("/api/internal/anything", "POST", {})).status, 404);
   assert.equal((await api(controlPort, `/devices/${paired.body.device.id}`, "DELETE", undefined, controlHeaders)).status, 200);
   assert.equal((await phone(`/api/bots/${id}/read`, "POST", {})).status, 401);
+  assert.ok((logs.match(/fixture: loopback companion bound/g) ?? []).length >= 2, "both compiled sidecar generations bound only loopback");
   console.log(JSON.stringify({ passed: true, realPairing: true, old403Reproduced: true,
     botCreated: true, readMarked: true, replyVerified: true, forgedHeadersIgnored: true,
-    unpairedAndRevokedDenied: true, bootstrapFailsClosed: true, existingPairingAfterRestart: true, controlTokenRequired: true }));
+    unpairedAndRevokedDenied: true, bootstrapFailsClosed: true, existingPairingAfterRestart: true, controlTokenRequired: true,
+    shippingBundleRestricted: true, isolatedPublicTrustBundle: true, loopbackSidecar: true }));
 }).catch((error) => {
   console.error(error);
   process.exitCode = 1;
 }).finally(async () => {
-  const evidence = join(tmpdir(), `omb-phone-auth-${Date.now()}.log`);
-  writeFileSync(evidence, logs.replaceAll(owner, "[redacted]").replaceAll(relay, "[redacted]").replaceAll(control, "[redacted]"));
-  console.log(`Fixture log: ${evidence}`);
-  for (const child of children.reverse()) {
-    if (!child.pid) continue;
-    const exited = once(child, "exit");
-    child.kill();
-    await Promise.race([exited, delay(5000)]);
+  try {
+    const evidence = join(tmpdir(), `omb-phone-auth-${Date.now()}.log`);
+    writeFileSync(evidence, logs.replaceAll(owner, "[redacted]").replaceAll(relay, "[redacted]").replaceAll(control, "[redacted]"));
+    console.log(`Fixture log: ${evidence}`);
+    for (const child of children.reverse()) {
+      if (!child.pid) continue;
+      const exited = once(child, "exit");
+      child.kill();
+      await Promise.race([exited, delay(5000)]);
+    }
+    // Chromium can finish a preference write just after the utility children exit.
+    rmSync(home, { recursive: true, force: true, maxRetries: 10, retryDelay: 100 });
+  } catch (error) {
+    console.error(error);
+    process.exitCode = 1;
+  } finally {
+    app.exit(process.exitCode || 0);
   }
-  rmSync(home, { recursive: true, force: true });
-  app.exit(process.exitCode || 0);
 });

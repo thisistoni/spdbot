@@ -1,9 +1,10 @@
+import { sourcePurchaseHome, sourcePurchaseEnvironment, sourcePurchaseServerArgs } from "./testing/source-purchase-fixture.ts";
 // A real server started the way a Cloud home's root supervisor starts it: the environment is what cloudHomeChildEnvironments
 // hands the server from the image's ENV, and the secrets come over the launcher's pipe. The 1Password SDK is a fake kept
 // where the image keeps the real one, in the native-module tree OMB_DUCKDB_DIR names. Disposable home; no network.
 import { randomBytes } from "node:crypto";
 import { type ChildProcess } from "node:child_process";
-import { mkdirSync, mkdtempSync, readFileSync, writeFileSync } from "node:fs";
+import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 import { createInterface } from "node:readline";
@@ -115,10 +116,10 @@ async function startCloudHome(at: string, tree: string, port: number, onLog: (ch
   const imageEnv = { PATH: process.env.PATH, OMB_DUCKDB_DIR: tree, ...contract };
   const { server, secrets } = cloudHomeChildEnvironments(cloudHomeConfiguration(imageEnv)!, imageEnv, at);
   const offline = `data:text/javascript,${encodeURIComponent('const real = globalThis.fetch; globalThis.fetch = async (url, init) => String(url).startsWith("http://127.0.0.1:") ? real(url, init) : new Response("offline fixture", { status: 503 });')}`;
-  const started = spawnWithSecrets(process.execPath, ["--import", offline, join(SERVER_DIR, "index.ts")], {
+  const started = spawnWithSecrets(process.execPath, sourcePurchaseServerArgs(["--import", offline, join(SERVER_DIR, "index.ts")]), sourcePurchaseEnvironment({
     ...server, OMB_PORT: String(port), OMB_WEBHOOK_PORT: String(port + 1), USERPROFILE: at,
     ...(process.env.SystemRoot ? { SystemRoot: process.env.SystemRoot } : {}),
-  }, secrets, null, true);
+  }), secrets, null, true);
   let seen = "";
   const capture = (chunk: Buffer) => { seen += chunk; onLog(String(chunk)); };
   started.stdout?.on("data", capture);
@@ -133,7 +134,7 @@ async function startCloudHome(at: string, tree: string, port: number, onLog: (ch
 }
 
 beforeAll(async () => {
-  home = mkdtempSync(join(tmpdir(), "omb-cloud-1password-"));
+  home = sourcePurchaseHome(join(tmpdir(), "omb-cloud-1password-"));
   const dataDir = join(home, ".spdbot");
   mkdirSync(dataDir, { recursive: true });
   const cli = join(home, "fixture-claude.mjs");
@@ -160,7 +161,7 @@ afterAll(async () => {
 });
 
 it("when an image lacks the SDK, says so plainly and never blames the token", async () => {
-  const other = mkdtempSync(join(tmpdir(), "omb-cloud-1password-missing-"));
+  const other = sourcePurchaseHome(join(tmpdir(), "omb-cloud-1password-missing-"));
   const port = await freePortBlock([0, 1]);
   let missingLog = "";
   const started = await startCloudHome(other, join(other, "empty-tree"), port, (chunk) => { missingLog += chunk; });

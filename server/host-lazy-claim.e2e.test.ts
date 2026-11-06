@@ -1,5 +1,6 @@
-import { spawn, type ChildProcess } from "node:child_process";
-import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { spawnSourcePurchaseServer, sourcePurchaseHome } from "./testing/source-purchase-fixture.ts";
+import { type ChildProcess } from "node:child_process";
+import { existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
@@ -77,7 +78,7 @@ describe("lazy host claim and pin on use (issue #1650)", () => {
     const port = await freePortBlock([0, 1]);
     base = `http://127.0.0.1:${port}`;
     output = "";
-    const proc = spawn(process.execPath, ["--import", pathToFileURL(join(ROOT, "server/testing/group-local-vm-hooks.mjs")).href, join(ROOT, "server/index.ts")], {
+    const proc = spawnSourcePurchaseServer(process.execPath, ["--import", pathToFileURL(join(ROOT, "server/testing/group-local-vm-hooks.mjs")).href, join(ROOT, "server/index.ts")], {
       cwd: ROOT, env: {
         PATH: dirname(process.execPath), ...(process.env.SystemRoot ? { SystemRoot: process.env.SystemRoot } : {}),
         HOME: home, USERPROFILE: home, OMB_DATA_DIR: data,
@@ -107,7 +108,7 @@ describe("lazy host claim and pin on use (issue #1650)", () => {
   const itAutoHost = process.platform === "linux" ? it.skip : it;
 
   beforeAll(async () => {
-    home = mkdtempSync(join(tmpdir(), "omb-host-lazy-claim-"));
+    home = sourcePurchaseHome(join(tmpdir(), "omb-host-lazy-claim-"));
     data = join(home, "data");
     ui = join(home, "static");
     stateFile = join(home, "vm.json");

@@ -4,7 +4,7 @@ import { createServer, type Server } from "node:http";
 import { join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { afterAll, beforeAll, expect, it } from "vitest";
-import { launchVerificationServer, verificationServerEnvironment, type VerificationServer } from "../scripts/control-omb.ts";
+import { verificationServerArgs, launchVerificationServer, verificationServerEnvironment, type VerificationServer } from "../scripts/control-omb.ts";
 import { SessionRegistry } from "./sessions.ts";
 import { waitForExit } from "./testing/cleanup.ts";
 
@@ -112,10 +112,12 @@ beforeAll(async () => {
   member = sessions.issue({ label: "isolated member", email: "member@fixture.test", scopes: ["client"] }).token;
   sessions.close();
   const log = openSync(fixture.info.logPath, "a", 0o600);
-  child = spawn(process.execPath, ["--experimental-strip-types", fileURLToPath(new URL("./index.ts", import.meta.url))], {
+  const purchaseEnv: NodeJS.ProcessEnv = { ...verificationServerEnvironment({}, fixture.info.dataDir, Number(new URL(fixture.info.url).port)),
+      OMB_TEST_INTERNAL_CAPABILITY_KEY: key, OMB_COMPOSIO_API: brokerOrigin + "/api", OMB_COMPOSIO_TOOLKITS_API: brokerOrigin + "/api" };
+  purchaseEnv.OMB_TEST_PURCHASE = "fixture";
+  child = spawn(process.execPath, verificationServerArgs(purchaseEnv), {
     cwd: fileURLToPath(new URL("..", import.meta.url)),
-    env: { ...verificationServerEnvironment({}, fixture.info.dataDir, Number(new URL(fixture.info.url).port)),
-      OMB_TEST_INTERNAL_CAPABILITY_KEY: key, OMB_COMPOSIO_API: brokerOrigin + "/api", OMB_COMPOSIO_TOOLKITS_API: brokerOrigin + "/api" },
+    env: purchaseEnv,
     stdio: ["ignore", log, log],
   });
   closeSync(log);

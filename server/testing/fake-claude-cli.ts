@@ -11,6 +11,7 @@
 //   FAKE_CLAUDE_MCP_FAILED  comma list of MCP servers init reports as failed (`mcp_servers`)
 //   FAKE_CLAUDE_RELEASE  with hang: the turn ends normally once this file exists
 //   FAKE_CLAUDE_DUMP  path for the latest turn's {argv, env, cwd, prompt, systemPrompt, mcpConfig}
+//   FAKE_CLAUDE_BOT_DUMP_DIR  optional existing directory retaining each bot's latest turn independently
 //   FAKE_CLAUDE_EXIT_AFTER_TURN  1: exit once the turn is answered, so later turns relaunch with --resume
 //   FAKE_CLAUDE_AUTH_AFTER_TURN  1: from the second turn, answer as not-logged-in; FAKE_CLAUDE_AUTH_AFTER_WORK  1: not-logged-in
 //     calls a tool first
@@ -572,10 +573,12 @@ const playTurn = (prompt: JsonValue, late = false) => {
   if (process.env.FAKE_CLAUDE_PROMPTS) appendFileSync(process.env.FAKE_CLAUDE_PROMPTS, `${JSON.stringify(prompt)}\n`);
   if (!late && process.env.FAKE_CLAUDE_DUMP) {
     launchFiles ??= readLaunchFiles();
-    writeDumpAtomic(
-      process.env.FAKE_CLAUDE_DUMP,
-      JSON.stringify({ pid: process.pid, argv, env: process.env, cwd: process.cwd(), prompt, ...launchFiles }, null, 2),
-    );
+    const dump = JSON.stringify({ pid: process.pid, argv, env: process.env, cwd: process.cwd(), prompt, ...launchFiles }, null, 2);
+    writeDumpAtomic(process.env.FAKE_CLAUDE_DUMP, dump);
+    const botId = (launchFiles.mcpConfig as { mcpServers?: { agents?: { env?: { OMB_BOT_ID?: string } } } } | null)?.mcpServers?.agents?.env?.OMB_BOT_ID;
+    if (process.env.FAKE_CLAUDE_BOT_DUMP_DIR && botId) {
+      writeDumpAtomic(join(process.env.FAKE_CLAUDE_BOT_DUMP_DIR, `${encodeURIComponent(botId)}.json`), dump);
+    }
   }
 
   if (process.env.FAKE_CLAUDE_ROUTER_PING === "1" && process.env.ANTHROPIC_BASE_URL) {

@@ -4,7 +4,7 @@ import { createServer } from "node:http";
 import { join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { expect, it } from "vitest";
-import { launchVerificationServer, runControlOmb, verificationServerEnvironment } from "../../scripts/control-omb.ts";
+import { verificationServerArgs, launchVerificationServer, runControlOmb, verificationServerEnvironment } from "../../scripts/control-omb.ts";
 import { DATA_ROUTES, DATA_TOOL_NAMES, type DataCard, type DataSheet } from "../../shared/data-surface.ts";
 import { waitForExit } from "../testing/cleanup.ts";
 
@@ -27,9 +27,11 @@ it("loads, queries, shows, pages, renders and exports through the real server", 
     // Restarted with the capability key the bot-side calls need.
     await waitForExit(fixture.child, { signal: "SIGTERM" });
     const log = openSync(logPath, "a", 0o600);
-    server = spawn(process.execPath, ["--experimental-strip-types", fileURLToPath(new URL("../index.ts", import.meta.url))], {
+    const purchaseEnv: NodeJS.ProcessEnv = { ...verificationServerEnvironment({}, dataDir, Number(new URL(url).port)), OMB_TEST_INTERNAL_CAPABILITY_KEY: CAPABILITY_KEY };
+    purchaseEnv.OMB_TEST_PURCHASE = "fixture";
+    server = spawn(process.execPath, verificationServerArgs(purchaseEnv), {
       cwd: fileURLToPath(new URL("../..", import.meta.url)),
-      env: { ...verificationServerEnvironment({}, dataDir, Number(new URL(url).port)), OMB_TEST_INTERNAL_CAPABILITY_KEY: CAPABILITY_KEY },
+      env: purchaseEnv,
       stdio: ["ignore", log, log],
     });
     closeSync(log);

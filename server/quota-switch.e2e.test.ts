@@ -1,6 +1,6 @@
 // The fake CLI plays the frames Claude Code 2.1.295 sent past its weekly limit.
-import { spawn, type ChildProcess } from "node:child_process";
-import { closeSync, existsSync, mkdirSync, mkdtempSync, openSync, readFileSync, writeFileSync } from "node:fs";
+import { type ChildProcess } from "node:child_process";
+import { closeSync, existsSync, mkdirSync, openSync, readFileSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -9,6 +9,7 @@ import { runControlOmb, verificationServerArgs, verificationServerEnvironment } 
 import { removeTempDir, waitForExit } from "./testing/cleanup.ts";
 import { readHandoffs } from "./testing/handoff-rows.ts";
 import { freePortBlock } from "./testing/ports.ts";
+import { sourcePurchaseHome, spawnSourcePurchaseServer } from "./testing/source-purchase-fixture.ts";
 
 const LIMITED = "Limited Claude";
 const BACKUP = "Backup Claude";
@@ -28,7 +29,7 @@ async function withQuotaFixture(
 ) {
   const port = await freePortBlock([0, 1]);
   const url = `http://127.0.0.1:${port}`;
-  const dataDir = mkdtempSync(join(tmpdir(), "openmausbot-quota-switch-"));
+  const dataDir = sourcePurchaseHome(join(tmpdir(), "openmausbot-quota-switch-"));
   mkdirSync(join(dataDir, "tmp"), { recursive: true });
   const evidenceDir = join(tmpdir(), "openmausbot-verification-evidence");
   mkdirSync(evidenceDir, { recursive: true });
@@ -70,7 +71,7 @@ async function withQuotaFixture(
   try {
     const env = { ...verificationServerEnvironment({}, dataDir, port), ...options.env };
     const log = openSync(logPath, "a", 0o600);
-    server = spawn(process.execPath, verificationServerArgs(env), {
+    server = spawnSourcePurchaseServer(process.execPath, verificationServerArgs(env), {
       cwd: fileURLToPath(new URL("..", import.meta.url)), env, stdio: ["ignore", log, log],
     });
     closeSync(log);

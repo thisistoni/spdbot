@@ -1,9 +1,8 @@
 import { spawn, type ChildProcess } from "node:child_process";
 import { closeSync, existsSync, openSync, readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
-import { fileURLToPath } from "node:url";
 import { expect, it } from "vitest";
-import { launchVerificationServer, runControlOmb, verificationServerEnvironment } from "../scripts/control-omb.ts";
+import { verificationServerArgs, launchVerificationServer, runControlOmb, verificationServerEnvironment } from "../scripts/control-omb.ts";
 import { request } from "../scripts/mcp-server.ts";
 import { waitForExit } from "./testing/cleanup.ts";
 
@@ -51,8 +50,10 @@ async function setup(hang: boolean, fakeEnv: NodeJS.ProcessEnv) {
         await waitForExit(restarted ?? session.child, { signal: "SIGTERM" });
         beforeLaunch?.();
         const log = openSync(session.info.logPath, "a", 0o600);
-        restarted = spawn(process.execPath, ["--experimental-strip-types", fileURLToPath(new URL("./index.ts", import.meta.url))], {
-          cwd: process.cwd(), env: verificationServerEnvironment(env, session.info.dataDir, Number(new URL(session.info.url).port)), stdio: ["ignore", log, log],
+        const purchaseEnv: NodeJS.ProcessEnv = verificationServerEnvironment(env, session.info.dataDir, Number(new URL(session.info.url).port));
+        purchaseEnv.OMB_TEST_PURCHASE = "fixture";
+        restarted = spawn(process.execPath, verificationServerArgs(purchaseEnv), {
+          cwd: process.cwd(), env: purchaseEnv, stdio: ["ignore", log, log],
         });
         closeSync(log);
         await expect.poll(async () => {

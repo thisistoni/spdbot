@@ -1,5 +1,10 @@
 // Import first: it reads a Cloud home's secrets off the launcher's pipe before any module can start a process.
 import { BOOT_CLOUD_SECRETS } from "./cloud-secrets-boot.ts";
+import { guardPurchaseBackground } from "./purchase-background.ts";
+import { purchaseProvider } from "./purchase-provider.ts";
+import { purchaseAccess, type ParentPort as UtilityParentPort } from "./purchase-access.ts";
+import { guardPurchaseRoutines, installPurchaseRuntime } from "./purchase-runtime.ts";
+import type { DesktopPrivateMessage } from "./desktop-private-message.ts";
 import { AsyncLocalStorage } from "node:async_hooks";
 import { createHash, randomBytes, randomUUID, timingSafeEqual } from "node:crypto";
 import { existsSync, readFileSync, realpathSync, rmSync } from "node:fs";
@@ -62,7 +67,6 @@ import { claudeAccountInfo } from "./claude-accounts.ts";
 import {
   BrowserCleanupCoordinator,
   requireBrowserCleanupAcknowledged,
-  type BrowserCleanupWireRequest,
 } from "./browser-lifecycle-cleanup.ts";
 import * as checkpoints from "./checkpoints.ts";
 import { commandReceipt } from "./commands.ts";
@@ -582,7 +586,8 @@ import {
   type PhoneSecretContext,
 } from "./phone-secret.ts";
 // Keep these two last, so loading the route table leaves module start-up order as is.
-import { gzipTunnelReplies, json, onJsonBody, parsedBodyOf, readBody } from "./harness/http.ts";
+import { readBody } from "./purchase-http.ts";
+import { gzipTunnelReplies, json, onJsonBody, parsedBodyOf } from "./harness/http.ts";
 import { PASS, ROUTES, dispatchRoutes } from "./routes/table.ts"; import { createXResearchInternalRoutes } from "./routes/x-research.ts";
 import { createHostedSlackRoutes } from "./routes/hosted-slack.ts";
 import { createBotPresetRoutes } from "./routes/bot-presets.ts";
@@ -771,7 +776,7 @@ const FALLBACK_PUBLIC_URL = process.env.OMB_PUBLIC_URL?.trim().replace(/\/+$/, "
 const cfg = loadConfig();
 const hostedModels = hostedModelPolicy(DATA_DIR);
 const providerConfigs = () => hostedModels ? hostedModels.configs() : instanceConfigs(cfg);
-const decorateHostedProvider = hostedModels ? (instance: ProviderInstance) => hostedModels.decorate(instance) : undefined;
+const decorateHostedProvider = (instance: ProviderInstance) => purchaseProvider(hostedModels ? hostedModels.decorate(instance) : instance);
 if (hostedModels) {
   const selection = hostedModels.select(cfg.defaultModelSelection);
   if (selection.instanceId && JSON.stringify(selection) !== JSON.stringify(cfg.defaultModelSelection)) saveConfig({ defaultModelSelection: selection });
@@ -1597,38 +1602,9 @@ await registry.load(providerConfigs(), decorateHostedProvider);
 const bundledSkills = loadBundledSkills();
 const availableSkills = () => mergeSkills(bundledSkills, loadUserSkills(join(DATA_DIR, "skills")));
 
-type UtilityParentPort = {
-  on(event: "message", listener: (event: { data?: object }) => void): void;
-  postMessage(message: object): void;
-};
 // Only Electron's utility process supplies parentPort, private to the desktop main process; plain Node leaves it absent.
 const utilityParentPort = (process as NodeJS.Process & { parentPort?: UtilityParentPort }).parentPort;
-type DesktopPrivateMessage = BrowserCleanupWireRequest | import("./login-handoff.ts").LoginHandoffResult | {
-  type: "openmausbot:browser-control";
-  botId: string;
-  held: true;
-} | {
-  type: "openmausbot:phone-secret-save";
-  requestId: string;
-  target: string;
-  value: string;
-} | {
-  type: "approval-trusted-mode-result" | "approval-trusted-mode-commit-result";
-  requestId: string;
-  ok: boolean;
-  bot?: ReturnType<typeof wireBot>;
-  error?: string;
-} | {
-  type: "approval-trusted-mode-confirm-result";
-  requestId: string;
-  ok: boolean;
-  error?: string;
-} | {
-  type: "approval-trusted-mode-activate-result" | "approval-trusted-mode-finalize-result";
-  requestId: string;
-  ok: boolean;
-  error?: string;
-};
+
 function postDesktopPrivateMessage(message: DesktopPrivateMessage): boolean {
   if (!utilityParentPort) return false;
   try {
@@ -1782,6 +1758,10 @@ utilityParentPort?.on("message", event => {
     utilityParentPort.postMessage({ type: "openmausbot:managed-desktop-result", requestId, ok: false, error: "Company connection could not be applied. Reconnect from desktop Settings." });
   });
 });
+
+// Start purchase possession only after the desktop's startup-message receivers
+// are registered. Merely importing a gate must not drain their private port.
+purchaseAccess.attach(utilityParentPort);
 
 // Identity, source thread, depth and route family come from this server-side record; caller fields are assertions, never authority.
 type InternalCapability = {
@@ -8234,6 +8214,7 @@ async function startTurn(
     coordination?: { id: string; resumed: boolean; settle: (outcome: HostTurnResult) => void };
   },
 ) {
+  purchaseAccess.assertNow(); // Keep admission through the dispatch reservation synchronous.
   workspaceMaintenance.assertAvailable();
   const profile = store.bot(botId);
   if (!profile) throw Object.assign(new Error("no such bot"), { status: 404 });
@@ -9563,6 +9544,7 @@ routines = new RoutineManager({
     notify(buildNotification("routine-deferred", routineSourceOwner(run)?.bot ?? bot, routineSourceThread(run) ?? bot.threadId, detail));
   },
 });
+guardPurchaseRoutines(routines);
 // Settle Cloud ownership before anything is served and before any routine can run.
 if (CLOUD_HOME && CLOUD_OWNER_KEY && cloudRoutineAuthors) {
   cloudHome = settleCloudHome({ file: join(DATA_DIR, "cloud-owner.json"), machineId: CLOUD_HOME.machineId, ownerKey: CLOUD_OWNER_KEY, nobodyKey: CLOUD_NOBODY_KEY,
@@ -13959,6 +13941,7 @@ const handleRequest = async (req: IncomingMessage, res: ServerResponse) => {
     }
     if (!gate.auth) return json(res, gate.status, { error: gate.error });
     const auth = gate.auth;
+    if (!(await purchaseAccess.admit(req, res, path, method))) return;
     if (HOSTED_WORKSPACE && auth.kind === "session") {
       const failure = workspaceAccess
         ? await workspaceAccess.authorize(req, auth)
@@ -17053,9 +17036,17 @@ const handleRequest = async (req: IncomingMessage, res: ServerResponse) => {
   }
 };
 
+installPurchaseRuntime({ routines: () => routines, restrict: () => {
+  revokeAllInternalCapabilities();
+  browserLive.closeAll();
+  desktopViewer.closeAll();
+  void liveCalls.shutdown();
+  for (const instance of registry.instances()) void instance.adapter.stopAll().catch(() => {});
+} });
 const server = createServer(handleRequest);
 upgrades.attach(server, handleRequest);
 
+guardPurchaseBackground(calendarCalls);
 calendarCalls.start();
 
 // Resolve the edition before accepting requests so /api/edition is never a guess.
@@ -17158,6 +17149,9 @@ restoreChannelMessages();
 server.listen(PORT, "127.0.0.1", async () => {
   companyRuntimeReady();
   console.log(`spdbot server on http://127.0.0.1:${PORT}`);
+  guardPurchaseBackground(appTriggers);
+  guardPurchaseBackground(memoryUpkeep);
+  guardPurchaseBackground(chromeLauncher);
   browserSweep.start(); appTriggers.start(); startCloudHomeConnectedApps({ cloudHome: CLOUD_HOME !== null, dataDir: DATA_DIR, cloudGrant: CLOUD_ENV.OMB_CLOUD_CONNECTED_APPS_GRANT, apply: (access) => { composio.setManagedBrokerAccess(access); broadcast({ kind: "config", ...configStatus() }); } });
   if (builtInBrowserEnabled(cfg)) chromeLauncher.start();
   followupsReady = true;

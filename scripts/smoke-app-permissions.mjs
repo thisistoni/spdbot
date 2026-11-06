@@ -70,12 +70,27 @@ async function run() {
       // Electron can capture this fixture's WebContents without screen access.
       screenPreview.invokeDisplayMediaCallback(callback, allowed ? { video: request.frame } : {});
     });
-    const capture = expression => win.webContents.executeJavaScript(`
-      (${expression}).then(stream => {
-        const tracks = stream.getTracks().map(track => track.kind);
-        stream.getTracks().forEach(track => track.stop());
-        return { tracks };
-      }).catch(error => ({ error: error.name }))`, true);
+    const capture = async expression => {
+      let timer;
+      try {
+        return await Promise.race([
+          win.webContents.executeJavaScript(`
+            (${expression}).then(stream => {
+              const tracks = stream.getTracks().map(track => track.kind);
+              stream.getTracks().forEach(track => track.stop());
+              return { tracks };
+            }).catch(error => ({ error: error.name }))`, true),
+          new Promise((_, reject) => {
+            timer = setTimeout(() => reject(new Error(
+              `Permission smoke: ${expression} did not settle within 10s at ${win.webContents.getURL()} ` +
+              `(Electron ${process.versions.electron}, Chromium ${process.versions.chrome}; fake devices enabled)`,
+            )), 10_000);
+          }),
+        ]);
+      } finally {
+        clearTimeout(timer);
+      }
+    };
     const microphone = "navigator.mediaDevices.getUserMedia({audio:true})";
     const camera = "navigator.mediaDevices.getUserMedia({video:true})";
     const display = "navigator.mediaDevices.getDisplayMedia({video:true,audio:false})";

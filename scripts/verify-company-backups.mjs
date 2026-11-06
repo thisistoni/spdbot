@@ -409,7 +409,7 @@ if (process.versions.electron && process.argv.includes(flag)) {
   const { createServer } = await import("vite");
   const { default: react } = await import("@vitejs/plugin-react");
   const { default: tailwindcss } = await import("@tailwindcss/vite");
-  const { launchVerificationServer, runControlOmb } = await import("./control-omb.ts");
+  const { launchVerificationServer, runControlOmb, verificationServerArgs, verificationServerEnvironment } = await import("./control-omb.ts");
   const { waitForExit } = await import("../server/testing/cleanup.ts");
   const fixture = await launchVerificationServer({});
   let runtime = fixture.child, child, ui, restartTask;
@@ -421,14 +421,16 @@ if (process.versions.electron && process.argv.includes(flag)) {
     assert.equal(resolve(config.instances.claude.config.cli), join(root, "server/testing/fake-claude-cli.ts"));
     const home = join(fixture.info.dataDir, "providers", "fixture-home"), temporary = join(fixture.info.dataDir, "tmp");
     mkdirSync(home, { recursive: true }); mkdirSync(temporary, { recursive: true });
-    const env = { PATH: dirname(process.execPath), HOME: home, USERPROFILE: home, XDG_CONFIG_HOME: join(home, ".config"),
+    const env = { ...verificationServerEnvironment({}, fixture.info.dataDir, Number(new URL(fixture.info.url).port)),
+      PATH: dirname(process.execPath), HOME: home, USERPROFILE: home, XDG_CONFIG_HOME: join(home, ".config"),
       XDG_CACHE_HOME: join(home, ".cache"), XDG_DATA_HOME: join(home, ".local/share"), APPDATA: join(home, "AppData/Roaming"), LOCALAPPDATA: join(home, "AppData/Local"),
       TEMP: temporary, TMP: temporary, TMPDIR: temporary, HERMES_HOME: join(home, ".hermes"), OMB_DATA_DIR: fixture.info.dataDir,
       OMB_PORT: new URL(fixture.info.url).port, OMB_WEBHOOK_PORT: String(Number(new URL(fixture.info.url).port) + 1),
       FAKE_CLAUDE_MODE: "happy", FAKE_CLAUDE_DUMP: fixture.fixtureDumpPath };
+    env.OMB_TEST_PURCHASE = "fixture";
     for (const key of ["SYSTEMROOT", "WINDIR", "COMSPEC", "PATHEXT", "LANG", "LC_ALL", "TZ"]) if (process.env[key]) env[key] = process.env[key];
     const log = openSync(fixture.info.logPath, "a", 0o600);
-    runtime = spawn(process.execPath, ["--experimental-strip-types", join(root, "server/index.ts")], { cwd: root, env, stdio: ["ignore", log, log] }); closeSync(log);
+    runtime = spawn(process.execPath, verificationServerArgs(env), { cwd: root, env, stdio: ["ignore", log, log] }); closeSync(log);
     for (let attempt = 0; attempt < 300; attempt++) {
       if (runtime.exitCode !== null || runtime.signalCode !== null) throw new Error("Owned backup runtime exited during restart");
       try { const response = await fetch(`${fixture.info.url}/api/health`, { signal: AbortSignal.timeout(1_000) }); if (response.ok && (await response.json()).pid === runtime.pid) return; } catch { /* Exact owned PID handshake only. */ }

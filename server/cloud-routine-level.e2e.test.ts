@@ -1,10 +1,11 @@
+import { sourcePurchaseHome, sourcePurchaseEnvironment, sourcePurchaseServerArgs } from "./testing/source-purchase-fixture.ts";
 // The real Cloud home server with synthetic engines: a routine a Full access bot makes in the owner's own conversation
 // runs at Full access, whatever else the bot posted there, on Claude and on Codex.
 import { createHash, randomBytes, randomUUID } from "node:crypto";
 import { connect } from "node:net";
 import { spawn, type ChildProcess } from "node:child_process";
 import { createInterface } from "node:readline";
-import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
@@ -57,7 +58,7 @@ async function adminPairing(): Promise<string> {
 }
 
 beforeAll(async () => {
-  home = mkdtempSync(join(tmpdir(), "omb-cloud-routine-level-"));
+  home = sourcePurchaseHome(join(tmpdir(), "omb-cloud-routine-level-"));
   dataDir = join(home, ".spdbot");
   mkdirSync(dataDir, { recursive: true });
   // Claude's turns hold until the test writes the release file; each engine dumps its latest start.
@@ -86,13 +87,13 @@ await import(${JSON.stringify(pathToFileURL(join(SERVER_DIR, "testing", "fake-co
   hooksBase = `http://127.0.0.1:${port + 1}`;
   const offline = `data:text/javascript,${encodeURIComponent('const real = globalThis.fetch; globalThis.fetch = async (url, init) => String(url).startsWith("http://127.0.0.1:") ? real(url, init) : new Response("offline fixture", { status: 503 });')}`;
   boot = async () => {
-    child = spawnWithSecrets(process.execPath, ["--import", offline, join(SERVER_DIR, "index.ts")], {
+    child = spawnWithSecrets(process.execPath, sourcePurchaseServerArgs(["--import", offline, join(SERVER_DIR, "index.ts")]), sourcePurchaseEnvironment({
       PATH: process.env.PATH, ...(process.env.SystemRoot ? { SystemRoot: process.env.SystemRoot } : {}),
       HOME: home, USERPROFILE: home, OMB_DATA_DIR: dataDir, OMB_PORT: String(port), OMB_WEBHOOK_PORT: String(port + 1),
       OMB_CLOUD_ROLE: "home", OMB_CLOUD_MACHINE_ID: MACHINE_ID, OMB_CLOUD_ADMIN_URL: "https://cloud.example.test",
       OMB_PUBLIC_URL: `https://${HOST}`, OMB_CLOUD_BOAT_URL: "https://cloud.example.test/api/cloud/services/boat/api/box/v1",
       OMB_CLOUD_SECRETS_FD: "3",
-    }, { OMB_CLOUD_BOOTSTRAP_SECRET: secret, OMB_CLOUD_BOAT_TOKEN: `box_omb_${randomBytes(32).toString("base64url")}` }, undefined, true);
+    }), { OMB_CLOUD_BOOTSTRAP_SECRET: secret, OMB_CLOUD_BOAT_TOKEN: `box_omb_${randomBytes(32).toString("base64url")}` }, undefined, true);
     for (const stream of [child.stdout, child.stderr]) stream?.on("data", (chunk) => { log += chunk; });
     const deadline = Date.now() + 20_000;
     for (;;) {

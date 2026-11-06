@@ -10,7 +10,7 @@ import { connect, type Socket } from "node:net";
 import { join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { expect, it } from "vitest";
-import { launchVerificationServer, verificationServerEnvironment } from "../scripts/control-omb.ts";
+import { verificationServerArgs, launchVerificationServer, verificationServerEnvironment } from "../scripts/control-omb.ts";
 import { waitForExit } from "./testing/cleanup.ts";
 import { openSse, type SseRecorder } from "./testing/sse.ts";
 
@@ -136,9 +136,11 @@ it("denies a never-list command a grant would have allowed, at a saved command a
     expect(_removed).toEqual({ enabled: true });
     writeFileSync(configPath, JSON.stringify(saved, null, 2));
     const log = openSync(logPath, "a", 0o600);
-    restarted = spawn(process.execPath, ["--experimental-strip-types", fileURLToPath(new URL("./index.ts", import.meta.url))], {
+    const purchaseEnv: NodeJS.ProcessEnv = { ...verificationServerEnvironment({ FAKE_CLAUDE_MODE: "hang" }, dataDir, Number(new URL(url).port)), OMB_SAFETY_FLOOR: "1" };
+    purchaseEnv.OMB_TEST_PURCHASE = "fixture";
+    restarted = spawn(process.execPath, verificationServerArgs(purchaseEnv), {
       cwd: fileURLToPath(new URL("..", import.meta.url)),
-      env: { ...verificationServerEnvironment({ FAKE_CLAUDE_MODE: "hang" }, dataDir, Number(new URL(url).port)), OMB_SAFETY_FLOOR: "1" },
+      env: purchaseEnv,
       stdio: ["ignore", log, log],
     });
     closeSync(log);

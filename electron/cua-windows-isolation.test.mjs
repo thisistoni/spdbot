@@ -21,6 +21,7 @@ vi.mock("node:child_process", () => ({ execFile: vi.fn(() => { throw new Error("
 vi.mock("node:net", () => ({ default: { createConnection: vi.fn(() => { throw new Error("foreign pipe probed"); }) } }));
 
 let cua;
+let localOrigin;
 const connection = { socketPath: "\\\\.\\pipe\\fixture-owned-cua" };
 beforeEach(async () => {
   fixture.home = mkdtempSync(join(tmpdir(), "omb-cua-win-"));
@@ -35,17 +36,59 @@ beforeEach(async () => {
   vi.stubEnv("OPENMAUSBOT_CUA_EMBEDDED", "");
   vi.resetModules();
   cua = await import("./cua.mjs");
+  localOrigin = (await import("./local-origin.cjs")).default;
+  localOrigin.setLocalOrigin("http://127.0.0.1:19777");
 });
 afterEach(async () => {
   await cua?.stopCua();
+  localOrigin.setLocalOrigin(null);
   vi.unstubAllEnvs();
   vi.unstubAllGlobals();
   rmSync(fixture.home, { recursive: true, force: true });
 });
 
 describe("Windows owned CUA host", () => {
+  const event = { senderFrame: { url: "http://127.0.0.1:19777/" } };
+  it("fails closed without a purchase guard, including renderer retries", async () => {
+    await expect(cua.startCua()).rejects.toMatchObject({ code: "purchase-access-required" });
+    cua.registerCuaIpc({ executionAllowed: async () => false });
+    for (const channel of ["cua:linux-enable", "cua:linux-retry"]) {
+      expect(await fixture.handlers.get(channel)(event)).toMatchObject({ enabled: false, reasonCode: "purchase-access-required" });
+    }
+    expect(fixture.hosts).toHaveLength(0);
+  });
+
+  it("rechecks purchase access after asynchronous retry cleanup", async () => {
+    let allowed = true, releaseStop;
+    const executionAllowed = async () => allowed;
+    await cua.startCua({ executionAllowed });
+    fixture.hosts[0].stop.mockImplementationOnce(() => new Promise(resolve => { releaseStop = resolve; }));
+    cua.registerCuaIpc({ executionAllowed });
+    let retry;
+    try {
+      retry = fixture.handlers.get("cua:linux-retry")(event);
+      await expect.poll(() => typeof releaseStop).toBe("function");
+      allowed = false;
+    } finally { releaseStop?.(); fixture.hosts[0].stop.mockResolvedValue(); }
+    expect(await retry).toMatchObject({ enabled: false, reasonCode: "purchase-access-required" });
+    expect(fixture.hosts).toHaveLength(1);
+    expect(JSON.parse(readFileSync(join(fixture.home, "cua-connection.json"), "utf8")).mode).toBe("unavailable");
+  });
+
+  it("stops a host whose startup completes after access is revoked without publishing it", async () => {
+    let allowed = true, finish;
+    const published = []; cua.setCuaStateListener(value => published.push(value));
+    fixture.start.mockImplementationOnce(() => new Promise(resolve => { finish = resolve; }));
+    const started = cua.startCua({ executionAllowed: async () => allowed });
+    const rejected = expect(started).rejects.toMatchObject({ code: "purchase-access-required" });
+    await expect.poll(() => fixture.hosts.length).toBe(1);
+    allowed = false; finish(connection); await rejected;
+    expect(fixture.hosts[0].stop).toHaveBeenCalledOnce();
+    expect(published.some(value => value.mode === "embedded")).toBe(false);
+  });
+
   it("uses embedded control even in dev, without a shared pipe or macOS permissions", async () => {
-    await expect(cua.startCua()).resolves.toMatchObject({
+    await expect(cua.startCua({ executionAllowed: async () => true })).resolves.toMatchObject({
       mode: "embedded", ...connection,
       mcpArgs: ["mcp", "--embedded", "--socket", connection.socketPath],
       mcpEnv: { CUA_DRIVER_EMBEDDED: "1", CUA_DRIVER_RS_TELEMETRY_ENABLED: "0" },
@@ -59,7 +102,7 @@ describe("Windows owned CUA host", () => {
 
   it("reports a failed host instead of launching or attaching to an unowned daemon", async () => {
     fixture.start.mockRejectedValue(new Error("fixture start failed"));
-    await expect(cua.startCua()).resolves.toMatchObject({
+    await expect(cua.startCua({ executionAllowed: async () => true })).resolves.toMatchObject({
       mode: "unavailable", reason: "embedded host failed: fixture start failed",
     });
     expect(fixture.hosts[0].stop).toHaveBeenCalledOnce();
@@ -70,7 +113,7 @@ describe("Windows owned CUA host", () => {
     fixture.start.mockImplementation(({ signal }) => new Promise((_, reject) => {
       signal.addEventListener("abort", () => reject(signal.reason), { once: true });
     }));
-    const started = cua.startCua();
+    const started = cua.startCua({ executionAllowed: async () => true });
     const rejected = expect(started).rejects.toMatchObject({ name: "AbortError" });
     await expect.poll(() => fixture.hosts.length).toBe(1);
     await cua.stopCua();
@@ -82,11 +125,11 @@ describe("Windows owned CUA host", () => {
   it("discards late startup without replacing or stopping the new host", async () => {
     let finish;
     fixture.start.mockImplementationOnce(() => new Promise(resolve => { finish = resolve; }));
-    const first = cua.startCua();
+    const first = cua.startCua({ executionAllowed: async () => true });
     const rejected = expect(first).rejects.toMatchObject({ name: "AbortError" });
     await expect.poll(() => fixture.hosts.length).toBe(1);
     await cua.stopCua();
-    await cua.startCua();
+    await cua.startCua({ executionAllowed: async () => true });
     finish({ socketPath: "stale-pipe" });
     await rejected;
     expect(fixture.hosts[0].stop).toHaveBeenCalledOnce();

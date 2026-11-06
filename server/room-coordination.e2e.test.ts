@@ -3,7 +3,7 @@ import { closeSync, openSync, readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { expect, it } from "vitest";
-import { launchVerificationServer, runControlOmb, verificationServerEnvironment } from "../scripts/control-omb.ts";
+import { verificationServerArgs, launchVerificationServer, runControlOmb, verificationServerEnvironment } from "../scripts/control-omb.ts";
 import { handleToolCall, request } from "../scripts/mcp-server.ts";
 import { PEER_ACCESS_HELP } from "./peer-roster.ts";
 import { ENVELOPE_MARK } from "./runtime/envelope.ts";
@@ -20,9 +20,11 @@ async function withRooms(test: (f: any) => Promise<void>) {
   const restart = async (signal: NodeJS.Signals) => {
     await waitForExit(restarted ?? session.child, { signal });
     const log = openSync(session.info.logPath, "a", 0o600);
-    restarted = spawn(process.execPath, ["--experimental-strip-types", fileURLToPath(new URL("./index.ts", import.meta.url))], {
+    const purchaseEnv: NodeJS.ProcessEnv = verificationServerEnvironment(process.env, session.info.dataDir, Number(new URL(session.info.url).port));
+    purchaseEnv.OMB_TEST_PURCHASE = "fixture";
+    restarted = spawn(process.execPath, verificationServerArgs(purchaseEnv), {
       cwd: fileURLToPath(new URL("..", import.meta.url)), stdio: ["ignore", log, log],
-      env: verificationServerEnvironment(process.env, session.info.dataDir, Number(new URL(session.info.url).port)) });
+      env: purchaseEnv });
     closeSync(log);
     await expect.poll(() => fetch(`${session.info.url}/api/health`, { signal: AbortSignal.timeout(1_000) }).then(r => r.ok, () => false), { timeout: 20_000 }).toBe(true);
   };

@@ -1,5 +1,6 @@
-import { spawn, type ChildProcess } from "node:child_process";
-import { chmodSync, mkdirSync, mkdtempSync, readFileSync, writeFileSync } from "node:fs";
+import { spawnSourcePurchaseServer, sourcePurchaseHome } from "./testing/source-purchase-fixture.ts";
+import { type ChildProcess } from "node:child_process";
+import { chmodSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -60,7 +61,7 @@ posixOnly("conversation branching e2e (fake ACP fleet)", () => {
 
   beforeAll(async () => {
     chmodSync(FAKE_CLI, 0o755);
-    home = mkdtempSync(join(tmpdir(), "omb-branch-test-"));
+    home = sourcePurchaseHome(join(tmpdir(), "omb-branch-test-"));
     mkdirSync(join(home, ".spdbot"), { recursive: true });
     writeFileSync(
       join(home, ".spdbot", "config.json"),
@@ -85,7 +86,7 @@ posixOnly("conversation branching e2e (fake ACP fleet)", () => {
       OMB_PORT: String(PORT),
     };
     if (process.env.PATH) env.PATH = process.env.PATH;
-    child = spawn(process.execPath, [join(SERVER_DIR, "index.ts")], {
+    child = spawnSourcePurchaseServer(process.execPath, [join(SERVER_DIR, "index.ts")], {
       cwd: join(SERVER_DIR, ".."),
       env,
       stdio: ["ignore", "pipe", "pipe"],

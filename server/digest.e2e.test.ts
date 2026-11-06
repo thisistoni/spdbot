@@ -1,4 +1,5 @@
-import { spawn, type ChildProcess } from "node:child_process";
+import { spawnSourcePurchaseServer, sourcePurchaseHome } from "./testing/source-purchase-fixture.ts";
+import { type ChildProcess } from "node:child_process";
 import { chmodSync, existsSync, mkdirSync, mkdtempSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
@@ -61,7 +62,7 @@ posixOnly("work digest e2e (every fake engine)", () => {
 
   beforeAll(async () => {
     for (const e of ENGINES) chmodSync(fake(e.cli), 0o755);
-    home = mkdtempSync(join(tmpdir(), "omb-digest-e2e-"));
+    home = sourcePurchaseHome(join(tmpdir(), "omb-digest-e2e-"));
     mkdirSync(join(home, ".spdbot"), { recursive: true });
     const instances: Record<string, unknown> = {};
     for (const e of ENGINES) {
@@ -83,7 +84,7 @@ posixOnly("work digest e2e (every fake engine)", () => {
 
     const env: NodeJS.ProcessEnv = { HOME: home, USERPROFILE: home, OMB_PORT: String(PORT) };
     if (process.env.PATH) env.PATH = process.env.PATH;
-    child = spawn(process.execPath, [join(SERVER_DIR, "index.ts")], {
+    child = spawnSourcePurchaseServer(process.execPath, [join(SERVER_DIR, "index.ts")], {
       cwd: join(SERVER_DIR, ".."),
       env,
       stdio: ["ignore", "pipe", "pipe"],

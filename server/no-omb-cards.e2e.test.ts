@@ -6,7 +6,7 @@ import { closeSync, existsSync, mkdirSync, openSync, readdirSync, readFileSync }
 import { join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
-import { launchVerificationServer, verificationServerEnvironment, type VerificationServer } from "../scripts/control-omb.ts";
+import { verificationServerArgs, launchVerificationServer, verificationServerEnvironment, type VerificationServer } from "../scripts/control-omb.ts";
 import { waitForExit } from "./testing/cleanup.ts";
 
 const key = "no-omb-cards-capability";
@@ -58,9 +58,11 @@ beforeAll(async () => {
   for (const name of ["Auto Chief", "Auto Mate"]) expect((await api("PATCH", `/api/bots/${(await bot(name)).id}`, { approvalMode: "auto" })).status).toBe(200);
   await waitForExit(fixture.child, { signal: "SIGTERM" });
   const log = openSync(fixture.info.logPath, "a", 0o600);
-  child = spawn(process.execPath, ["--experimental-strip-types", fileURLToPath(new URL("./index.ts", import.meta.url))], {
+  const purchaseEnv: NodeJS.ProcessEnv = { ...verificationServerEnvironment({}, fixture.info.dataDir, port), OMB_TEST_INTERNAL_CAPABILITY_KEY: key };
+  purchaseEnv.OMB_TEST_PURCHASE = "fixture";
+  child = spawn(process.execPath, verificationServerArgs(purchaseEnv), {
     cwd: fileURLToPath(new URL("..", import.meta.url)),
-    env: { ...verificationServerEnvironment({}, fixture.info.dataDir, port), OMB_TEST_INTERNAL_CAPABILITY_KEY: key },
+    env: purchaseEnv,
     stdio: ["ignore", log, log],
   });
   closeSync(log);

@@ -4,7 +4,7 @@ productName: SPDBot
 artifactName: SPDBot-${version}-${arch}.${ext}
 
 protocols:
-  - name: SPDBot package install
+  - name: SPDBot
     schemes: [spdbot]
 
 # In-app auto-update reads latest-mac.yml + the .zip (macOS) or latest.yml +
@@ -25,6 +25,7 @@ directories:
 
 # electron-builder makes copied directories group-writable by default. The
 # Linux CUA trust boundary requires root-owned package ancestors to be 0755.
+beforePack: ./scripts/before-pack-purchase.mjs
 afterPack: ./scripts/after-pack.mjs
 
 # The app is three self-contained pieces, none needing node_modules at
@@ -35,6 +36,8 @@ afterPack: ./scripts/after-pack.mjs
 files:
   - electron/**
   - "!electron/**/*.test.*"
+  - "!electron/**/*.node-test.mjs"
+  - "!electron/testing/**"
   - "!electron/resources/speech-helper"
   - "!electron/resources/speech-helper.swift"
   - "!electron/resources/speech-helper-Info.plist"
@@ -53,6 +56,8 @@ files:
 asar: true
 
 extraResources:
+  - from: third_party/jose/LICENSE.md
+    to: licenses/jose-LICENSE.md
   # Ship the app's own license terms in every desktop distribution.
   - from: LICENSE
     to: licenses/OpenMausBot-LICENSE.txt

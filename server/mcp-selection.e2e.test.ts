@@ -158,8 +158,10 @@ it("validates MCP grants, refuses live changes and client sessions, and rechecks
       finishBody = () => req.end(body.slice(1));
     });
     try {
-      // The import mutex proves the first request authenticated and entered its body reader before revocation.
-      await expect.poll(async () => (await api("POST", "/api/mcp/servers/import", { json: "{}" })).status).toBe(409);
+      // A missing DELETE releases the mutex synchronously when free. A POST probe
+      // awaits body/access checks and can itself reject the delayed import as busy.
+      // A 409 here proves the import entered its body reader before revocation.
+      await expect.poll(async () => (await api("DELETE", "/api/mcp/servers/missing-import-probe")).status).toBe(409);
       expect((await api("DELETE", `/api/auth/sessions/${admin.session.id}`)).status).toBe(200);
     } finally {
       finishBody();

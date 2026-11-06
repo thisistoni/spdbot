@@ -1,7 +1,8 @@
+import { spawnSourcePurchaseServer, sourcePurchaseHome } from "./testing/source-purchase-fixture.ts";
 // The container boundary is the group-local-vm fixture; the provider is an in-process stub recording the tool list per request.
-import { spawn, type ChildProcess } from "node:child_process";
+import { type ChildProcess } from "node:child_process";
 import { createServer, type Server } from "node:http";
-import { chmodSync, existsSync, mkdirSync, mkdtempSync, readFileSync, writeFileSync } from "node:fs";
+import { chmodSync, existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { delimiter, dirname, join } from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
@@ -86,7 +87,7 @@ const nativeToolNames = (threadId: string): string[] => {
 const idle = (botId: string) => until(() => api("GET", "/api/bots?messages=0"), s => !s.bots.find((b: any) => b.id === botId)?.busy);
 
 beforeAll(async () => {
-  fixtureHome = mkdtempSync(join(tmpdir(), "omb-openai-vm-"));
+  fixtureHome = sourcePurchaseHome(join(tmpdir(), "omb-openai-vm-"));
   stateFile = join(fixtureHome, "vm.json");
   dumpFile = join(fixtureHome, "dump.json");
   vmState({ containers: [] });
@@ -136,7 +137,7 @@ beforeAll(async () => {
 
   const port = await freePortBlock([0, 1]);
   base = `http://127.0.0.1:${port}`;
-  child = spawn(process.execPath, [
+  child = spawnSourcePurchaseServer(process.execPath, [
     "--experimental-strip-types",
     "--import", pathToFileURL(join(ROOT, "server/testing/group-local-vm-hooks.mjs")).href,
     join(ROOT, "server/index.ts"),

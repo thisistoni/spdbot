@@ -219,6 +219,7 @@ export function verificationServerArgs(childEnv: NodeJS.ProcessEnv): string[] {
     ...(childEnv.OMB_TEST_DESKTOP_OWNER_TOKEN ? hook("desktop-parent.mjs") : []),
     ...(childEnv.OMB_TEST_APPROVAL_CLOCK === "1" ? hook("approval-clock-hooks.mjs") : []),
     ...(childEnv.OMB_TEST_STALL_CLOCK === "1" ? hook("stall-clock-hooks.mjs") : []),
+    ...(childEnv.OMB_TEST_PURCHASE === "fixture" ? hook("purchase-parent.mjs") : []),
     join(ROOT, "server", "index.ts"),
   ];
 }
@@ -239,6 +240,7 @@ export async function launchVerificationServer(
   boatFixtureApi?: string,
   /** Programmatic web UI qualification against the fixture's static server. */
   staticDir?: string,
+  purchaseMode: "fixture" | "restricted" = "fixture",
 ): Promise<VerificationServer> {
   if (boatFixtureApi) {
     if (!/^http:\/\/127\.0\.0\.1:[1-9]\d{0,4}$/.test(boatFixtureApi)) {
@@ -290,6 +292,10 @@ export async function launchVerificationServer(
 
   const log = openSync(logPath, "a", 0o600);
   const childEnv = verificationServerEnvironment(parentEnv, dataDir, port);
+  if (purchaseMode === "fixture") {
+    writeFileSync(join(dataDir, "purchase-fixture.marker"), "control-omb-fresh-profile-v1");
+    childEnv.OMB_TEST_PURCHASE = "fixture";
+  }
   // Opt-in live Local VM fixture: keep the temporary home and fake engine,
   // granting only the explicitly selected machine connection and static UI.
   if (localVm) Object.assign(childEnv, {
@@ -357,7 +363,7 @@ export async function launchVerificationServer(
       body: JSON.stringify({ name: FIXTURE_STARTER_BOT_NAME }),
       signal: signal ? AbortSignal.any([signal, renameTimeout]) : renameTimeout,
     });
-    if (!rename.ok) throw new Error(`verification starter rename failed (${rename.status}); see ${logPath}`);
+    if (!rename.ok && !(purchaseMode === "restricted" && rename.status === 402)) throw new Error(`verification starter rename failed (${rename.status}); see ${logPath}`);
   } catch (error) {
     await waitForExit(child, { signal: "SIGTERM" });
     await removeTempDir(dataDir);

@@ -1,11 +1,12 @@
+import { spawnSourcePurchaseServer, sourcePurchaseHome } from "./testing/source-purchase-fixture.ts";
 // The full server as a Cloud home, from boot to Connected apps: it registers its own installation with the connected-apps
 // service (a local stand-in), keeps it across a restart, and serves the service's whole catalog. Disposable home; every
 // other request is offline.
 import { randomBytes } from "node:crypto";
-import { spawn, type ChildProcess } from "node:child_process";
+import { type ChildProcess } from "node:child_process";
 import { createServer, type Server } from "node:http";
 import type { AddressInfo } from "node:net";
-import { mkdirSync, mkdtempSync, readFileSync, rmSync, statSync, writeFileSync } from "node:fs";
+import { mkdirSync, readFileSync, rmSync, statSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
@@ -55,7 +56,7 @@ globalThis.fetch = async (input, init) => {
   const url = typeof input === "string" || input instanceof URL ? String(input) : input.url;
   return url.startsWith(${JSON.stringify(`${brokerUrl}/`)}) ? real(input, init) : new Response("offline fixture", { status: 503 });
 };`)}`;
-  child = spawn(process.execPath, ["--import", prelude, join(SERVER_DIR, "index.ts")], {
+  child = spawnSourcePurchaseServer(process.execPath, ["--import", prelude, join(SERVER_DIR, "index.ts")], {
     cwd: join(SERVER_DIR, ".."),
     env: {
       PATH: process.env.PATH,
@@ -124,7 +125,7 @@ beforeAll(async () => {
   await new Promise<void>((resolve) => broker.listen(0, "127.0.0.1", resolve));
   brokerUrl = `http://127.0.0.1:${(broker.address() as AddressInfo).port}`;
 
-  home = mkdtempSync(join(tmpdir(), "omb-cloud-connected-apps-"));
+  home = sourcePurchaseHome(join(tmpdir(), "omb-cloud-connected-apps-"));
   dataDir = join(home, ".spdbot");
   mkdirSync(dataDir, { recursive: true });
   const cli = join(home, "fixture-claude.mjs");

@@ -1,5 +1,6 @@
-import { spawn, type ChildProcess } from "node:child_process";
-import { chmodSync, closeSync, existsSync, mkdirSync, mkdtempSync, openSync, readFileSync, writeFileSync } from "node:fs";
+import { spawnSourcePurchaseServer, sourcePurchaseHome } from "./testing/source-purchase-fixture.ts";
+import { type ChildProcess } from "node:child_process";
+import { chmodSync, closeSync, existsSync, mkdirSync, openSync, readFileSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -31,7 +32,7 @@ const alive = (pid: number) => { try { process.kill(pid, 0); return true; } catc
 describe.skipIf(process.platform === "win32")("Grok Build sign-in over HTTP", () => {
   beforeAll(async () => {
     chmodSync(FAKE_GROK, 0o755);
-    home = mkdtempSync(join(tmpdir(), "omb-grok-api-"));
+    home = sourcePurchaseHome(join(tmpdir(), "omb-grok-api-"));
     mkdirSync(join(home, "tmp"));
     const port = await freePortBlock([0, 1]);
     base = `http://127.0.0.1:${port}`;
@@ -41,7 +42,7 @@ describe.skipIf(process.platform === "win32")("Grok Build sign-in over HTTP", ()
     } }));
     const log = openSync(logPath, "a", 0o600);
     try {
-      child = spawn(process.execPath, ["--experimental-strip-types", join(ROOT, "server/index.ts")], {
+      child = spawnSourcePurchaseServer(process.execPath, ["--experimental-strip-types", join(ROOT, "server/index.ts")], {
         cwd: ROOT, env: verificationServerEnvironment({}, home, port), stdio: ["ignore", log, log],
       });
     } finally { closeSync(log); }

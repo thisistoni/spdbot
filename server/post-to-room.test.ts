@@ -1,5 +1,6 @@
-import { spawn, type ChildProcess } from "node:child_process";
-import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { spawnSourcePurchaseServer, sourcePurchaseHome } from "./testing/source-purchase-fixture.ts";
+import { type ChildProcess } from "node:child_process";
+import { existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -185,7 +186,7 @@ beforeAll(async () => {
   PORT = base;
   WEBHOOK_PORT = base + 1;
   BASE = `http://127.0.0.1:${PORT}`;
-  home = mkdtempSync(join(tmpdir(), "omb-post-to-room-"));
+  home = sourcePurchaseHome(join(tmpdir(), "omb-post-to-room-"));
   fakeClaudeDump = join(home, "fake-claude-dump.json");
   mentionerDump = join(home, "mentioner-dump.json");
   mkdirSync(join(home, ".spdbot"), { recursive: true });
@@ -211,7 +212,7 @@ beforeAll(async () => {
       },
     }),
   );
-  child = spawn(process.execPath, [join(SERVER_DIR, "index.ts")], {
+  child = spawnSourcePurchaseServer(process.execPath, [join(SERVER_DIR, "index.ts")], {
     cwd: join(SERVER_DIR, ".."),
     env: {
       ...(process.env.PATH ? { PATH: process.env.PATH } : {}),

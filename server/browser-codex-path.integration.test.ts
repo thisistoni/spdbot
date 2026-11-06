@@ -1,7 +1,8 @@
+import { spawnSourcePurchaseServer, sourcePurchaseHome } from "./testing/source-purchase-fixture.ts";
 // Exercise the harness caller that constructs browser integrations: a direct
 // driver test would miss a browser MCP environment replacing its augmented PATH.
-import { spawn, type ChildProcess } from "node:child_process";
-import { mkdirSync, mkdtempSync, readFileSync, symlinkSync, writeFileSync } from "node:fs";
+import { type ChildProcess } from "node:child_process";
+import { mkdirSync, readFileSync, symlinkSync, writeFileSync } from "node:fs";
 import { stripTypeScriptTypes } from "node:module";
 import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
@@ -36,7 +37,7 @@ describe.skipIf(process.platform === "win32")("Codex browser turns with a minima
   };
 
   beforeAll(async () => {
-    home = mkdtempSync(join(tmpdir(), "omb-browser-codex-path-"));
+    home = sourcePurchaseHome(join(tmpdir(), "omb-browser-codex-path-"));
     bin = join(home, ".local", "bin");
     const data = join(home, ".spdbot");
     mkdirSync(bin, { recursive: true });
@@ -68,7 +69,7 @@ exit 0
     }));
     const port = await freePortBlock([0, 1]);
     base = `http://127.0.0.1:${port}`;
-    child = spawn(process.execPath, [join(SERVER_DIR, "index.ts")], {
+    child = spawnSourcePurchaseServer(process.execPath, [join(SERVER_DIR, "index.ts")], {
       cwd: join(SERVER_DIR, ".."),
       env: {
         PATH: FINDER_PATH, HOME: home, OMB_DATA_DIR: data, OMB_PORT: String(port),

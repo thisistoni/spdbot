@@ -1,4 +1,5 @@
 import { spawn, type ChildProcess } from "node:child_process";
+import { sourcePurchaseHome, spawnSourcePurchaseCli } from "./testing/source-purchase-fixture.ts";
 import { existsSync, mkdirSync, mkdtempSync, readFileSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { dirname, join, resolve } from "node:path";
@@ -150,9 +151,9 @@ describe("spdbot command line", () => {
   });
 
   it("serve: starts the server, prints the pairing link, and stops on SIGTERM", async () => {
-    const home = mkdtempSync(join(tmpdir(), "omb-cli-serve-"));
+    const home = sourcePurchaseHome(join(tmpdir(), "omb-cli-serve-"));
     const port = 21000 + Math.floor(Math.random() * 9000);
-    const child = spawn(process.execPath, ["--experimental-strip-types", join(SERVER_DIR, "spdbot.ts"), "serve", "--port", String(port), "--data-dir", join(home, "data"), "--label", "cli test", "--public-url", "https://mini.example"], {
+    const child = spawnSourcePurchaseCli(process.execPath, ["--experimental-strip-types", join(SERVER_DIR, "spdbot.ts"), "serve", "--port", String(port), "--data-dir", join(home, "data"), "--label", "cli test", "--public-url", "https://mini.example"], {
       cwd: join(SERVER_DIR, ".."),
       env: { PATH: process.env.PATH ?? "", HOME: home, USERPROFILE: home, OMB_WEBHOOK_PORT: String(port + 1), OMB_BROWSER_CONNECTION: join(home, "browser-connection.json") },
       stdio: ["ignore", "pipe", "pipe"],
@@ -394,8 +395,8 @@ describe("phone endpoint identity", () => {
 const exited = (child: ChildProcess) => (child.exitCode !== null ? Promise.resolve(child.exitCode) : new Promise<number | null>((done) => child.once("exit", (code) => done(code))));
 
 describe.skipIf(process.platform === "win32")("serve --tunnel", () => {
-  const cli = (args: string[], env: NodeJS.ProcessEnv) =>
-    spawn(process.execPath, ["--experimental-strip-types", join(SERVER_DIR, "spdbot.ts"), ...args], {
+  const cli = (args: string[], env: NodeJS.ProcessEnv, purchase = false) =>
+    (purchase ? spawnSourcePurchaseCli : spawn)(process.execPath, ["--experimental-strip-types", join(SERVER_DIR, "spdbot.ts"), ...args], {
       cwd: join(SERVER_DIR, ".."),
       env: { PATH: process.env.PATH ?? "", ...env },
       stdio: ["ignore", "pipe", "pipe"],
@@ -483,7 +484,7 @@ describe.skipIf(process.platform === "win32")("serve --tunnel", () => {
   }, 120_000);
 
   it("serves at the account's public address through the gateway, where every request is remote", async () => {
-    const home = mkdtempSync(join(tmpdir(), "omb-cli-tunnel-"));
+    const home = sourcePurchaseHome(join(tmpdir(), "omb-cli-tunnel-"));
     const dataDir = join(home, "data");
     mkdirSync(dataDir, { recursive: true });
     const stub = await startControlPlaneStub();
@@ -504,7 +505,7 @@ describe.skipIf(process.platform === "win32")("serve --tunnel", () => {
       OMB_CONTROL_PLANE_URL: stub.url,
       OMB_CLOUDFLARED_PATH: fake,
       OMB_TUNNEL_ORIGIN_PORT: String(originPort),
-    });
+    }, true);
     let out = "";
     child.stdout?.on("data", (chunk) => (out += String(chunk)));
     child.stderr?.on("data", (chunk) => (out += String(chunk)));
@@ -631,13 +632,13 @@ describe("spdbot access", () => {
 
 describe.skipIf(process.platform === "win32")("serve --domain", () => {
   it("runs a managed Caddy for the domain and serves the pairing link there", async () => {
-    const home = mkdtempSync(join(tmpdir(), "omb-cli-domain-"));
+    const home = sourcePurchaseHome(join(tmpdir(), "omb-cli-domain-"));
     const dataDir = join(home, "data");
     mkdirSync(dataDir, { recursive: true });
     const fake = join(home, "fake-caddy");
     writeFileSync(fake, `#!/bin/sh\necho "$@" > "${join(home, "caddy-args.txt")}"\necho $$ > "${join(home, "caddy.pid")}"\nexec sleep 300\n`, { mode: 0o755 });
     const port = 21000 + Math.floor(Math.random() * 9000);
-    const child = spawn(process.execPath, ["--experimental-strip-types", join(SERVER_DIR, "spdbot.ts"), "serve", "--domain", "omb.example.test", "--port", String(port), "--data-dir", dataDir], {
+    const child = spawnSourcePurchaseCli(process.execPath, ["--experimental-strip-types", join(SERVER_DIR, "spdbot.ts"), "serve", "--domain", "omb.example.test", "--port", String(port), "--data-dir", dataDir], {
       cwd: join(SERVER_DIR, ".."),
       env: { PATH: process.env.PATH ?? "", HOME: home, USERPROFILE: home, OMB_WEBHOOK_PORT: String(port + 1), OMB_BROWSER_CONNECTION: join(home, "browser-connection.json"), OMB_CADDY_PATH: fake },
       stdio: ["ignore", "pipe", "pipe"],

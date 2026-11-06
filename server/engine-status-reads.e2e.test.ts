@@ -1,6 +1,7 @@
+import { spawnSourcePurchaseServer, sourcePurchaseHome } from "./testing/source-purchase-fixture.ts";
 // Real server, fake Claude CLI that logs each status probe: an engine's CLI is probed once per answer, not once per reader.
-import { spawn, type ChildProcess } from "node:child_process";
-import { existsSync, mkdirSync, mkdtempSync, readFileSync, writeFileSync } from "node:fs";
+import { type ChildProcess } from "node:child_process";
+import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -21,7 +22,7 @@ afterEach(async () => {
 });
 
 function freshHome(): string {
-  const home = mkdtempSync(join(tmpdir(), "omb-engine-status-"));
+  const home = sourcePurchaseHome(join(tmpdir(), "omb-engine-status-"));
   homes.push(home);
   mkdirSync(join(home, "tmp"), { recursive: true });
   writeFileSync(join(home, "config.json"), JSON.stringify({
@@ -33,7 +34,7 @@ function freshHome(): string {
 async function boot(home: string, knobs: Record<string, string> = {}) {
   const port = await freePortBlock([0, 1]);
   const base = `http://127.0.0.1:${port}`;
-  const child = spawn(process.execPath, ["--experimental-strip-types", join(ROOT, "server/index.ts")], {
+  const child = spawnSourcePurchaseServer(process.execPath, ["--experimental-strip-types", join(ROOT, "server/index.ts")], {
     cwd: ROOT,
     env: verificationServerEnvironment({ ...process.env, ...knobs }, home, port),
     stdio: ["ignore", "pipe", "pipe"],

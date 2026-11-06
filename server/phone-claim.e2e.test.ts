@@ -1,5 +1,6 @@
+import { spawnSourcePurchaseServer, sourcePurchaseHome } from "./testing/source-purchase-fixture.ts";
 import { spawn, type ChildProcess } from "node:child_process";
-import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -107,7 +108,7 @@ async function withPhoneProxy<T>(spec: any, run: (call: (name: string) => Promis
 }
 
 beforeAll(async () => {
-  fixtureHome = mkdtempSync(join(tmpdir(), "omb-phone-claim-"));
+  fixtureHome = sourcePurchaseHome(join(tmpdir(), "omb-phone-claim-"));
   writeFileSync(join(fixtureHome, "devices"), 'process.stdout.write("List of devices attached\\n");');
   dumpFile = join(fixtureHome, "dump.json");
   finishFile = join(fixtureHome, "finish");
@@ -122,7 +123,7 @@ beforeAll(async () => {
   } } }));
   const port = await freePortBlock([0, 1]);
   base = `http://127.0.0.1:${port}`;
-  child = spawn(process.execPath, [join(ROOT, "server/index.ts")], {
+  child = spawnSourcePurchaseServer(process.execPath, [join(ROOT, "server/index.ts")], {
     cwd: ROOT, env: {
       PATH: process.env.PATH, HOME: fixtureHome, USERPROFILE: fixtureHome, OMB_DATA_DIR: data,
       APPDATA: join(fixtureHome, "appdata"), LOCALAPPDATA: join(fixtureHome, "localappdata"),

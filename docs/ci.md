@@ -27,6 +27,94 @@ skips fail the gate. Existing advisory jobs remain advisory.
 The separate shared-terminal smoke workflow is manual-only: its tests already
 run in the Windows Vitest/Electron jobs.
 
+## Linux qualification before purchase activation
+
+`package-linux` now participates in the required `CI` gate (the previous
+workflow ran it outside that gate). Runtime changes require it to succeed;
+only the established docs-only selection may skip it. PR macOS smokes still
+use Intel capacity; this package change does not alter their runner selection.
+
+`scripts/select-linux-qualification.mjs` selects the restricted qualification
+only when both checked-in production key lists are empty. Malformed, partial,
+synthetic or mismatched authority fails selection. Valid reviewed public pins
+select the existing `package:linux:offline` and `smoke:linux-package` contracts
+automatically. Ordinary packaging/release commands still use the unchanged
+`electron-builder.yml` purchase guard and reject the current empty pins.
+
+The explicit `package:linux:ci-restricted` task runs the normal preparation and
+offline CUA verification, then builds real x64 AppImage and DEB artifacts using
+`scripts/ci-restricted-builder.mjs`. This is a nonpublishable qualification
+fixture with execution locked by the unchanged runtime authority. It has its
+own package/executable name `spdbot-ci-restricted`, app ID
+`de.spdlabs.spdbot.ci.restricted`, product/install directory
+`SPDBot-CI-Restricted`, desktop registration, AppArmor policy and output
+`.omb-scratch/ci-restricted-package`. Artifact names contain
+`CI-RESTRICTED-NOT-FOR-DISTRIBUTION`. No package fixture is uploaded by CI.
+Release uploads still read only the ordinary `release/` output on separate
+release jobs/checkouts; they never invoke the fixture task.
+
+The fixture builder accepts no CLI overrides and its guard requires
+`publish=never`, no publisher/update feed, empty production pins, exact fixture
+identity/output and the real resource configuration. Shipping resource
+validation still runs with the full electron-builder context. Packaged main
+and purchase modules must match the source bytes; test loaders and enterprise
+code remain excluded. All common resources must exist. The verifier checks
+the marker and absence of update metadata in the actual unpacked, DEB and
+AppImage trees. Installer hooks are derived from the existing repair scripts
+with only package-owned identities/paths changed.
+
+The restricted DEB must also omit `resources/package-type`: electron-builder
+26.15.3 writes that updater-routing marker only alongside a publish
+configuration. Distribution DEBs still require `deb`; the restricted verifier
+requires absence rather than adding updater metadata. The first Ubuntu run
+on `c0a7950` built both real artifacts and passed the fixture-exclusion guard,
+then exposed the previous incorrect marker expectation. Installation and
+lifecycle checks were not reached in that run (job `128138083882`); their
+confirmation still requires a successful subsequent Ubuntu run. On `0c930ab`
+(job `128146837004`), package verification, in-place DEB upgrade, sandbox setup
+and the installed browser passed. The first actual app lifecycle launch then
+failed with HTTP 401 from the renderer's desktop-owner request.
+
+Purchase access now attaches to the private utility port after the server's
+other startup receivers are installed. An import-time listener had drained
+the initial desktop capability before its receiver existed. The new
+`scripts/smoke-desktop-auth.cjs` reproduces that 401 with the previous shipping
+bundle on Windows. With the fix, both cold start and same-profile restart
+accept the real Chromium owner's request (200), reject Chromium without its
+private capability (401), and retain purchase denial (402). It uses the real
+bundled server and no signed purchase fixture, and runs in the existing Windows
+packaged-server and macOS jobs. The separate native purchase fixture also
+passes sign-in, encrypted storage, reset, offline restart and exact expiry.
+Ubuntu's complete packaged lifecycle and macOS still require remote CI on the
+new commit; a local Windows utility-process smoke is not their substitute.
+
+The Ubuntu shard-3 run on `0c930ab` also exposed a separate queue regression:
+awaiting purchase verification before a turn reserved its slot allowed the
+synchronous queue drain to consume additional entries at the old free capacity.
+Turn admission now uses the verified gate's synchronous expiry/rollback check;
+the provider boundary retains its asynchronous signature check and final
+synchronous expiry check. The existing approval/FIFO/lowered-capacity scenario
+reproduces the lost queue entry before this correction and passes after it.
+
+Restricted qualification retains CUA binary/hash/SBOM/license/mode checks,
+real staged X11 input routing, desktop registration validation, in-place DEB
+upgrade from legacy 0775 directories, Chromium sandbox/AppArmor installation,
+and the installed browser smoke. Its native lifecycle checks launch the real
+unpacked application, AppImage and installed DEB with disposable homes, assert
+denied purchase IPC/CUA enable/retry and backend writes, then check window
+close, AppImage SIGTERM and same-profile recovery after unpacked SIGKILL.
+
+This replaces the **active-package** CUA start/crash/retry, Wayland seat-safety
+and AppImage private CUA staging qualification while pins are empty. Those
+active package assertions cannot pass honestly when execution is locked.
+Existing Linux CUA source tests and the signed, isolated control-omb source
+fixture separately exercise execution and restart. They are not proof of an
+activated customer package. The job summary reports this boundary explicitly;
+the original active-package smoke returns when production pins are configured.
+
+See [the purchase integration record](verification/desktop-purchase-access.md#pre-activation-package-qualification)
+for local evidence and checks still requiring GitHub Linux CI.
+
 Merges run checks without publishing images or deploying the Cloudflare broker.
 Broker deployment requires a manual CI run on `main` with the explicit
 `deploy_composio_broker` option (false by default), after the CI gate and

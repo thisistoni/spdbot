@@ -168,6 +168,7 @@ function harness({
     identifier: () => "01234567-89ab-cdef-0123-456789abcdef",
     processId: 1234,
     onChange: (connection) => changes.push(connection),
+    executionAllowed: async () => true,
     ...runtimeOptions,
   });
   return {
@@ -264,6 +265,28 @@ describe("unavailable Linux CUA runtime", () => {
 
 // Windows lacks the POSIX executable and Unix-socket semantics this exercises; short canonical temp paths keep it portable.
 describe.skipIf(process.platform === "win32")("Linux CUA opt-in and lifecycle", () => {
+  it("does not spawn on denied access or revocation during inspection", async () => {
+    let allowed = false;
+    const h = harness({ preferenceEnabled: true, runtimeOptions: { executionAllowed: async () => allowed } });
+    expect(await h.runtime.initialize()).toMatchObject({ reasonCode: "purchase-access-required" });
+    expect(h.inspect).not.toHaveBeenCalled(); expect(h.spawnProcess).not.toHaveBeenCalled();
+    allowed = true;
+    const inspect = h.inspect.getMockImplementation();
+    h.inspect.mockImplementation(async (...args) => { const result = await inspect(...args); allowed = false; return result; });
+    expect(await h.runtime.retry()).toMatchObject({ reasonCode: "purchase-access-required" });
+    expect(h.spawnProcess).not.toHaveBeenCalled();
+    await h.runtime.shutdown();
+  });
+
+  it("stops a child revoked during handshake without publishing a usable connection", async () => {
+    let allowed = true;
+    const h = harness({ preferenceEnabled: true, runtimeOptions: { executionAllowed: async () => allowed } });
+    h.probe.mockImplementation(async () => { allowed = false; return handshake(h.child.pid); });
+    expect(await h.runtime.initialize()).toMatchObject({ reasonCode: "purchase-access-required" });
+    expect(h.child.stdin.end).toHaveBeenCalled();
+    expect(h.changes.some(value => value.status === "ready")).toBe(false);
+    await h.runtime.shutdown();
+  });
   it("cleans only known private runtime files from a dead owner", () => {
     const root = temporaryDirectory();
     const stale = path.join(root, "99999999-01234567-89a");

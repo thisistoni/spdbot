@@ -1,10 +1,11 @@
+import { sourcePurchaseHome, sourcePurchaseEnvironment, sourcePurchaseServerArgs } from "./testing/source-purchase-fixture.ts";
 // The real server booted the way the image's launcher boots it (secrets over a pipe, never the environment), synthetic
 // engines. No guest can connect, so what a guest left behind is written into the records while the server is stopped.
 import { randomBytes, randomUUID } from "node:crypto";
 import { connect } from "node:net";
 import { spawn, type ChildProcess } from "node:child_process";
 import { createInterface } from "node:readline";
-import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
@@ -76,7 +77,7 @@ await import(${JSON.stringify(pathToFileURL(join(SERVER_DIR, "testing", fake)).h
 }
 
 beforeAll(async () => {
-  home = mkdtempSync(join(tmpdir(), "omb-cloud-guest-shell-"));
+  home = sourcePurchaseHome(join(tmpdir(), "omb-cloud-guest-shell-"));
   const dataDir = join(home, ".spdbot");
   mkdirSync(dataDir, { recursive: true });
   const codex = probing("codex", "fake-codex-app-server.ts", `process.env.FAKE_CODEX_DUMP = ${JSON.stringify(join(home, "codex.json"))};
@@ -116,13 +117,13 @@ for (const name of ["spawn", "spawnSync", "execFile", "execFileSync", "exec", "e
 syncBuiltinESMExports();
 `);
   boot = async () => {
-    child = spawnWithSecrets(process.execPath, ["--import", offlinePrelude, "--import", pathToFileURL(spawnWatch).href, join(SERVER_DIR, "index.ts")], {
+    child = spawnWithSecrets(process.execPath, sourcePurchaseServerArgs(["--import", offlinePrelude, "--import", pathToFileURL(spawnWatch).href, join(SERVER_DIR, "index.ts")]), sourcePurchaseEnvironment({
       PATH: process.env.PATH, ...(process.env.SystemRoot ? { SystemRoot: process.env.SystemRoot } : {}),
       HOME: home, USERPROFILE: home, OMB_DATA_DIR: dataDir, OMB_PORT: String(port), OMB_WEBHOOK_PORT: String(port + 1),
       OMB_CLOUD_ROLE: "home", OMB_CLOUD_MACHINE_ID: "3f9c2a4e-8b1d-4c6e-9a7f-2d5e8c1b0a93", OMB_CLOUD_ADMIN_URL: "https://cloud.example.test",
       OMB_PUBLIC_URL: `https://${HOST}`, OMB_CLOUD_BOAT_URL: "https://cloud.example.test/api/cloud/services/boat/api/box/v1",
       OMB_CLOUD_SECRETS_FD: "3",
-    }, { OMB_CLOUD_BOOTSTRAP_SECRET: secret, OMB_CLOUD_BOAT_TOKEN: relayToken }, undefined, true);
+    }), { OMB_CLOUD_BOOTSTRAP_SECRET: secret, OMB_CLOUD_BOAT_TOKEN: relayToken }, undefined, true);
     for (const stream of [child.stdout, child.stderr]) stream?.on("data", (chunk) => { log += chunk; });
     const deadline = Date.now() + 20_000;
     for (;;) {
