@@ -1,6 +1,7 @@
-import { spawn, type ChildProcess } from "node:child_process";
+import { spawnSourcePurchaseServer, sourcePurchaseHome } from "./testing/source-purchase-fixture.ts";
+import { type ChildProcess } from "node:child_process";
 import { createServer, type Server } from "node:http";
-import { existsSync, mkdirSync, mkdtempSync, readdirSync, readFileSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, readdirSync, readFileSync, writeFileSync } from "node:fs";
 import type { AddressInfo } from "node:net";
 import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
@@ -84,7 +85,7 @@ beforeAll(async () => {
   await new Promise<void>((resolve) => jev.listen(0, "127.0.0.1", resolve));
   const jevUrl = `http://127.0.0.1:${(jev.address() as AddressInfo).port}`;
 
-  home = mkdtempSync(join(tmpdir(), "omb-decider-rooms-"));
+  home = sourcePurchaseHome(join(tmpdir(), "omb-decider-rooms-"));
   data = join(home, ".spdbot");
   const staticDir = join(home, "static");
   mkdirSync(data, { recursive: true });
@@ -113,7 +114,7 @@ beforeAll(async () => {
   }));
   const port = await freePortBlock([0, 1]);
   base = `http://127.0.0.1:${port}`;
-  child = spawn(process.execPath, [join(SERVER_DIR, "index.ts")], {
+  child = spawnSourcePurchaseServer(process.execPath, [join(SERVER_DIR, "index.ts")], {
     cwd: ROOT,
     env: {
       ...(process.env.PATH ? { PATH: process.env.PATH } : {}),

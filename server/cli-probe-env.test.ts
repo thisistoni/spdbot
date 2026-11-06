@@ -1,7 +1,8 @@
+import { spawnSourcePurchaseServer, sourcePurchaseHome } from "./testing/source-purchase-fixture.ts";
 // A stub executable records the environment the CLI probe and the Claude update hand it. Disposable home; no network.
 import { randomBytes } from "node:crypto";
-import { spawn, type ChildProcess } from "node:child_process";
-import { mkdirSync, mkdtempSync, readFileSync, writeFileSync } from "node:fs";
+import { type ChildProcess } from "node:child_process";
+import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { delimiter, dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -54,7 +55,7 @@ function expectNoCredentials(file: string) {
 }
 
 beforeAll(async () => {
-  home = mkdtempSync(join(tmpdir(), "omb-cli-probe-env-"));
+  home = sourcePurchaseHome(join(tmpdir(), "omb-cli-probe-env-"));
   const dataDir = join(home, ".spdbot");
   mkdirSync(dataDir, { recursive: true });
   // Answers like a signed-in Claude Code; `probe` (the CLI test) and
@@ -76,7 +77,7 @@ else if (args.at(-1) === "--version") console.log("9.9.9 (Claude Code)");
   const port = await freePortBlock([0, 1]);
   base = `http://127.0.0.1:${port}`;
   const offlinePrelude = `data:text/javascript,${encodeURIComponent('globalThis.fetch = async () => new Response("offline fixture", { status: 503 });')}`;
-  child = spawn(process.execPath, ["--import", offlinePrelude, join(SERVER_DIR, "index.ts")], {
+  child = spawnSourcePurchaseServer(process.execPath, ["--import", offlinePrelude, join(SERVER_DIR, "index.ts")], {
     cwd: join(SERVER_DIR, ".."),
     env: {
       PATH: process.env.PATH,

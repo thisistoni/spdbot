@@ -1,9 +1,10 @@
+import { sourcePurchaseHome, sourcePurchaseEnvironment, sourcePurchaseServerArgs } from "../../server/testing/source-purchase-fixture.ts";
 // Automations as a person uses them, end to end in the real app: the real server and its webhook receiver in a
 // temporary home, a scripted engine that obeys tool calls, the real renderer in headless Chrome. Every step leaves a
 // screenshot. Run with OMB_UI_E2E=1; OMB_AUTOMATIONS_JOURNEY_SHOTS=DIR keeps the screenshots there.
 import { type ChildProcess } from "node:child_process";
 import { randomBytes } from "node:crypto";
-import { createWriteStream, existsSync, mkdirSync, mkdtempSync, readFileSync, writeFileSync } from "node:fs";
+import { createWriteStream, existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
@@ -394,7 +395,7 @@ const OUTSIDE_WHY = "A webhook's run made or changed this routine, so it runs wi
 /** A Cloud home as its image starts it (cloud-home-start's own environment and secrets pipe), with a fake public origin,
  * no network beyond loopback, the scripted engine, and the owner's paired device. */
 async function launchCloudHome() {
-  const home = mkdtempSync(join(SHORT_TMP, "omb-cloud-journey-"));
+  const home = sourcePurchaseHome(join(SHORT_TMP, "omb-cloud-journey-"));
   const dataDir = join(home, ".spdbot");
   mkdirSync(join(home, "tmp"), { recursive: true });
   mkdirSync(dataDir, { recursive: true });
@@ -424,7 +425,7 @@ await import(${JSON.stringify(pathToFileURL(join(ROOT, "server", "testing", "fak
   mkdirSync(evidenceDir, { recursive: true });
   const logPath = join(evidenceDir, `cloud-journey-${Date.now()}-${process.pid}.log`);
   const log = createWriteStream(logPath);
-  const child: ChildProcess = spawnWithSecrets(process.execPath, ["--import", offline, join(ROOT, "server", "index.ts")], env, secrets, undefined, true);
+  const child: ChildProcess = spawnWithSecrets(process.execPath, sourcePurchaseServerArgs(["--import", offline, join(ROOT, "server", "index.ts")]), sourcePurchaseEnvironment(env), secrets, undefined, true);
   child.stdout?.pipe(log);
   child.stderr?.pipe(log);
   const url = `http://127.0.0.1:${port}`;

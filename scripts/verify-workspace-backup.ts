@@ -5,7 +5,7 @@ import { createHash } from "node:crypto";
 import { closeSync, existsSync, mkdirSync, openSync, readFileSync, writeFileSync } from "node:fs";
 import { basename, dirname, join, relative, resolve } from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
-import { launchVerificationServer, runControlOmb, type VerificationServer } from "./control-omb.ts";
+import { launchVerificationServer, runControlOmb, verificationServerArgs, verificationServerEnvironment, type VerificationServer } from "./control-omb.ts";
 import { waitForExit } from "../server/testing/cleanup.ts";
 import { escapeAttribute } from "../src/lib/composer-attachments.ts";
 
@@ -19,10 +19,8 @@ async function restartFixture(fixture: VerificationServer): Promise<ChildProcess
   const dataDir = fixture.info.dataDir;
   const config = JSON.parse(readFileSync(join(dataDir, "config.json"), "utf8"));
   assert.equal(resolve(config.instances.claude.config.cli), join(ROOT, "server", "testing", "fake-claude-cli.ts"));
-  const env: NodeJS.ProcessEnv = {};
-  for (const key of ["SYSTEMROOT", "WINDIR", "COMSPEC", "PATHEXT", "LANG", "LC_ALL", "TZ"]) {
-    if (process.env[key]) env[key] = process.env[key];
-  }
+  const env = verificationServerEnvironment({}, dataDir, Number(new URL(fixture.info.url).port));
+  env.OMB_TEST_PURCHASE = "fixture";
   const temp = join(dataDir, "tmp");
   const home = join(dataDir, "providers", "fixture-home");
   mkdirSync(temp, { recursive: true });
@@ -38,7 +36,7 @@ async function restartFixture(fixture: VerificationServer): Promise<ChildProcess
     PATH: dirname(process.execPath),
   });
   const log = openSync(fixture.info.logPath, "a", 0o600);
-  const child = spawn(process.execPath, ["--experimental-strip-types", join(ROOT, "server", "index.ts")], {
+  const child = spawn(process.execPath, verificationServerArgs(env), {
     cwd: ROOT, env, stdio: ["ignore", log, log],
   });
   closeSync(log);

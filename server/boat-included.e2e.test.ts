@@ -1,8 +1,9 @@
+import { spawnSourcePurchaseServer, sourcePurchaseHome } from "./testing/source-purchase-fixture.ts";
 // One stub plays Boat (/boat) and the Admin's relay (/relay), so neither key is ever sent to the other side. Disposable home; no network.
 import { randomUUID } from "node:crypto";
-import { spawn, type ChildProcess } from "node:child_process";
+import { type ChildProcess } from "node:child_process";
 import { createServer, type Server } from "node:http";
-import { mkdirSync, mkdtempSync, readFileSync, writeFileSync } from "node:fs";
+import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -64,7 +65,7 @@ beforeAll(async () => {
   await new Promise<void>((resolve) => stub.listen(0, "127.0.0.1", resolve));
   stubBase = `http://127.0.0.1:${(stub.address() as { port: number }).port}`;
 
-  home = mkdtempSync(join(tmpdir(), "omb-boat-included-"));
+  home = sourcePurchaseHome(join(tmpdir(), "omb-boat-included-"));
   const dataDir = join(home, ".spdbot");
   mkdirSync(dataDir, { recursive: true });
   // One deliberately unknown engine: nothing probes an installed CLI.
@@ -79,7 +80,7 @@ beforeAll(async () => {
 
   const port = await freePortBlock([0, 1]);
   base = `http://127.0.0.1:${port}`;
-  child = spawn(process.execPath, [join(SERVER_DIR, "index.ts")], {
+  child = spawnSourcePurchaseServer(process.execPath, [join(SERVER_DIR, "index.ts")], {
     cwd: join(SERVER_DIR, ".."),
     env: {
       PATH: process.env.PATH,

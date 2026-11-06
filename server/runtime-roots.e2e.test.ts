@@ -1,5 +1,6 @@
+import { spawnSourcePurchaseServer, sourcePurchaseHome } from "./testing/source-purchase-fixture.ts";
 import { spawn, type ChildProcess } from "node:child_process";
-import { closeSync, existsSync, mkdirSync, mkdtempSync, openSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { closeSync, existsSync, mkdirSync, openSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { createServer, type ServerResponse } from "node:http";
 import type { AddressInfo } from "node:net";
 import { tmpdir } from "node:os";
@@ -124,6 +125,7 @@ async function scenario(test: (f: any) => Promise<void>, options: { env?: Record
   const restart = async (signal: NodeJS.Signals, extraEnv: Record<string, string> = {}) => {
     await waitForExit(server, { signal });
     const env = { ...verificationServerEnvironment(parentEnv, dataDir, Number(new URL(url).port)), ...extraEnv };
+    env.OMB_TEST_PURCHASE = "fixture";
     const log = openSync(session.info.logPath, "a", 0o600);
     server = spawn(process.execPath, verificationServerArgs(env), { cwd: ROOT, env, stdio: ["ignore", log, log] });
     restarted = true;
@@ -439,7 +441,7 @@ it("T6 continues a person's step-capped turn in place on the same root", async (
 const itHost = process.platform === "linux" ? it.skip : it;
 itHost("T7 queues a root on the computer seat at the wait ceiling and continues it when the seat frees", async () => {
   const CEILING_MS = 1_500;
-  const home = mkdtempSync(join(tmpdir(), "omb-runtime-roots-seat-"));
+  const home = sourcePurchaseHome(join(tmpdir(), "omb-runtime-roots-seat-"));
   const data = join(home, "data");
   const ui = join(home, "static");
   const stateFile = join(home, "vm.json");
@@ -490,7 +492,7 @@ itHost("T7 queues a root on the computer seat at the wait ceiling and continues 
       driver: "claudeAgent", config: { cli: join(ROOT, "server/testing/fake-claude-cli.ts") },
       environment: { FAKE_CLAUDE_MODE: "slow", FAKE_CLAUDE_DUMP: dumpFile, FAKE_CLAUDE_SLOW_FINISH_GATE: finishFile },
     } } }));
-    const proc = spawn(process.execPath, ["--import", pathToFileURL(join(ROOT, "server/testing/group-local-vm-hooks.mjs")).href, join(ROOT, "server/index.ts")], {
+    const proc = spawnSourcePurchaseServer(process.execPath, ["--import", pathToFileURL(join(ROOT, "server/testing/group-local-vm-hooks.mjs")).href, join(ROOT, "server/index.ts")], {
       cwd: ROOT, env: {
         PATH: dirname(process.execPath), ...(process.env.SystemRoot ? { SystemRoot: process.env.SystemRoot } : {}),
         HOME: home, USERPROFILE: home, OMB_DATA_DIR: data, APPDATA: join(home, "appdata"), LOCALAPPDATA: join(home, "localappdata"),
@@ -738,7 +740,7 @@ it("T10 parks a teammate's turn on its credential card, tells the Chief at once,
 }), hostTimeout(90_000));
 
 it("T11 does not rerun a cut turn that already pushed: the root ends with what it did, said once", async () => {
-  const home = mkdtempSync(join(tmpdir(), "omb-runtime-roots-outward-"));
+  const home = sourcePurchaseHome(join(tmpdir(), "omb-runtime-roots-outward-"));
   try {
     await scenario(async (f) => {
       const job = f.clive.activeTaskId;

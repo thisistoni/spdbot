@@ -1,8 +1,9 @@
+import { spawnSourcePurchaseServer, sourcePurchaseHome } from "./testing/source-purchase-fixture.ts";
 // Real servers over HTTP driven by the desktop's own orchestrator (electron/cloud-move.mjs). The test plays the Admin
 // (signing pairing requests), the desktop window's cookie, the edge (every request forwarded, never the loopback owner) and
 // the launcher (restarting a server that exits with RESTART_EXIT_CODE). No network; a synthetic Claude CLI.
 import { createHash, randomBytes } from "node:crypto";
-import { spawn, type ChildProcess } from "node:child_process";
+import { type ChildProcess } from "node:child_process";
 import { existsSync, lstatSync, mkdirSync, mkdtempSync, readdirSync, readFileSync, writeFileSync } from "node:fs";
 import { request as httpRequest } from "node:http";
 import { tmpdir } from "node:os";
@@ -49,7 +50,7 @@ let movedRoutine = "";
 let desktopBots: string[];
 
 async function boot(fixture: Fixture): Promise<void> {
-  const child = spawn(process.execPath, ["--import", OFFLINE, join(SERVER_DIR, "index.ts")], { cwd: join(SERVER_DIR, ".."), env: fixture.env, stdio: ["ignore", "pipe", "pipe"] });
+  const child = spawnSourcePurchaseServer(process.execPath, ["--import", OFFLINE, join(SERVER_DIR, "index.ts")], { cwd: join(SERVER_DIR, ".."), env: fixture.env, stdio: ["ignore", "pipe", "pipe"] });
   fixture.child = child;
   fixture.boots++;
   child.stdout?.on("data", (chunk) => { fixture.log += chunk; });
@@ -70,7 +71,7 @@ async function boot(fixture: Fixture): Promise<void> {
 }
 
 async function launch(name: "desktop" | "cloud" | "server"): Promise<Fixture> {
-  const home = mkdtempSync(join(tmpdir(), `omb-move-${name}-`));
+  const home = sourcePurchaseHome(join(tmpdir(), `omb-move-${name}-`));
   const dataDir = join(home, ".spdbot");
   mkdirSync(dataDir, { recursive: true });
   const cli = join(home, "fixture-claude.mjs");

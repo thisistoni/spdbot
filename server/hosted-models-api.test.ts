@@ -4,7 +4,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
 import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";
-import { launchVerificationServer, runControlOmb, verificationServerEnvironment, type VerificationServer } from "../scripts/control-omb.ts";
+import { verificationServerArgs, launchVerificationServer, runControlOmb, verificationServerEnvironment, type VerificationServer } from "../scripts/control-omb.ts";
 import { removeTempDir, waitForExit } from "./testing/cleanup.ts";
 
 const ROOT = fileURLToPath(new URL("..", import.meta.url));
@@ -61,9 +61,7 @@ async function restart(grants: Grants) {
   await waitForExit(child, { signal: "SIGTERM" });
   const owned = fixture!;
   const log = openSync(owned.info.logPath, "a", 0o600);
-  child = spawn(process.execPath, ["--experimental-strip-types", join(ROOT, "server/index.ts")], {
-    cwd: ROOT,
-    env: {
+  const purchaseEnv: NodeJS.ProcessEnv = {
       ...verificationServerEnvironment({}, owned.info.dataDir, Number(new URL(owned.info.url).port)),
       FAKE_CLAUDE_TEXT_DUMP: join(owned.info.dataDir, "fake-claude-helper-dump.json"),
       OMB_ENTERPRISE_DIR: layer, OMB_LICENSE_KEY: "fixture-only",
@@ -74,7 +72,11 @@ async function restart(grants: Grants) {
       OMB_HOSTED_MODELS: JSON.stringify(grants), OMB_HOSTED_MODEL_TOKEN: TOKEN,
       OMB_HOSTED_CLAUDE_CLI: join(ROOT, "server/testing/fake-claude-cli.ts"),
       OMB_HOSTED_CODEX_CLI: join(ROOT, "server/testing/fake-codex-app-server.ts"),
-    },
+    };
+  purchaseEnv.OMB_TEST_PURCHASE = "fixture";
+  child = spawn(process.execPath, verificationServerArgs(purchaseEnv), {
+    cwd: ROOT,
+    env: purchaseEnv,
     stdio: ["ignore", log, log],
   });
   closeSync(log);

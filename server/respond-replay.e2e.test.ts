@@ -1,6 +1,7 @@
+import { spawnSourcePurchaseServer, sourcePurchaseHome } from "./testing/source-purchase-fixture.ts";
 // The real server runs against the fake ACP CLI in "permission" mode: every turn asks to run `echo hi`.
-import { spawn, type ChildProcess } from "node:child_process";
-import { chmodSync, mkdirSync, mkdtempSync, writeFileSync } from "node:fs";
+import { type ChildProcess } from "node:child_process";
+import { chmodSync, mkdirSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -30,7 +31,7 @@ const api = async (method: string, path: string, body?: unknown): Promise<{ stat
 };
 
 async function start() {
-  child = spawn(process.execPath, [join(SERVER_DIR, "index.ts")], {
+  child = spawnSourcePurchaseServer(process.execPath, [join(SERVER_DIR, "index.ts")], {
     cwd: join(SERVER_DIR, ".."),
     env: {
       ...(process.env.PATH ? { PATH: process.env.PATH } : {}),
@@ -78,7 +79,7 @@ const userDecisionsFor = async (requestId: string) => {
 posixOnly("a replayed respond for a settled card", () => {
   beforeAll(async () => {
     chmodSync(FAKE_CLI, 0o755);
-    home = mkdtempSync(join(tmpdir(), "omb-respond-replay-"));
+    home = sourcePurchaseHome(join(tmpdir(), "omb-respond-replay-"));
     const data = join(home, ".spdbot");
     mkdirSync(data, { recursive: true });
     writeFileSync(join(data, "config.json"), JSON.stringify({

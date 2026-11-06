@@ -1,5 +1,6 @@
+import { spawnSourcePurchaseServer, sourcePurchaseHome } from "./testing/source-purchase-fixture.ts";
 // POSIX-gated: the fake CLI is a shebang script.
-import { spawn, type ChildProcess } from "node:child_process";
+import { type ChildProcess } from "node:child_process";
 import { chmodSync, mkdirSync, mkdtempSync, readdirSync, readFileSync, statSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
@@ -47,7 +48,7 @@ function harness(label: string, serverEnv: Record<string, string>, instanceEnv: 
   };
   beforeAll(async () => {
     chmodSync(FAKE_CLAUDE, 0o755);
-    home = mkdtempSync(join(tmpdir(), `omb-hooks-${label}-`));
+    home = sourcePurchaseHome(join(tmpdir(), `omb-hooks-${label}-`));
     mkdirSync(join(home, ".spdbot"), { recursive: true });
     writeFileSync(join(home, ".spdbot", "config.json"), JSON.stringify({
       instances: {
@@ -69,7 +70,7 @@ function harness(label: string, serverEnv: Record<string, string>, instanceEnv: 
     }));
     const env: NodeJS.ProcessEnv = { HOME: home, USERPROFILE: home, OMB_PORT: String(PORT), ...serverEnv };
     if (process.env.PATH) env.PATH = process.env.PATH;
-    child = spawn(process.execPath, [join(SERVER_DIR, "index.ts")], { cwd: join(SERVER_DIR, ".."), env, stdio: ["ignore", "pipe", "pipe"] });
+    child = spawnSourcePurchaseServer(process.execPath, [join(SERVER_DIR, "index.ts")], { cwd: join(SERVER_DIR, ".."), env, stdio: ["ignore", "pipe", "pipe"] });
     child.stderr!.on("data", (c) => (stderr += c));
     const deadline = Date.now() + 20_000;
     for (;;) {

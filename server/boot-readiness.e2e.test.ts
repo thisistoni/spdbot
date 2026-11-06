@@ -1,6 +1,7 @@
+import { spawnSourcePurchaseServer, sourcePurchaseHome } from "./testing/source-purchase-fixture.ts";
 // Real server, fake Claude CLI with a slow `auth status` (each probe may take up to its 8 s timeout).
-import { spawn, type ChildProcess } from "node:child_process";
-import { existsSync, mkdirSync, mkdtempSync, readFileSync, writeFileSync } from "node:fs";
+import { type ChildProcess } from "node:child_process";
+import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { DatabaseSync } from "node:sqlite";
@@ -22,7 +23,7 @@ afterEach(async () => {
 });
 
 function freshHome(): string {
-  const home = mkdtempSync(join(tmpdir(), "omb-boot-readiness-"));
+  const home = sourcePurchaseHome(join(tmpdir(), "omb-boot-readiness-"));
   homes.push(home);
   mkdirSync(join(home, "tmp"), { recursive: true });
   writeFileSync(join(home, "config.json"), JSON.stringify({
@@ -34,7 +35,7 @@ function freshHome(): string {
 async function boot(home: string, knobs: Record<string, string> = {}) {
   const port = await freePortBlock([0, 1]);
   const base = `http://127.0.0.1:${port}`;
-  const child = spawn(process.execPath, ["--experimental-strip-types", join(ROOT, "server/index.ts")], {
+  const child = spawnSourcePurchaseServer(process.execPath, ["--experimental-strip-types", join(ROOT, "server/index.ts")], {
     cwd: ROOT,
     env: verificationServerEnvironment({ ...process.env, ...knobs }, home, port),
     stdio: ["ignore", "pipe", "pipe"],

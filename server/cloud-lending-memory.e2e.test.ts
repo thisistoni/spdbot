@@ -1,3 +1,4 @@
+import { spawnSourcePurchaseServer, sourcePurchaseHome } from "./testing/source-purchase-fixture.ts";
 // On a Cloud home nothing a guest's conversation produced may reach a bot's memory, log, recall, brief or folders. No
 // guest can connect any more, so the gates are kept for what a guest left behind, written in while the server is stopped.
 import { randomBytes, randomUUID } from "node:crypto";
@@ -151,7 +152,7 @@ const reads = async (call: Awaited<ReturnType<typeof toolsFor>>) => {
 };
 
 beforeAll(async () => {
-  home = mkdtempSync(join(tmpdir(), "omb-cloud-lending-memory-"));
+  home = sourcePurchaseHome(join(tmpdir(), "omb-cloud-lending-memory-"));
   const dataDir = join(home, ".spdbot");
   mkdirSync(dataDir, { recursive: true });
   const fake = pathToFileURL(join(SERVER_DIR, "testing", "fake-claude-cli.ts")).href;
@@ -197,7 +198,7 @@ await import(${JSON.stringify(fake)});
   base = `http://127.0.0.1:${port}`;
   const offlinePrelude = `data:text/javascript,${encodeURIComponent('const real = globalThis.fetch; globalThis.fetch = async (url, init) => String(url).startsWith("http://127.0.0.1:") ? real(url, init) : new Response("offline fixture", { status: 503 });')}`;
   boot = async () => {
-    child = spawn(process.execPath, ["--import", offlinePrelude, join(SERVER_DIR, "index.ts")], {
+    child = spawnSourcePurchaseServer(process.execPath, ["--import", offlinePrelude, join(SERVER_DIR, "index.ts")], {
       cwd: join(SERVER_DIR, ".."),
       env: {
         PATH: process.env.PATH, ...(process.env.SystemRoot ? { SystemRoot: process.env.SystemRoot } : {}),

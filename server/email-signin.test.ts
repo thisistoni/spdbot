@@ -1,5 +1,6 @@
-import { spawn, type ChildProcess } from "node:child_process";
-import { mkdirSync, mkdtempSync, readFileSync, writeFileSync } from "node:fs";
+import { spawnSourcePurchaseServer, sourcePurchaseHome } from "./testing/source-purchase-fixture.ts";
+import { type ChildProcess } from "node:child_process";
+import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { request as httpRequest } from "node:http";
 import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
@@ -86,7 +87,7 @@ async function openEvents(cookie: string) {
 
 beforeAll(async () => {
   stub = await startControlPlaneStub();
-  home = mkdtempSync(join(tmpdir(), "omb-email-signin-"));
+  home = sourcePurchaseHome(join(tmpdir(), "omb-email-signin-"));
   const staticDir = join(home, "static");
   mkdirSync(join(home, ".spdbot"), { recursive: true });
   mkdirSync(join(staticDir, "assets"), { recursive: true });
@@ -95,7 +96,7 @@ beforeAll(async () => {
     instances: { fixture: { driver: "email-signin-test-shadow" } },
     signIn: { admins: ["her@example.test", "@agentada.test"], members: ["staff@example.test"] },
   }));
-  child = spawn(process.execPath, [join(SERVER_DIR, "index.ts")], {
+  child = spawnSourcePurchaseServer(process.execPath, [join(SERVER_DIR, "index.ts")], {
     cwd: ROOT,
     env: {
       ...(process.env.PATH ? { PATH: process.env.PATH } : {}),

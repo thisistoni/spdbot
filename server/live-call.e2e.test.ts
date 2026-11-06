@@ -1,7 +1,8 @@
+import { spawnSourcePurchaseServer, sourcePurchaseHome } from "./testing/source-purchase-fixture.ts";
 // POSIX-gated: the fakes are shebang scripts.
 import { randomBytes } from "node:crypto";
-import { spawn, type ChildProcess } from "node:child_process";
-import { chmodSync, mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
+import { type ChildProcess } from "node:child_process";
+import { chmodSync, mkdirSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -84,7 +85,7 @@ posixOnly("Live call e2e", () => {
     chmodSync(FAKE_ACP, 0o755);
     chmodSync(FAKE_CODEX, 0o755);
     live = await startFakeOpenAiLive();
-    home = mkdtempSync(join(tmpdir(), "omb-live-call-"));
+    home = sourcePurchaseHome(join(tmpdir(), "omb-live-call-"));
     mkdirSync(join(home, ".spdbot"), { recursive: true });
     steerGate = join(home, "steer.gate");
     titleRoutes = join(home, "title-routes.json");
@@ -121,7 +122,7 @@ posixOnly("Live call e2e", () => {
     );
     const port = await freePortBlock([0, 1]);
     base = `http://127.0.0.1:${port}`;
-    child = spawn(process.execPath, [join(SERVER_DIR, "index.ts")], {
+    child = spawnSourcePurchaseServer(process.execPath, [join(SERVER_DIR, "index.ts")], {
       cwd: join(SERVER_DIR, ".."),
       env: {
         ...(process.env.PATH ? { PATH: process.env.PATH } : {}),
@@ -651,7 +652,7 @@ posixOnly("Live call on the person's Cloud", () => {
   beforeAll(async () => {
     chmodSync(FAKE_CLAUDE, 0o755);
     live = await startFakeOpenAiLive();
-    home = mkdtempSync(join(tmpdir(), "omb-live-cloud-"));
+    home = sourcePurchaseHome(join(tmpdir(), "omb-live-cloud-"));
     const dataDir = join(home, ".spdbot");
     mkdirSync(dataDir, { recursive: true });
     writeFileSync(join(dataDir, "config.json"), JSON.stringify({
@@ -669,7 +670,7 @@ posixOnly("Live call on the person's Cloud", () => {
     const loopbackOnly = `data:text/javascript,${encodeURIComponent(
       "const real = globalThis.fetch; globalThis.fetch = async (input, init) => new URL(input instanceof Request ? input.url : String(input)).hostname === \"127.0.0.1\" ? real(input, init) : new Response(\"offline fixture\", { status: 503 });",
     )}`;
-    child = spawn(process.execPath, ["--import", loopbackOnly, join(SERVER_DIR, "index.ts")], {
+    child = spawnSourcePurchaseServer(process.execPath, ["--import", loopbackOnly, join(SERVER_DIR, "index.ts")], {
       cwd: join(SERVER_DIR, ".."),
       env: {
         ...(process.env.PATH ? { PATH: process.env.PATH } : {}),
@@ -770,7 +771,7 @@ posixOnly("Live calls for everyone, with the person's own OpenAI key", () => {
   beforeAll(async () => {
     chmodSync(FAKE_CLAUDE, 0o755);
     live = await startFakeOpenAiLive();
-    home = mkdtempSync(join(tmpdir(), "omb-live-byok-"));
+    home = sourcePurchaseHome(join(tmpdir(), "omb-live-byok-"));
     const dataDir = join(home, ".spdbot");
     mkdirSync(dataDir, { recursive: true });
     writeFileSync(join(dataDir, "config.json"), JSON.stringify({
@@ -782,7 +783,7 @@ posixOnly("Live calls for everyone, with the person's own OpenAI key", () => {
     }));
     const port = await freePortBlock([0, 1]);
     base = `http://127.0.0.1:${port}`;
-    child = spawn(process.execPath, [join(SERVER_DIR, "index.ts")], {
+    child = spawnSourcePurchaseServer(process.execPath, [join(SERVER_DIR, "index.ts")], {
       cwd: join(SERVER_DIR, ".."),
       env: {
         ...(process.env.PATH ? { PATH: process.env.PATH } : {}),

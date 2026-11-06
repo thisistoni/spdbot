@@ -1,5 +1,6 @@
-import { spawn, type ChildProcess } from "node:child_process";
-import { mkdirSync, mkdtempSync, writeFileSync } from "node:fs";
+import { spawnSourcePurchaseServer, sourcePurchaseHome } from "./testing/source-purchase-fixture.ts";
+import { type ChildProcess } from "node:child_process";
+import { mkdirSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
@@ -63,7 +64,7 @@ describe("transcript pages on bot and room frames", () => {
   const newestPage = Array.from({ length: 50 }, (_, i) => `message ${LONG - 50 + i}`);
 
   beforeAll(async () => {
-    home = mkdtempSync(join(tmpdir(), "omb-thread-page-frames-"));
+    home = sourcePurchaseHome(join(tmpdir(), "omb-thread-page-frames-"));
     const data = join(home, ".spdbot");
     mkdirSync(data, { recursive: true });
     // one deliberately unknown driver: no engine CLI runs, nothing answers
@@ -73,7 +74,7 @@ describe("transcript pages on bot and room frames", () => {
     }));
     const port = await freePortBlock([0, 1]);
     base = `http://127.0.0.1:${port}`;
-    const proc = spawn(process.execPath, [join(SERVER_DIR, "index.ts")], {
+    const proc = spawnSourcePurchaseServer(process.execPath, [join(SERVER_DIR, "index.ts")], {
       cwd: ROOT,
       env: {
         ...(process.env.PATH ? { PATH: process.env.PATH } : {}),

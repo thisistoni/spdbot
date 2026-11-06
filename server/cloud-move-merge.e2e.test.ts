@@ -1,8 +1,9 @@
+import { spawnSourcePurchaseServer, sourcePurchaseHome } from "./testing/source-purchase-fixture.ts";
 // Bring newer chats between two real servers over HTTP, driven by the desktop's own orchestrator (electron/cloud-move.mjs):
 // This computer, and My Cloud, a Cloud home whose owner the test signs in as the Admin would. Each runs with a fresh HOME
 // holding its OMB_DATA_DIR (a backup refuses a data folder that is its own HOME), a synthetic Claude CLI and no network.
 import { createHash, randomBytes } from "node:crypto";
-import { spawn, type ChildProcess } from "node:child_process";
+import { type ChildProcess } from "node:child_process";
 import { existsSync, mkdirSync, mkdtempSync, readdirSync, readFileSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
@@ -34,7 +35,7 @@ let owner: string;
 const ids = { ava: "", main: "", doomed: "", desk: "", solo: "", routine: "" };
 
 async function boot(fixture: Fixture): Promise<void> {
-  const child = spawn(process.execPath, ["--import", OFFLINE, join(SERVER_DIR, "index.ts")], { cwd: join(SERVER_DIR, ".."), env: fixture.env, stdio: ["ignore", "pipe", "pipe"] });
+  const child = spawnSourcePurchaseServer(process.execPath, ["--import", OFFLINE, join(SERVER_DIR, "index.ts")], { cwd: join(SERVER_DIR, ".."), env: fixture.env, stdio: ["ignore", "pipe", "pipe"] });
   fixture.child = child;
   fixture.boots++;
   child.stdout?.on("data", (chunk) => { fixture.log += chunk; });
@@ -55,7 +56,7 @@ async function boot(fixture: Fixture): Promise<void> {
 }
 
 async function launch(name: "desktop" | "cloud"): Promise<Fixture> {
-  const home = mkdtempSync(join(tmpdir(), `omb-bring-${name}-`));
+  const home = sourcePurchaseHome(join(tmpdir(), `omb-bring-${name}-`));
   const dataDir = join(home, ".spdbot");
   mkdirSync(dataDir, { recursive: true });
   const cli = join(home, "fixture-claude.mjs");

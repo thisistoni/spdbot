@@ -1,7 +1,8 @@
-import { spawn, type ChildProcess } from "node:child_process";
+import { spawnSourcePurchaseServer, sourcePurchaseHome } from "./testing/source-purchase-fixture.ts";
+import { type ChildProcess } from "node:child_process";
 import { createHash, randomUUID } from "node:crypto";
 import { channel } from "node:diagnostics_channel";
-import { chmodSync, copyFileSync, existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { chmodSync, copyFileSync, existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { createServer, get, type Server } from "node:http";
 import type { AddressInfo, Socket } from "node:net";
 import { tmpdir } from "node:os";
@@ -211,7 +212,7 @@ describe("routine comms e2e on the job runtime (fake ACP fleet)", () => {
   beforeAll(async () => {
     sent.subscribe(noteTransport);
     chmodSync(FAKE_CLI, 0o755);
-    home = mkdtempSync(join(tmpdir(), "omb-comms-test-"));
+    home = sourcePurchaseHome(join(tmpdir(), "omb-comms-test-"));
     gateFile = join(home, "helper-gate");
     const antigravityDirectory = join(home, "fake-antigravity");
     const antigravityCli = join(antigravityDirectory, "agy_acp_server.ts");
@@ -381,7 +382,7 @@ describe("routine comms e2e on the job runtime (fake ACP fleet)", () => {
     if (process.env.PATH) env.PATH = process.env.PATH;
     // Without SystemRoot, winsock fails to initialize in the child.
     if (process.env.SystemRoot) env.SystemRoot = process.env.SystemRoot;
-    child = spawn(process.execPath, [join(SERVER_DIR, "index.ts")], {
+    child = spawnSourcePurchaseServer(process.execPath, [join(SERVER_DIR, "index.ts")], {
       cwd: join(SERVER_DIR, ".."),
       env,
       stdio: ["ignore", "pipe", "pipe"],

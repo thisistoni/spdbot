@@ -4,7 +4,7 @@ import { join } from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
 import { expect, it } from "vitest";
 
-import { launchVerificationServer, runControlOmb, verificationServerEnvironment } from "../scripts/control-omb.ts";
+import { verificationServerArgs, launchVerificationServer, runControlOmb, verificationServerEnvironment } from "../scripts/control-omb.ts";
 import { waitForExit } from "./testing/cleanup.ts";
 
 const jsonl = (path: string) => existsSync(path)
@@ -60,13 +60,15 @@ async function fixture(test: (f: any) => Promise<void>, { thisComputer = false }
       }), { mode: 0o600 });
     }
     const log = openSync(logPath, "a", 0o600);
-    server = spawn(process.execPath, ["--experimental-strip-types", fileURLToPath(new URL("./index.ts", import.meta.url))], {
-      cwd: fileURLToPath(new URL("..", import.meta.url)),
-      env: {
+    const purchaseEnv: NodeJS.ProcessEnv = {
         ...verificationServerEnvironment({ FAKE_CLAUDE_MODE: "hang", FAKE_CLAUDE_RELEASE: release }, dataDir, Number(new URL(url).port)),
         ...(withBrowser ? { OMB_AGENT_BROWSER_PATH: browser } : {}),
         ...(thisComputer ? { OMB_USER_DATA: userData } : {}),
-      },
+      };
+    purchaseEnv.OMB_TEST_PURCHASE = "fixture";
+    server = spawn(process.execPath, verificationServerArgs(purchaseEnv), {
+      cwd: fileURLToPath(new URL("..", import.meta.url)),
+      env: purchaseEnv,
       stdio: ["ignore", log, log],
     });
     closeSync(log);

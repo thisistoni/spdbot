@@ -5,7 +5,7 @@ import { DatabaseSync } from "node:sqlite";
 import { fileURLToPath, pathToFileURL } from "node:url";
 import { expect, it } from "vitest";
 
-import { launchVerificationServer, runControlOmb } from "../scripts/control-omb.ts";
+import { verificationServerArgs, launchVerificationServer, runControlOmb } from "../scripts/control-omb.ts";
 import { waitForExit } from "./testing/cleanup.ts";
 
 it("survives a real server crash: queued sends keep receipts, cancellation and uncertain dispatch never replay", async () => {
@@ -65,8 +65,10 @@ it("survives a real server crash: queued sends keep receipts, cancellation and u
       OMB_PORT: new URL(url).port, OMB_WEBHOOK_PORT: String(Number(new URL(url).port) + 1), PATH: dirname(process.execPath),
     });
     const log = openSync(logPath, "a", 0o600);
-    restarted = spawn(process.execPath, ["--experimental-strip-types", fileURLToPath(new URL("./index.ts", import.meta.url))], {
-      cwd: fileURLToPath(new URL("..", import.meta.url)), env, stdio: ["ignore", log, log],
+    const purchaseEnv: NodeJS.ProcessEnv = env;
+    purchaseEnv.OMB_TEST_PURCHASE = "fixture";
+    restarted = spawn(process.execPath, verificationServerArgs(purchaseEnv), {
+      cwd: fileURLToPath(new URL("..", import.meta.url)), env: purchaseEnv, stdio: ["ignore", log, log],
     });
     closeSync(log);
     await expect.poll(async () => {

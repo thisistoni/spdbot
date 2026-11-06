@@ -1,7 +1,8 @@
-import { spawn, type ChildProcess } from "node:child_process";
+import { spawnSourcePurchaseServer, sourcePurchaseHome } from "./testing/source-purchase-fixture.ts";
+import { type ChildProcess } from "node:child_process";
 import { createHash, randomUUID } from "node:crypto";
 import { createServer, type Server } from "node:http";
-import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
@@ -56,7 +57,7 @@ const gate = (c: any) => fetch(c.env.OMB_CONTROL_URL, { headers: { authorization
 const check = (c: any) => createControlClient({ url: c.env.OMB_CONTROL_URL, token: c.env.OMB_CONTROL_TOKEN }).state(true);
 
 beforeAll(async () => {
-  fixtureHome = mkdtempSync(join(tmpdir(), "omb-group-vm-"));
+  fixtureHome = sourcePurchaseHome(join(tmpdir(), "omb-group-vm-"));
   stateFile = join(fixtureHome, "vm.json");
   dumpFile = join(fixtureHome, "dump.json");
   finishFile = join(fixtureHome, "finish");
@@ -104,7 +105,7 @@ beforeAll(async () => {
   const port = await freePortBlock([0, 1]);
   base = `http://127.0.0.1:${port}`;
   startServer = async (computerWaitMaxMs) => {
-    child = spawn(process.execPath, ["--import", pathToFileURL(join(ROOT, "server/testing/group-local-vm-hooks.mjs")).href, join(ROOT, "server/index.ts")], {
+    child = spawnSourcePurchaseServer(process.execPath, ["--import", pathToFileURL(join(ROOT, "server/testing/group-local-vm-hooks.mjs")).href, join(ROOT, "server/index.ts")], {
       cwd: ROOT, env: {
         PATH: dirname(process.execPath), ...(process.env.SystemRoot ? { SystemRoot: process.env.SystemRoot } : {}),
         HOME: fixtureHome, USERPROFILE: fixtureHome, OMB_DATA_DIR: data,

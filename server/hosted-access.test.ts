@@ -1,6 +1,7 @@
+import { spawnSourcePurchaseServer, sourcePurchaseHome } from "./testing/source-purchase-fixture.ts";
 // The HTTPS backchannel is injected, never redirected to a real portal.
-import { spawn, type ChildProcess } from "node:child_process";
-import { mkdirSync, mkdtempSync, writeFileSync } from "node:fs";
+import { type ChildProcess } from "node:child_process";
+import { mkdirSync, writeFileSync } from "node:fs";
 import { request, type IncomingMessage } from "node:http";
 import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
@@ -84,7 +85,7 @@ async function login() {
 }
 async function restart(env: NodeJS.ProcessEnv = {}) {
   await waitForExit(child, { signal: "SIGTERM" });
-  child = spawn(process.execPath, [join(ROOT, "server/index.ts")], { cwd: ROOT, env: { ...fixtureEnv, ...env }, stdio: ["ignore", "pipe", "pipe"] });
+  child = spawnSourcePurchaseServer(process.execPath, [join(ROOT, "server/index.ts")], { cwd: ROOT, env: { ...fixtureEnv, ...env }, stdio: ["ignore", "pipe", "pipe"] });
   child.stdout?.on("data", (chunk) => log += chunk); child.stderr?.on("data", (chunk) => log += chunk);
   await expect.poll(async () => {
     try { return (await call("/api/health", { local: true })).status; } catch { return 0; }
@@ -93,7 +94,7 @@ async function restart(env: NodeJS.ProcessEnv = {}) {
 
 beforeAll(async () => {
   PORT = await freePortBlock([0, 1], 35_000, 5_000);
-  home = mkdtempSync(join(tmpdir(), "omb-hosted-server-"));
+  home = sourcePurchaseHome(join(tmpdir(), "omb-hosted-server-"));
   stateFile = join(home, "portal-fixture.json"); state();
   const data = join(home, ".spdbot");
   const layer = join(home, "enterprise");
@@ -122,7 +123,7 @@ beforeAll(async () => {
       } });
     }
   `);
-  child = spawn(process.execPath, [join(ROOT, "server/index.ts")], { cwd: ROOT, env: fixtureEnv = {
+  child = spawnSourcePurchaseServer(process.execPath, [join(ROOT, "server/index.ts")], { cwd: ROOT, env: fixtureEnv = {
     ...(process.env.PATH ? { PATH: process.env.PATH } : {}),
     ...(process.env.SystemRoot ? { SystemRoot: process.env.SystemRoot } : {}),
     HOME: home, USERPROFILE: home, OMB_PORT: String(PORT), OMB_WEBHOOK_PORT: String(PORT + 1),
@@ -247,7 +248,7 @@ describe("hosted bridge in the full server", () => {
     await waitForExit(child, { signal: "SIGTERM" });
     state();
     writeFileSync(join(home, ".spdbot", "config.json"), JSON.stringify({ signIn: { admins: [], members: [] }, instances: INSTANCES }));
-    child = spawn(process.execPath, [join(ROOT, "server/index.ts")], { cwd: ROOT, env: { ...fixtureEnv, OMB_ADMIN_MEMBERSHIP: "portal" }, stdio: ["ignore", "pipe", "pipe"] });
+    child = spawnSourcePurchaseServer(process.execPath, [join(ROOT, "server/index.ts")], { cwd: ROOT, env: { ...fixtureEnv, OMB_ADMIN_MEMBERSHIP: "portal" }, stdio: ["ignore", "pipe", "pipe"] });
     child.stderr?.on("data", (chunk) => log += chunk);
     await expect.poll(async () => {
       try { return (await call("/api/health", { local: true })).status; } catch { return 0; }

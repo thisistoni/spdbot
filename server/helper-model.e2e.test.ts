@@ -1,6 +1,7 @@
+import { spawnSourcePurchaseServer, sourcePurchaseHome } from "./testing/source-purchase-fixture.ts";
 // POSIX-gated like the other CLI e2es: the fakes are shebang scripts.
-import { spawn, type ChildProcess } from "node:child_process";
-import { chmodSync, existsSync, mkdirSync, mkdtempSync, readFileSync, writeFileSync } from "node:fs";
+import { type ChildProcess } from "node:child_process";
+import { chmodSync, existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -42,7 +43,7 @@ async function boot(extraConfig: Record<string, unknown>) {
   for (const name of FAKES) chmodSync(fake(name), 0o755);
   const port = 18800 + Math.floor(Math.random() * 10_000);
   const base = `http://127.0.0.1:${port}`;
-  const home = mkdtempSync(join(tmpdir(), "omb-helper-model-"));
+  const home = sourcePurchaseHome(join(tmpdir(), "omb-helper-model-"));
   mkdirSync(join(home, ".spdbot"), { recursive: true });
   const routes = join(home, "one-shot-routes.json");
   writeFileSync(routes, JSON.stringify({
@@ -62,7 +63,7 @@ async function boot(extraConfig: Record<string, unknown>) {
   let stderr = "";
   const env: NodeJS.ProcessEnv = { HOME: home, USERPROFILE: home, OMB_PORT: String(port), FAKE_CLAUDE_TEXT_ROUTES: routes };
   if (process.env.PATH) env.PATH = process.env.PATH;
-  const child: ChildProcess = spawn(process.execPath, [join(SERVER_DIR, "index.ts")], { cwd: join(SERVER_DIR, ".."), env, stdio: ["ignore", "pipe", "pipe"] });
+  const child: ChildProcess = spawnSourcePurchaseServer(process.execPath, [join(SERVER_DIR, "index.ts")], { cwd: join(SERVER_DIR, ".."), env, stdio: ["ignore", "pipe", "pipe"] });
   child.stderr!.on("data", (chunk) => (stderr += chunk));
   let stdout = "";
   child.stdout!.on("data", (chunk) => (stdout += chunk));

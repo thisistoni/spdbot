@@ -1,9 +1,10 @@
+import { spawnSourcePurchaseServer, sourcePurchaseHome } from "./testing/source-purchase-fixture.ts";
 // The real server, the fake Claude CLI and a stub of the Admin's Boat relay, with the call wait and the start budget
 // shortened; disposable home, no network.
 import { randomUUID } from "node:crypto";
-import { spawn, type ChildProcess } from "node:child_process";
+import { type ChildProcess } from "node:child_process";
 import { createServer, type Server, type ServerResponse } from "node:http";
-import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -131,7 +132,7 @@ describe("a slow cloud computer start", () => {
     await new Promise<void>(resolve => relay.listen(0, "127.0.0.1", resolve));
     const relayBase = `http://127.0.0.1:${(relay.address() as { port: number }).port}`;
 
-    home = mkdtempSync(join(tmpdir(), "omb-cloud-slow-"));
+    home = sourcePurchaseHome(join(tmpdir(), "omb-cloud-slow-"));
     const data = join(home, "data");
     dumpFile = join(home, "dump.json");
     finishFile = join(home, "finish");
@@ -144,7 +145,7 @@ describe("a slow cloud computer start", () => {
     } }));
     const port = await freePortBlock([0, 1]);
     base = `http://127.0.0.1:${port}`;
-    child = spawn(process.execPath, [join(ROOT, "server/index.ts")], {
+    child = spawnSourcePurchaseServer(process.execPath, [join(ROOT, "server/index.ts")], {
       cwd: ROOT,
       env: {
         PATH: process.env.PATH, ...(process.env.SystemRoot ? { SystemRoot: process.env.SystemRoot } : {}),

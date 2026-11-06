@@ -1,5 +1,6 @@
+import { sourcePurchaseHome, sourcePurchaseEnvironment, sourcePurchaseServerArgs } from "./testing/source-purchase-fixture.ts";
 import { randomBytes } from "node:crypto";
-import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { mkdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -59,7 +60,7 @@ const written = (file: string, shape: "document" | "lines" = "document") => {
 };
 
 beforeAll(async () => {
-  home = mkdtempSync(join(tmpdir(), "omb-opencode-keys-"));
+  home = sourcePurchaseHome(join(tmpdir(), "omb-opencode-keys-"));
   dataDir = join(home, ".spdbot");
   mkdirSync(dataDir, { recursive: true });
   dump = join(home, "opencode.json");
@@ -76,14 +77,14 @@ beforeAll(async () => {
   const port = await freePortBlock([0, 1]);
   base = `http://127.0.0.1:${port}`;
   const offlinePrelude = `data:text/javascript,${encodeURIComponent('const real = globalThis.fetch; globalThis.fetch = async (url, init) => String(url).startsWith("http://127.0.0.1:") ? real(url, init) : new Response("offline fixture", { status: 503 });')}`;
-  child = spawnWithSecrets(process.execPath, ["--import", offlinePrelude, join(SERVER_DIR, "index.ts")], {
+  child = spawnWithSecrets(process.execPath, sourcePurchaseServerArgs(["--import", offlinePrelude, join(SERVER_DIR, "index.ts")]), sourcePurchaseEnvironment({
     PATH: process.env.PATH, ...(process.env.SystemRoot ? { SystemRoot: process.env.SystemRoot } : {}),
     HOME: home, USERPROFILE: home, OMB_DATA_DIR: dataDir, OMB_PORT: String(port), OMB_WEBHOOK_PORT: String(port + 1),
     OMB_CLOUD_ROLE: "home", OMB_CLOUD_MACHINE_ID: "3f9c2a4e-8b1d-4c6e-9a7f-2d5e8c1b0a93", OMB_CLOUD_ADMIN_URL: "https://cloud.example.test",
     OMB_PUBLIC_URL: `https://${HOST}`, OMB_CLOUD_SECRETS_FD: "3",
     // Provider keys in the server's own environment: never the owner's to spend from a bot.
     ANTHROPIC_API_KEY: "anthropic-server-own", OPENAI_API_KEY: "openai-server-own",
-  }, { OMB_CLOUD_BOOTSTRAP_SECRET: secret }, undefined, true);
+  }), { OMB_CLOUD_BOOTSTRAP_SECRET: secret }, undefined, true);
   for (const stream of [child.stdout, child.stderr]) stream?.on("data", (chunk) => { log += chunk; });
   const deadline = Date.now() + 20_000;
   for (;;) {

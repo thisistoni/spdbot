@@ -3,7 +3,7 @@ import { closeSync, openSync, readFileSync, writeFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { expect, it } from "vitest";
-import { launchVerificationServer, runControlOmb } from "../scripts/control-omb.ts";
+import { verificationServerArgs, launchVerificationServer, runControlOmb } from "../scripts/control-omb.ts";
 import type { RoutineRun } from "./routines.ts";
 import { waitForExit } from "./testing/cleanup.ts";
 
@@ -59,8 +59,10 @@ it("does not run a delivery twice after a process dies between the queue and ing
     const committed = JSON.parse(readFileSync(join(dataDir, "routines.json"), "utf8")).runs[0] as RoutineRun;
     expect(JSON.parse(readFileSync(join(dataDir, "webhooks.json"), "utf8")).deliveries).toEqual([]);
     const log = openSync(logPath, "a", 0o600);
-    restarted = spawn(process.execPath, ["--experimental-strip-types", fileURLToPath(new URL("./index.ts", import.meta.url))], {
-      cwd: fileURLToPath(new URL("..", import.meta.url)), env, stdio: ["ignore", log, log],
+    const purchaseEnv: NodeJS.ProcessEnv = env;
+    purchaseEnv.OMB_TEST_PURCHASE = "fixture";
+    restarted = spawn(process.execPath, verificationServerArgs(purchaseEnv), {
+      cwd: fileURLToPath(new URL("..", import.meta.url)), env: purchaseEnv, stdio: ["ignore", log, log],
     });
     closeSync(log);
     await expect.poll(async () => {

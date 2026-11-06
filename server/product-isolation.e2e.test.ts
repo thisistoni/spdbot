@@ -1,6 +1,7 @@
-import { execFile, spawn, type ChildProcess } from "node:child_process";
+import { spawnSourcePurchaseServer, sourcePurchaseHome } from "./testing/source-purchase-fixture.ts";
+import { execFile, type ChildProcess } from "node:child_process";
 import { createServer } from "node:http";
-import { existsSync, mkdirSync, mkdtempSync, readFileSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { promisify } from "node:util";
@@ -12,7 +13,7 @@ import { removeTempDir, waitForExit } from "./testing/cleanup.ts";
 const exec = promisify(execFile);
 
 it("starts fresh beside MausBot, saves and restarts independently, pairs through the real CLI and refuses the old server", async () => {
-  const home = mkdtempSync(join(tmpdir(), "spdbot-identity-"));
+  const home = sourcePurchaseHome(join(tmpdir(), "spdbot-identity-"));
   const port = await freePortBlock([0, 1]);
   mkdirSync(join(home, "tmp"), { recursive: true });
   const oldFiles = [".openmausbot/config.json", ".openmausbot/profiles/cookies", ".openmausbot/credentials.bin", ".opengrokbot/config.json", "Library/Application Support/OpenMausBot/credentials.bin"];
@@ -37,7 +38,7 @@ it("starts fresh beside MausBot, saves and restarts independently, pairs through
   let child: ChildProcess | undefined;
   let log = "";
   const start = async () => {
-    child = spawn(process.execPath, ["--experimental-strip-types", join(import.meta.dirname, "index.ts")], { env, stdio: ["ignore", "pipe", "pipe"] });
+    child = spawnSourcePurchaseServer(process.execPath, ["--experimental-strip-types", join(import.meta.dirname, "index.ts")], { env, stdio: ["ignore", "pipe", "pipe"] });
     child.stdout?.on("data", chunk => { log += String(chunk); });
     child.stderr?.on("data", chunk => { log += String(chunk); });
     await expect.poll(async () => {

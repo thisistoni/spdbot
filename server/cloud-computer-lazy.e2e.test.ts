@@ -1,8 +1,9 @@
+import { spawnSourcePurchaseServer, sourcePurchaseHome } from "./testing/source-purchase-fixture.ts";
 // One stub plays the Admin's Boat relay and records every request, so each journey can say which calls a person's action cost.
 import { randomUUID } from "node:crypto";
-import { spawn, type ChildProcess } from "node:child_process";
+import { type ChildProcess } from "node:child_process";
 import { createServer, type Server } from "node:http";
-import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -176,7 +177,7 @@ describe("a cloud computer starts only when the bot uses it", () => {
     await new Promise<void>(resolve => relay.listen(0, "127.0.0.1", resolve));
     const relayBase = `http://127.0.0.1:${(relay.address() as { port: number }).port}`;
 
-    home = mkdtempSync(join(tmpdir(), "omb-cloud-lazy-"));
+    home = sourcePurchaseHome(join(tmpdir(), "omb-cloud-lazy-"));
     data = join(home, "data");
     dumpFile = join(home, "dump.json");
     finishFile = join(home, "finish");
@@ -200,7 +201,7 @@ describe("a cloud computer starts only when the bot uses it", () => {
     } }));
     const port = await freePortBlock([0, 1]);
     base = `http://127.0.0.1:${port}`;
-    child = spawn(process.execPath, [join(ROOT, "server/index.ts")], {
+    child = spawnSourcePurchaseServer(process.execPath, [join(ROOT, "server/index.ts")], {
       cwd: ROOT,
       env: {
         PATH: process.env.PATH, ...(process.env.SystemRoot ? { SystemRoot: process.env.SystemRoot } : {}),

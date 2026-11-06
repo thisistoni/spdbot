@@ -1,10 +1,11 @@
+import { spawnSourcePurchaseServer, sourcePurchaseHome } from "./testing/source-purchase-fixture.ts";
 // The real server on one data folder, booted as a Cloud home, then as a self-hosted server where a second person pairs,
 // then as the Cloud home again: what existed while only the owner used it stays at the bot's level, what the guest's
 // conversation made is confined, and the Cloud stays shared for good.
 import { randomBytes } from "node:crypto";
 import { spawn, type ChildProcess } from "node:child_process";
 import { createInterface } from "node:readline";
-import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
@@ -18,7 +19,7 @@ const SERVER_DIR = dirname(fileURLToPath(import.meta.url));
 const HOST = "omb-t-0123456789ab.fly.dev";
 const MACHINE_ID = "3f9c2a4e-8b1d-4c6e-9a7f-2d5e8c1b0a93";
 const secret = randomBytes(32).toString("base64url");
-const home = mkdtempSync(join(tmpdir(), "omb-cloud-sharing-"));
+const home = sourcePurchaseHome(join(tmpdir(), "omb-cloud-sharing-"));
 const dataDir = join(home, ".spdbot");
 const dump = join(home, "claude.json");
 let base = "";
@@ -51,7 +52,7 @@ async function boot(asCloud: boolean) {
   cloud = asCloud;
   log = "";
   const offline = `data:text/javascript,${encodeURIComponent('const real = globalThis.fetch; globalThis.fetch = async (url, init) => String(url).startsWith("http://127.0.0.1:") ? real(url, init) : new Response("offline fixture", { status: 503 });')}`;
-  child = spawn(process.execPath, ["--import", offline, join(SERVER_DIR, "index.ts")], {
+  child = spawnSourcePurchaseServer(process.execPath, ["--import", offline, join(SERVER_DIR, "index.ts")], {
     cwd: join(SERVER_DIR, ".."),
     env: {
       PATH: process.env.PATH, HOME: home, USERPROFILE: home, OMB_DATA_DIR: dataDir, OMB_PORT: String(port), OMB_WEBHOOK_PORT: String(port + 1),

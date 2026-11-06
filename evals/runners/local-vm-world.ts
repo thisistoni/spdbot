@@ -1,5 +1,6 @@
-import { spawn, type ChildProcess } from "node:child_process";
-import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { spawnSourcePurchaseServer, sourcePurchaseHome } from "../../server/testing/source-purchase-fixture.ts";
+import { type ChildProcess } from "node:child_process";
+import { existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
@@ -26,7 +27,7 @@ export class LocalVmWorld extends BaseWorld {
   private computers = new Map<string, { url: string; token: string }>();
 
   override async boot(scenario: Scenario): Promise<void> {
-    this.fixtureHome = mkdtempSync(join(tmpdir(), "omb-evals-vm-"));
+    this.fixtureHome = sourcePurchaseHome(join(tmpdir(), "omb-evals-vm-"));
     this.stateFile = join(this.fixtureHome, "vm.json");
     this.dumpFile = join(this.fixtureHome, "dump.json");
     const data = join(this.fixtureHome, "data");
@@ -64,7 +65,7 @@ export class LocalVmWorld extends BaseWorld {
       OMB_TEST_VM_STATE: this.stateFile,
       ...(process.env.SystemRoot ? { SystemRoot: process.env.SystemRoot } : {}),
     };
-    const child = this.child = spawn(process.execPath, ["--import", hooks, join(ROOT, "server", "index.ts")], {
+    const child = this.child = spawnSourcePurchaseServer(process.execPath, ["--import", hooks, join(ROOT, "server", "index.ts")], {
       cwd: ROOT,
       env,
       stdio: ["ignore", "pipe", "pipe"],

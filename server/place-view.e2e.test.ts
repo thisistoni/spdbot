@@ -1,7 +1,8 @@
+import { spawnSourcePurchaseServer, sourcePurchaseHome } from "./testing/source-purchase-fixture.ts";
 // Real server, fake Claude CLI and a loopback Boat whose answers each journey sets; a restartable home lets a test seed an automatic pin.
-import { spawn, type ChildProcess } from "node:child_process";
+import { type ChildProcess } from "node:child_process";
 import { createServer, type Server } from "node:http";
-import { mkdirSync, mkdtempSync, readFileSync, writeFileSync } from "node:fs";
+import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -75,7 +76,7 @@ describe("a cloud computer that can't start, against the real server", () => {
     const port = await freePortBlock([0, 1]);
     base = `http://127.0.0.1:${port}`;
     output = "";
-    const proc = spawn(process.execPath, [join(ROOT, "server/index.ts")], {
+    const proc = spawnSourcePurchaseServer(process.execPath, [join(ROOT, "server/index.ts")], {
       cwd: ROOT, env: {
         PATH: dirname(process.execPath), ...(process.env.SystemRoot ? { SystemRoot: process.env.SystemRoot } : {}),
         HOME: home, USERPROFILE: home, OMB_DATA_DIR: data,
@@ -102,7 +103,7 @@ describe("a cloud computer that can't start, against the real server", () => {
   }
 
   beforeAll(async () => {
-    home = mkdtempSync(join(tmpdir(), "omb-place-view-"));
+    home = sourcePurchaseHome(join(tmpdir(), "omb-place-view-"));
     data = join(home, "data");
     ui = join(home, "static");
     mkdirSync(data);

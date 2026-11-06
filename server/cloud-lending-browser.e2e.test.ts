@@ -1,10 +1,11 @@
+import { spawnSourcePurchaseServer, sourcePurchaseHome } from "./testing/source-purchase-fixture.ts";
 // Browsing through a lent PC, on one machine: a real server booted as a Cloud home, a second real server as the PC's
 // own desktop server (its screen lease), and the real outbound connector between them. A scripted cua-driver stands in
 // for the PC's screen and answers browser tools the way cua-driver does for a browser without a DevTools endpoint.
 import { randomBytes } from "node:crypto";
 import { spawn, type ChildProcess } from "node:child_process";
 import { createServer, type Server } from "node:http";
-import { chmodSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { chmodSync, mkdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 import { createInterface } from "node:readline";
@@ -125,7 +126,7 @@ readline.createInterface({ input: process.stdin }).on("line", async line => {
 }
 
 beforeAll(async () => {
-  home = mkdtempSync(join(tmpdir(), "omb-lent-browser-"));
+  home = sourcePurchaseHome(join(tmpdir(), "omb-lent-browser-"));
   const dataDir = join(home, ".spdbot");
   mkdirSync(dataDir, { recursive: true });
   const cli = join(home, "fixture-claude.mjs");
@@ -143,7 +144,7 @@ await import(${JSON.stringify(pathToFileURL(join(SERVER_DIR, "testing", "fake-cl
   const port = await freePortBlock([0, 1]);
   base = `http://127.0.0.1:${port}`;
   const offlinePrelude = `data:text/javascript,${encodeURIComponent('const real = globalThis.fetch; globalThis.fetch = async (url, init) => String(url).startsWith("http://127.0.0.1:") ? real(url, init) : new Response("offline fixture", { status: 503 });')}`;
-  cloud = spawn(process.execPath, ["--import", offlinePrelude, join(SERVER_DIR, "index.ts")], {
+  cloud = spawnSourcePurchaseServer(process.execPath, ["--import", offlinePrelude, join(SERVER_DIR, "index.ts")], {
     cwd: join(SERVER_DIR, ".."),
     env: {
       PATH: process.env.PATH, ...(process.env.SystemRoot ? { SystemRoot: process.env.SystemRoot } : {}),

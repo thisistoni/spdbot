@@ -132,7 +132,9 @@ it("picks a run that a restart cut off up again once on the next start, and neve
   expect(JSON.parse(readFileSync(join(s.dataDir, "routines.json"), "utf8")).runs).toMatchObject([{ id, status: "running" }]);
   s.engine("happy");
   const log = openSync(s.logPath, "a", 0o600);
-  const env = verificationServerEnvironment({}, s.dataDir, Number(new URL(s.url).port));
+  const env: NodeJS.ProcessEnv = verificationServerEnvironment({}, s.dataDir, Number(new URL(s.url).port));
+
+  env.OMB_TEST_PURCHASE = "fixture";
   restarted = spawn(process.execPath, verificationServerArgs(env), { cwd: process.cwd(), env, stdio: ["ignore", log, log] });
   closeSync(log);
 
@@ -160,7 +162,9 @@ it("keeps an ACP engine's run that a graceful shutdown cut off, and starts it on
     writeFileSync(configPath, JSON.stringify(config));
   };
   const restart = async () => {
-    const env = verificationServerEnvironment({}, dataDir, Number(new URL(url).port));
+    const env: NodeJS.ProcessEnv = verificationServerEnvironment({}, dataDir, Number(new URL(url).port));
+
+    env.OMB_TEST_PURCHASE = "fixture";
     const log = openSync(logPath, "a", 0o600);
     restarted = spawn(process.execPath, verificationServerArgs(env), { cwd: process.cwd(), env, stdio: ["ignore", log, log] });
     closeSync(log);

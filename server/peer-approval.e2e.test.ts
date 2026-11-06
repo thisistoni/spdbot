@@ -3,7 +3,7 @@ import { closeSync, openSync, readFileSync, rmSync, writeFileSync } from "node:f
 import { join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { expect, it } from "vitest";
-import { launchVerificationServer, runControlOmb, verificationServerEnvironment } from "../scripts/control-omb.ts";
+import { verificationServerArgs, launchVerificationServer, runControlOmb, verificationServerEnvironment } from "../scripts/control-omb.ts";
 import { waitForExit } from "./testing/cleanup.ts";
 import { readHandoffs } from "./testing/handoff-rows.ts";
 
@@ -49,9 +49,10 @@ it("preserves peer approval outcomes through real HTTP responses and sends no wo
       FAKE_CLAUDE_SLOW_FINISH_GATE: gate }, dataDir, Number(new URL(url).port));
     env.OMB_TEST_PEER_APPROVAL = "1";
     const log = openSync(logPath, "a", 0o600);
-    child = spawn(process.execPath, ["--import", new URL("./testing/peer-approval-hooks.mjs", import.meta.url).href,
-      fileURLToPath(new URL("./index.ts", import.meta.url))], {
-      cwd: fileURLToPath(new URL("..", import.meta.url)), env, stdio: ["ignore", log, log],
+    const purchaseEnv: NodeJS.ProcessEnv = env;
+    purchaseEnv.OMB_TEST_PURCHASE = "fixture";
+    child = spawn(process.execPath, ["--import", new URL("./testing/peer-approval-hooks.mjs", import.meta.url).href, ...verificationServerArgs(purchaseEnv)], {
+      cwd: fileURLToPath(new URL("..", import.meta.url)), env: purchaseEnv, stdio: ["ignore", log, log],
     });
     closeSync(log);
     await expect.poll(async () => {

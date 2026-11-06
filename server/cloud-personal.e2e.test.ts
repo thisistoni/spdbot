@@ -1,3 +1,4 @@
+import { spawnSourcePurchaseServer, sourcePurchaseHome } from "./testing/source-purchase-fixture.ts";
 // The first run, an ordinary self-hosted server, stands in for a v0.1.91 Cloud home where every device had its own key:
 // the owner's old phone and a friend unpaired before the upgrade cannot be told apart, so both are adopted, and only
 // proven keys reach lending and memory.
@@ -5,7 +6,7 @@ import { createHash, randomBytes } from "node:crypto";
 import { DatabaseSync } from "node:sqlite";
 import { spawn, type ChildProcess } from "node:child_process";
 import { createInterface } from "node:readline";
-import { mkdirSync, mkdtempSync, readdirSync, readFileSync, realpathSync, rmSync, writeFileSync } from "node:fs";
+import { mkdirSync, readdirSync, readFileSync, realpathSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
@@ -76,7 +77,7 @@ async function boot(asCloud: boolean) {
   log = "";
   cloud = asCloud;
   const offlinePrelude = `data:text/javascript,${encodeURIComponent('const real = globalThis.fetch; globalThis.fetch = async (url, init) => String(url).startsWith("http://127.0.0.1:") ? real(url, init) : new Response("offline fixture", { status: 503 });')}`;
-  child = spawn(process.execPath, ["--import", offlinePrelude, join(SERVER_DIR, "index.ts")], {
+  child = spawnSourcePurchaseServer(process.execPath, ["--import", offlinePrelude, join(SERVER_DIR, "index.ts")], {
     cwd: join(SERVER_DIR, ".."),
     env: {
       PATH: process.env.PATH, HOME: home, USERPROFILE: home, OMB_DATA_DIR: dataDir, OMB_PORT: String(port), OMB_WEBHOOK_PORT: String(port + 1),
@@ -100,7 +101,7 @@ async function boot(asCloud: boolean) {
 async function shutdown() { if (child) await waitForExit(child, { signal: "SIGTERM" }); child = undefined; }
 
 beforeAll(async () => {
-  home = mkdtempSync(join(tmpdir(), "omb-cloud-personal-"));
+  home = sourcePurchaseHome(join(tmpdir(), "omb-cloud-personal-"));
   dataDir = join(home, ".spdbot");
   mkdirSync(dataDir, { recursive: true });
   mkdirSync(project(), { recursive: true });

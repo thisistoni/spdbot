@@ -1,5 +1,6 @@
-import { spawn, type ChildProcess } from "node:child_process";
-import { mkdirSync, mkdtempSync, readFileSync, readdirSync, statSync, writeFileSync } from "node:fs";
+import { spawnSourcePurchaseServer, sourcePurchaseHome } from "./testing/source-purchase-fixture.ts";
+import { type ChildProcess } from "node:child_process";
+import { mkdirSync, readFileSync, readdirSync, statSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -41,7 +42,7 @@ const api = async (method: string, path: string, body?: unknown, as?: string, ex
 };
 
 async function start() {
-  child = spawn(process.execPath, [join(SERVER_DIR, "index.ts")], {
+  child = spawnSourcePurchaseServer(process.execPath, [join(SERVER_DIR, "index.ts")], {
     cwd: join(SERVER_DIR, ".."),
     env: {
       ...(process.env.PATH ? { PATH: process.env.PATH } : {}),
@@ -97,7 +98,7 @@ const month = () => new Date().toISOString().slice(0, 7);
 
 posixOnly("admin activity log", () => {
   beforeAll(async () => {
-    home = mkdtempSync(join(tmpdir(), "omb-admin-activity-"));
+    home = sourcePurchaseHome(join(tmpdir(), "omb-admin-activity-"));
     data = join(home, ".spdbot");
     mkdirSync(join(data, "decisions"), { recursive: true });
     writeFileSync(join(data, "config.json"), JSON.stringify({ signIn: { admins: [BOSS], members: [ADA] } }));

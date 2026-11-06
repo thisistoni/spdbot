@@ -1,10 +1,11 @@
+import { spawnSourcePurchaseServer, sourcePurchaseHome } from "./testing/source-purchase-fixture.ts";
 // Also use on My Cloud, end to end, with two real servers: this computer's, started as the desktop app starts it (its
 // private utility-process port emulated over Node's IPC, the owner's capability delivered through it), and the person's
 // Cloud home, paired the way the Admin pairs it. The real Electron module sits between them. The 1Password SDK is a fake
 // in each server's native-module tree. Disposable homes; no network.
 import { randomBytes } from "node:crypto";
-import { spawn, type ChildProcess } from "node:child_process";
-import { mkdirSync, mkdtempSync, writeFileSync } from "node:fs";
+import { type ChildProcess } from "node:child_process";
+import { mkdirSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
@@ -98,7 +99,7 @@ await import(${JSON.stringify(pathToFileURL(join(SERVER_DIR, "testing", "fake-cl
     claude: { driver: "claudeAgent", displayName: "Claude", config: { cli } },
   } }));
   const offline = `data:text/javascript,${encodeURIComponent('const real = globalThis.fetch; globalThis.fetch = async (url, init) => String(url).startsWith("http://127.0.0.1:") ? real(url, init) : new Response("offline fixture", { status: 503 });')}`;
-  const child = spawn(process.execPath, ["--import", offline, ...extra, join(SERVER_DIR, "index.ts")], {
+  const child = spawnSourcePurchaseServer(process.execPath, ["--import", offline, ...extra, join(SERVER_DIR, "index.ts")], {
     cwd: join(SERVER_DIR, ".."),
     env: { PATH: process.env.PATH, ...(process.env.SystemRoot ? { SystemRoot: process.env.SystemRoot } : {}), HOME: home, USERPROFILE: home, OMB_DATA_DIR: dataDir,
       OMB_PORT: String(port), OMB_WEBHOOK_PORT: String(port + 1), OMB_DUCKDB_DIR: fakeOnePassword(join(home, "native")), ...env },
@@ -116,7 +117,7 @@ await import(${JSON.stringify(pathToFileURL(join(SERVER_DIR, "testing", "fake-cl
 }
 
 beforeAll(async () => {
-  root = mkdtempSync(join(tmpdir(), "omb-cloud-logins-"));
+  root = sourcePurchaseHome(join(tmpdir(), "omb-cloud-logins-"));
   // Electron's utility-process parentPort, over Node's IPC: { data } events in, postMessage out.
   const parentPort = `data:text/javascript,${encodeURIComponent(`
     const listeners = [];

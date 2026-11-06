@@ -1,7 +1,7 @@
 // Rows are written at the request.opened fold or in answerRequest, and both keep working (cards appear, approvals flow)
 // while logging silently rots, so these run the real server on the fake ACP CLI and assert the rows themselves.
-import { spawn, type ChildProcess } from "node:child_process";
-import { chmodSync, mkdirSync, mkdtempSync, writeFileSync } from "node:fs";
+import { type ChildProcess } from "node:child_process";
+import { chmodSync, mkdirSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -9,6 +9,7 @@ import { afterAll, beforeAll, describe, expect, it } from "vitest";
 
 import type { DecisionRow } from "./decision-log.ts";
 import { removeTempDir, waitForExit } from "./testing/cleanup.ts";
+import { sourcePurchaseHome, spawnSourcePurchaseServer } from "./testing/source-purchase-fixture.ts";
 
 const SERVER_DIR = dirname(fileURLToPath(import.meta.url));
 const FAKE_CLI = join(SERVER_DIR, "testing", "fake-acp-cli.ts");
@@ -97,7 +98,7 @@ async function makePermissionBot(patch: Record<string, unknown>) {
 posixOnly("authorization decisions are logged", () => {
   beforeAll(async () => {
     chmodSync(FAKE_CLI, 0o755);
-    home = mkdtempSync(join(tmpdir(), "omb-decisions-e2e-"));
+    home = sourcePurchaseHome(join(tmpdir(), "omb-decisions-e2e-"));
     mkdirSync(join(home, ".spdbot"), { recursive: true });
     writeFileSync(
       join(home, ".spdbot", "config.json"),
@@ -116,7 +117,7 @@ posixOnly("authorization decisions are logged", () => {
         },
       }),
     );
-    child = spawn(process.execPath, [join(SERVER_DIR, "index.ts")], {
+    child = spawnSourcePurchaseServer(process.execPath, [join(SERVER_DIR, "index.ts")], {
       cwd: join(SERVER_DIR, ".."),
       env: {
         ...(process.env.PATH ? { PATH: process.env.PATH } : {}),

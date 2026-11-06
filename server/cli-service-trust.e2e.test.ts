@@ -1,6 +1,5 @@
 // The real CLI starts the real server in a disposable home with OMB_LOOPBACK_TRUST=service.
-import { execFile, spawn, type ChildProcess } from "node:child_process";
-import { mkdtempSync } from "node:fs";
+import { execFile, type ChildProcess } from "node:child_process";
 import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -8,6 +7,7 @@ import { promisify } from "node:util";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 
 import { removeTempDir, waitForExit } from "./testing/cleanup.ts";
+import { sourcePurchaseHome, spawnSourcePurchaseCli } from "./testing/source-purchase-fixture.ts";
 
 const SERVER_DIR = dirname(fileURLToPath(import.meta.url));
 const ENTRY = join(SERVER_DIR, "spdbot.ts");
@@ -35,8 +35,8 @@ const cli = async (args: string[]) => {
 
 describe.skipIf(process.platform === "win32")("spdbot serve under service loopback trust", () => {
   beforeAll(async () => {
-    home = mkdtempSync(join(tmpdir(), "omb-cli-service-"));
-    serve = spawn(process.execPath, ["--experimental-strip-types", ENTRY, "serve", "--port", String(PORT), "--data-dir", join(home, "data")], {
+    home = sourcePurchaseHome(join(tmpdir(), "omb-cli-service-"));
+    serve = spawnSourcePurchaseCli(process.execPath, ["--experimental-strip-types", ENTRY, "serve", "--port", String(PORT), "--data-dir", join(home, "data")], {
       env: environment(), stdio: ["ignore", "pipe", "pipe"],
     });
     serve.stdout!.on("data", (chunk) => (output += chunk));

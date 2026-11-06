@@ -1,6 +1,7 @@
+import { spawnSourcePurchaseServer, sourcePurchaseHome } from "./testing/source-purchase-fixture.ts";
 // The e2e half runs the fake ACP CLI in echo-gated mode: turns stay open until a gate file exists, and the echo carries the full prompt.
-import { spawn, type ChildProcess } from "node:child_process";
-import { chmodSync, existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { type ChildProcess } from "node:child_process";
+import { chmodSync, existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 import { DatabaseSync } from "node:sqlite";
@@ -730,7 +731,7 @@ describe("steer-queue e2e (fake ACP fleet)", () => {
 
   beforeAll(async () => {
     chmodSync(FAKE_CLI, 0o755);
-    home = mkdtempSync(join(tmpdir(), "omb-steer-test-"));
+    home = sourcePurchaseHome(join(tmpdir(), "omb-steer-test-"));
     mkdirSync(join(home, ".spdbot"), { recursive: true });
     mkdirSync(join(home, "gates"), { recursive: true });
     drainGate = join(home, "gates", "drain.gate");
@@ -831,7 +832,7 @@ describe("steer-queue e2e (fake ACP fleet)", () => {
     if (process.env.PATH) env.PATH = process.env.PATH;
     // Without SystemRoot, winsock fails to initialize in the child.
     if (process.env.SystemRoot) env.SystemRoot = process.env.SystemRoot;
-    child = spawn(process.execPath, ["--import", pathToFileURL(prelude).href, join(SERVER_DIR, "index.ts")], {
+    child = spawnSourcePurchaseServer(process.execPath, ["--import", pathToFileURL(prelude).href, join(SERVER_DIR, "index.ts")], {
       cwd: join(SERVER_DIR, ".."),
       env,
       stdio: ["ignore", "pipe", "pipe"],

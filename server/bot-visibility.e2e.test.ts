@@ -1,5 +1,6 @@
-import { spawn, type ChildProcess } from "node:child_process";
-import { chmodSync, existsSync, mkdirSync, mkdtempSync, readdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { spawnSourcePurchaseServer, sourcePurchaseHome } from "./testing/source-purchase-fixture.ts";
+import { type ChildProcess } from "node:child_process";
+import { chmodSync, existsSync, mkdirSync, readdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
@@ -35,7 +36,7 @@ const api = async (method: string, path: string, body?: unknown, as?: string): P
 const status = async (method: string, path: string, as?: string, body?: unknown) => (await api(method, path, body, as)).status;
 
 async function start() {
-  child = spawn(process.execPath, ["--import", pathToFileURL(join(SERVER_DIR, "testing", "hold-search-result.ts")).href, join(SERVER_DIR, "index.ts")], {
+  child = spawnSourcePurchaseServer(process.execPath, ["--import", pathToFileURL(join(SERVER_DIR, "testing", "hold-search-result.ts")).href, join(SERVER_DIR, "index.ts")], {
     cwd: join(SERVER_DIR, ".."),
     env: {
       ...(process.env.PATH ? { PATH: process.env.PATH } : {}),
@@ -135,7 +136,7 @@ const settledReply = (threadId: string, text: string) => waitFor(async () => {
 posixOnly("per-bot visibility on a shared workspace", () => {
   beforeAll(async () => {
     chmodSync(FAKE_CLI, 0o755);
-    home = mkdtempSync(join(tmpdir(), "omb-bot-visibility-"));
+    home = sourcePurchaseHome(join(tmpdir(), "omb-bot-visibility-"));
     const data = join(home, ".spdbot");
     mkdirSync(data, { recursive: true });
     writeFileSync(join(data, "config.json"), JSON.stringify({

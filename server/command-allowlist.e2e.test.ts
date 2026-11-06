@@ -8,7 +8,7 @@ import { join } from "node:path";
 import { setTimeout as delay } from "node:timers/promises";
 import { fileURLToPath } from "node:url";
 import { expect, it } from "vitest";
-import { launchVerificationServer, verificationServerEnvironment } from "../scripts/control-omb.ts";
+import { verificationServerArgs, launchVerificationServer, verificationServerEnvironment } from "../scripts/control-omb.ts";
 import { waitForExit } from "./testing/cleanup.ts";
 
 it("remembers real permission requests, scopes and revokes grants, and preserves them across restart", async () => {
@@ -136,9 +136,11 @@ it("remembers real permission requests, scopes and revokes grants, and preserves
 
     await waitForExit(fixture.child, { signal: "SIGTERM" });
     const log = openSync(logPath, "a", 0o600);
-    restarted = spawn(process.execPath, ["--experimental-strip-types", fileURLToPath(new URL("./index.ts", import.meta.url))], {
+    const purchaseEnv: NodeJS.ProcessEnv = verificationServerEnvironment({ FAKE_CLAUDE_MODE: "hang" }, dataDir, Number(new URL(url).port));
+    purchaseEnv.OMB_TEST_PURCHASE = "fixture";
+    restarted = spawn(process.execPath, verificationServerArgs(purchaseEnv), {
       cwd: fileURLToPath(new URL("..", import.meta.url)),
-      env: verificationServerEnvironment({ FAKE_CLAUDE_MODE: "hang" }, dataDir, Number(new URL(url).port)),
+      env: purchaseEnv,
       stdio: ["ignore", log, log],
     });
     closeSync(log);

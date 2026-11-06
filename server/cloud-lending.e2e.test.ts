@@ -1,3 +1,4 @@
+import { spawnSourcePurchaseServer, sourcePurchaseHome } from "./testing/source-purchase-fixture.ts";
 // A real server booted as a Cloud home with no maintainer flag, and the real outbound connector on the Mac side. No guest
 // can connect, so what a guest left behind is written into the records while the server is stopped.
 import { randomBytes, randomUUID } from "node:crypto";
@@ -91,7 +92,7 @@ async function proxyFor(start: () => Promise<void>, botId?: string) {
 }
 
 beforeAll(async () => {
-  home = mkdtempSync(join(tmpdir(), "omb-cloud-lending-"));
+  home = sourcePurchaseHome(join(tmpdir(), "omb-cloud-lending-"));
   const dataDir = join(home, ".spdbot");
   mkdirSync(dataDir, { recursive: true });
   const cli = join(home, "fixture-claude.mjs");
@@ -121,7 +122,7 @@ let port = 0;
 async function boot() {
   const dataDir = join(home, ".spdbot");
   const offlinePrelude = `data:text/javascript,${encodeURIComponent('const real = globalThis.fetch; globalThis.fetch = async (url, init) => String(url).startsWith("http://127.0.0.1:") ? real(url, init) : new Response("offline fixture", { status: 503 });')}`;
-  child = spawn(process.execPath, ["--import", offlinePrelude, join(SERVER_DIR, "index.ts")], {
+  child = spawnSourcePurchaseServer(process.execPath, ["--import", offlinePrelude, join(SERVER_DIR, "index.ts")], {
     cwd: join(SERVER_DIR, ".."),
     env: {
       PATH: process.env.PATH, ...(process.env.SystemRoot ? { SystemRoot: process.env.SystemRoot } : {}),

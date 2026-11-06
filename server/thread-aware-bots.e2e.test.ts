@@ -1,6 +1,7 @@
+import { spawnSourcePurchaseServer, sourcePurchaseHome } from "./testing/source-purchase-fixture.ts";
 // Turns are held open by a gated fake CLI so the slot arithmetic is observable rather than raced.
 import { spawn, type ChildProcess } from "node:child_process";
-import { chmodSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { chmodSync, mkdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 import { createInterface } from "node:readline";
@@ -141,7 +142,7 @@ const cleanup = async (botIds: string[]) => {
 beforeAll(async () => {
   chmodSync(FAKE_CLAUDE, 0o755);
   chmodSync(FAKE_ACP, 0o755);
-  home = mkdtempSync(join(tmpdir(), "omb-thread-aware-"));
+  home = sourcePurchaseHome(join(tmpdir(), "omb-thread-aware-"));
   gates = join(home, "gates");
   const data = join(home, ".spdbot");
   mkdirSync(data, { recursive: true });
@@ -202,7 +203,7 @@ beforeAll(async () => {
   }));
   const port = await freePortBlock([0, 1]);
   base = `http://127.0.0.1:${port}`;
-  child = spawn(process.execPath, [join(SERVER_DIR, "index.ts")], {
+  child = spawnSourcePurchaseServer(process.execPath, [join(SERVER_DIR, "index.ts")], {
     cwd: ROOT,
     env: {
       ...(process.env.PATH ? { PATH: process.env.PATH } : {}),

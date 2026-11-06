@@ -1,9 +1,10 @@
+import { spawnSourcePurchaseServer, sourcePurchaseHome } from "./testing/source-purchase-fixture.ts";
 // A cloud computer turns itself off after use. One stub plays the Admin's Boat relay and records every call, and the
 // server's idle window is cut from ten minutes to IDLE_MS, so each journey can say exactly when a computer went to sleep.
 import { randomUUID } from "node:crypto";
-import { spawn, type ChildProcess } from "node:child_process";
+import { type ChildProcess } from "node:child_process";
 import { createServer, type Server } from "node:http";
-import { chmodSync, existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { chmodSync, existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -77,7 +78,7 @@ describe("a cloud computer goes to sleep after use and wakes on the next", () =>
     base = `http://127.0.0.1:${port}`;
     output = "";
     const relayBase = `http://127.0.0.1:${(relay.address() as { port: number }).port}`;
-    child = spawn(process.execPath, [join(ROOT, "server/index.ts")], {
+    child = spawnSourcePurchaseServer(process.execPath, [join(ROOT, "server/index.ts")], {
       cwd: ROOT,
       env: {
         PATH: process.env.PATH, ...(process.env.SystemRoot ? { SystemRoot: process.env.SystemRoot } : {}),
@@ -152,7 +153,7 @@ describe("a cloud computer goes to sleep after use and wakes on the next", () =>
     });
     await new Promise<void>(resolve => relay.listen(0, "127.0.0.1", resolve));
 
-    home = mkdtempSync(join(tmpdir(), "omb-cloud-sleep-"));
+    home = sourcePurchaseHome(join(tmpdir(), "omb-cloud-sleep-"));
     data = join(home, "data");
     gate = join(home, "finish");
     usesGate = join(home, "finish-uses");

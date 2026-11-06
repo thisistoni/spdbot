@@ -4,7 +4,7 @@ import { join } from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
 import { afterEach, expect, it } from "vitest";
 
-import { launchVerificationServer, runControlOmb, verificationServerEnvironment, type VerificationServer } from "../scripts/control-omb.ts";
+import { verificationServerArgs, launchVerificationServer, runControlOmb, verificationServerEnvironment, type VerificationServer } from "../scripts/control-omb.ts";
 import { ROUTINE_SUPERSEDED } from "./routine-execution.ts";
 import { waitForExit } from "./testing/cleanup.ts";
 import { readHandoffs } from "./testing/handoff-rows.ts";
@@ -78,8 +78,10 @@ it("starts the next scheduled run of a routine whose sign-in nobody answered, an
   disk.runs.find((run: any) => run.id === first.id).waitingSince = dueAt - 24 * 60 * 60_000;
   writeFileSync(file, JSON.stringify(disk));
   const log = openSync(logPath, "a", 0o600);
-  restarted = spawn(process.execPath, ["--experimental-strip-types", fileURLToPath(new URL("./index.ts", import.meta.url))], {
-    cwd: fileURLToPath(new URL("..", import.meta.url)), env: verificationServerEnvironment({}, dataDir, Number(new URL(url).port)), stdio: ["ignore", log, log],
+  const purchaseEnv: NodeJS.ProcessEnv = verificationServerEnvironment({}, dataDir, Number(new URL(url).port));
+  purchaseEnv.OMB_TEST_PURCHASE = "fixture";
+  restarted = spawn(process.execPath, verificationServerArgs(purchaseEnv), {
+    cwd: fileURLToPath(new URL("..", import.meta.url)), env: purchaseEnv, stdio: ["ignore", log, log],
   });
   closeSync(log);
 

@@ -1,5 +1,6 @@
-import { spawn, type ChildProcess } from "node:child_process";
-import { mkdirSync, mkdtempSync, writeFileSync } from "node:fs";
+import { spawnSourcePurchaseServer, sourcePurchaseHome } from "./testing/source-purchase-fixture.ts";
+import { type ChildProcess } from "node:child_process";
+import { mkdirSync, writeFileSync } from "node:fs";
 import { request as httpRequest } from "node:http";
 import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
@@ -91,14 +92,14 @@ const as = (cookie: string) => (path: string, init: CallInit = {}) => remote(pat
 beforeAll(async () => {
   port = await freePortBlock([0, 1]);
   stub = await startControlPlaneStub();
-  home = mkdtempSync(join(tmpdir(), "omb-people-invite-"));
+  home = sourcePurchaseHome(join(tmpdir(), "omb-people-invite-"));
   const staticDir = join(home, "static");
   mkdirSync(join(home, ".spdbot"), { recursive: true });
   mkdirSync(join(staticDir, "assets"), { recursive: true });
   writeFileSync(join(staticDir, "index.html"), "<!doctype html><title>Served UI</title>");
   // No sign-in list on disk and none in the environment: nobody is welcome yet.
   writeFileSync(join(home, ".spdbot", "config.json"), JSON.stringify({ instances: { fixture: { driver: "people-invite-test-shadow" } } }));
-  child = spawn(process.execPath, [join(SERVER_DIR, "index.ts")], {
+  child = spawnSourcePurchaseServer(process.execPath, [join(SERVER_DIR, "index.ts")], {
     cwd: ROOT,
     env: {
       ...(process.env.PATH ? { PATH: process.env.PATH } : {}),

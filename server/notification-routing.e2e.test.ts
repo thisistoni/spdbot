@@ -1,5 +1,6 @@
-import { spawn, type ChildProcess } from "node:child_process";
-import { chmodSync, mkdirSync, mkdtempSync, writeFileSync } from "node:fs";
+import { spawnSourcePurchaseServer, sourcePurchaseHome } from "./testing/source-purchase-fixture.ts";
+import { type ChildProcess } from "node:child_process";
+import { chmodSync, mkdirSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -88,7 +89,7 @@ const cleanup = async (groupIds: Array<string | undefined>, botIds: string[]) =>
 beforeAll(async () => {
   chmodSync(FAKE_CLAUDE, 0o755);
   chmodSync(FAKE_ACP, 0o755);
-  home = mkdtempSync(join(tmpdir(), "omb-notification-routing-"));
+  home = sourcePurchaseHome(join(tmpdir(), "omb-notification-routing-"));
   const data = join(home, ".spdbot");
   mkdirSync(data, { recursive: true });
   dumpFile = join(home, "quick-dump.json");
@@ -135,7 +136,7 @@ beforeAll(async () => {
   }));
   const port = await freePortBlock([0, 1]);
   base = `http://127.0.0.1:${port}`;
-  child = spawn(process.execPath, [join(SERVER_DIR, "index.ts")], {
+  child = spawnSourcePurchaseServer(process.execPath, [join(SERVER_DIR, "index.ts")], {
     cwd: ROOT,
     env: {
       ...(process.env.PATH ? { PATH: process.env.PATH } : {}),

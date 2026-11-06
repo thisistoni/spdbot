@@ -1,7 +1,8 @@
+import { spawnSourcePurchaseServer, sourcePurchaseHome } from "./testing/source-purchase-fixture.ts";
 // BotWirePrivateKeys enforces the projection at compile time, but a `...rest` spread carrying a private key out does not
 // fail typecheck, so this pins it at runtime against the real server with the private field live on the stored record.
-import { spawn, type ChildProcess } from "node:child_process";
-import { chmodSync, mkdirSync, mkdtempSync, readFileSync, writeFileSync } from "node:fs";
+import { type ChildProcess } from "node:child_process";
+import { chmodSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -42,7 +43,7 @@ describe("bot wire privacy against the real server", () => {
       features: { skillsLibrary },
       instances: { grok: { driver: "grokAgent", config: { cli: FAKE_CLI, fullAuto: false } } },
     }));
-    const proc = spawn(process.execPath, [join(SERVER_DIR, "index.ts")], {
+    const proc = spawnSourcePurchaseServer(process.execPath, [join(SERVER_DIR, "index.ts")], {
       cwd: ROOT,
       env: {
         PATH: dirname(process.execPath), ...(process.env.SystemRoot ? { SystemRoot: process.env.SystemRoot } : {}),
@@ -78,7 +79,7 @@ describe("bot wire privacy against the real server", () => {
 
   beforeAll(() => {
     chmodSync(FAKE_CLI, 0o755);
-    home = mkdtempSync(join(tmpdir(), "omb-bot-wire-privacy-"));
+    home = sourcePurchaseHome(join(tmpdir(), "omb-bot-wire-privacy-"));
     data = join(home, "data");
     mkdirSync(data, { recursive: true });
   });

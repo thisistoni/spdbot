@@ -1,8 +1,9 @@
+import { spawnSourcePurchaseServer, sourcePurchaseHome } from "./testing/source-purchase-fixture.ts";
 // One stub plays Jev (/jev, the person's own decider.baseUrl) and the Admin's relay (/relay). Disposable home; no network.
 import { randomBytes } from "node:crypto";
-import { spawn, type ChildProcess } from "node:child_process";
+import { type ChildProcess } from "node:child_process";
 import { createServer, type Server } from "node:http";
-import { existsSync, mkdirSync, mkdtempSync, readdirSync, readFileSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, readdirSync, readFileSync, writeFileSync } from "node:fs";
 import type { AddressInfo } from "node:net";
 import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
@@ -87,7 +88,7 @@ beforeAll(async () => {
   const stubBase = `http://127.0.0.1:${(stub.address() as AddressInfo).port}`;
   relayUrl = `${stubBase}${RELAY_PATH}`;
 
-  home = mkdtempSync(join(tmpdir(), "omb-decider-included-"));
+  home = sourcePurchaseHome(join(tmpdir(), "omb-decider-included-"));
   data = join(home, ".spdbot");
   mkdirSync(data, { recursive: true });
   engineDump = join(home, "engine-dump.json");
@@ -103,7 +104,7 @@ beforeAll(async () => {
   }));
   const port = await freePortBlock([0, 1]);
   base = `http://127.0.0.1:${port}`;
-  child = spawn(process.execPath, [join(SERVER_DIR, "index.ts")], {
+  child = spawnSourcePurchaseServer(process.execPath, [join(SERVER_DIR, "index.ts")], {
     cwd: join(SERVER_DIR, ".."),
     env: {
       PATH: process.env.PATH,

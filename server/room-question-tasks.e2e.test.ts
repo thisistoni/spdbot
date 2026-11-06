@@ -8,7 +8,7 @@ import { fileURLToPath } from "node:url";
 import { expect, it } from "vitest";
 import { z } from "zod";
 
-import { launchVerificationServer, verificationServerEnvironment } from "../scripts/control-omb.ts";
+import { verificationServerArgs, launchVerificationServer, verificationServerEnvironment } from "../scripts/control-omb.ts";
 import type { GroupTask, WireBot, WireGroup, WireMessage } from "../shared/wire.ts";
 import { removeTempDir, waitForExit } from "./testing/cleanup.ts";
 
@@ -116,9 +116,11 @@ it("keeps live room questions fenced but allows task changes after their turn se
     questionSocket.destroy();
     questionSocket = undefined;
     const log = openSync(fixture.info.logPath, "a", 0o600);
-    restarted = spawn(process.execPath, ["--experimental-strip-types", fileURLToPath(new URL("./index.ts", import.meta.url))], {
+    const purchaseEnv: NodeJS.ProcessEnv = verificationServerEnvironment(env, fixture.info.dataDir, Number(new URL(fixture.info.url).port));
+    purchaseEnv.OMB_TEST_PURCHASE = "fixture";
+    restarted = spawn(process.execPath, verificationServerArgs(purchaseEnv), {
       cwd: fileURLToPath(new URL("../", import.meta.url)),
-      env: verificationServerEnvironment(env, fixture.info.dataDir, Number(new URL(fixture.info.url).port)),
+      env: purchaseEnv,
       stdio: ["ignore", log, log],
     });
     closeSync(log);

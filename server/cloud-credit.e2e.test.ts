@@ -1,9 +1,10 @@
+import { spawnSourcePurchaseServer, sourcePurchaseHome } from "./testing/source-purchase-fixture.ts";
 // One stub plays the Admin's relay: an OpenAI-compatible API (chat completions and models), nothing Anthropic-shaped.
 // Disposable home; a synthetic Claude CLI for the person's own engine; no network.
 import { randomBytes } from "node:crypto";
-import { spawn, type ChildProcess } from "node:child_process";
+import { type ChildProcess } from "node:child_process";
 import { createServer, type Server } from "node:http";
-import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { mkdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import type { AddressInfo } from "node:net";
 import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
@@ -44,7 +45,7 @@ let relayUrl = "";
 async function boot() {
   const port = await freePortBlock([0, 1]);
   base = `http://127.0.0.1:${port}`;
-  child = spawn(process.execPath, [join(SERVER_DIR, "index.ts")], {
+  child = spawnSourcePurchaseServer(process.execPath, [join(SERVER_DIR, "index.ts")], {
     cwd: join(SERVER_DIR, ".."),
     env: {
       PATH: process.env.PATH,
@@ -112,7 +113,7 @@ beforeAll(async () => {
   // OMB_CLOUD_AI_URL exactly as the Admin builds it: the origin, the relay path and `/v1`.
   const relay = `http://127.0.0.1:${(stub.address() as AddressInfo).port}${RELAY_PATH}/v1`;
 
-  home = mkdtempSync(join(tmpdir(), "omb-cloud-credit-"));
+  home = sourcePurchaseHome(join(tmpdir(), "omb-cloud-credit-"));
   data = join(home, ".spdbot");
   mkdirSync(data, { recursive: true });
   // The person's own Claude Code, as on the image: signed out until the test

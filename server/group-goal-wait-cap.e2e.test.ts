@@ -1,5 +1,6 @@
-import { spawn, type ChildProcess } from "node:child_process";
-import { mkdirSync, mkdtempSync, writeFileSync } from "node:fs";
+import { spawnSourcePurchaseServer, sourcePurchaseHome } from "./testing/source-purchase-fixture.ts";
+import { type ChildProcess } from "node:child_process";
+import { mkdirSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -44,7 +45,7 @@ const fixture = (displayName: string, environment: Record<string, string>) => ({
 });
 
 beforeAll(async () => {
-  home = mkdtempSync(join(tmpdir(), "omb-goal-wait-cap-"));
+  home = sourcePurchaseHome(join(tmpdir(), "omb-goal-wait-cap-"));
   const data = join(home, ".spdbot");
   const staticDir = join(home, "static");
   mkdirSync(data, { recursive: true });
@@ -69,7 +70,7 @@ beforeAll(async () => {
   }));
   const port = await freePortBlock([0, 1]);
   base = `http://127.0.0.1:${port}`;
-  child = spawn(process.execPath, [join(SERVER_DIR, "index.ts")], {
+  child = spawnSourcePurchaseServer(process.execPath, [join(SERVER_DIR, "index.ts")], {
     cwd: ROOT,
     env: {
       ...(process.env.PATH ? { PATH: process.env.PATH } : {}),

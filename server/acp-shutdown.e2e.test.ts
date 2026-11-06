@@ -14,7 +14,9 @@ it("keeps an ACP partial reply in the transcript across graceful shutdown and re
   const port = Number(new URL(url).port);
   let server = fixture.child;
   const start = async () => {
-    const env = verificationServerEnvironment({}, dataDir, port);
+    const env: NodeJS.ProcessEnv = verificationServerEnvironment({}, dataDir, port);
+
+    env.OMB_TEST_PURCHASE = "fixture";
     const log = openSync(logPath, "a", 0o600);
     // Windows child.kill("SIGTERM") terminates immediately without running Node's signal handlers.
     const bootstrap = `process.on('message', message => { if (message === 'stop') process.emit('SIGTERM'); });

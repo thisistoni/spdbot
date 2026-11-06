@@ -1,5 +1,6 @@
-import { spawn, type ChildProcess } from "node:child_process";
-import { chmodSync, mkdirSync, mkdtempSync, readFileSync, writeFileSync } from "node:fs";
+import { spawnSourcePurchaseServer, sourcePurchaseHome } from "./testing/source-purchase-fixture.ts";
+import { type ChildProcess } from "node:child_process";
+import { chmodSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -23,7 +24,7 @@ const api = async (method: string, path: string, body?: unknown) => {
   return { status: response.status, body: await response.json() as any };
 };
 const start = async () => {
-  child = spawn(process.execPath, [join(root, "server", "index.ts")], {
+  child = spawnSourcePurchaseServer(process.execPath, [join(root, "server", "index.ts")], {
     cwd: root, env: { ...process.env, HOME: home, USERPROFILE: home, OMB_PORT: String(port) },
     stdio: ["ignore", "pipe", "pipe"],
   });
@@ -39,7 +40,7 @@ const start = async () => {
 
 beforeAll(async () => {
   chmodSync(fake, 0o755);
-  home = mkdtempSync(join(tmpdir(), "omb-codex-review-"));
+  home = sourcePurchaseHome(join(tmpdir(), "omb-codex-review-"));
   mkdirSync(join(home, ".spdbot"));
   writeFileSync(join(home, ".spdbot", "config.json"), JSON.stringify({ instances: {
     codex: { driver: "codex", environment: {

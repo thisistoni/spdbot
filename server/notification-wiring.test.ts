@@ -1,6 +1,7 @@
+import { spawnSourcePurchaseServer, sourcePurchaseHome } from "./testing/source-purchase-fixture.ts";
 // A generic `done` frame for the same failure would make two desktop notifications, so the marker PATCH below is an ordering barrier.
-import { spawn, type ChildProcess } from "node:child_process";
-import { chmodSync, mkdirSync, mkdtempSync, writeFileSync } from "node:fs";
+import { type ChildProcess } from "node:child_process";
+import { chmodSync, mkdirSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -50,7 +51,7 @@ const api = async (
 posixOnly("routine failure notification wiring", () => {
   beforeAll(async () => {
     chmodSync(FAKE_CLI, 0o755);
-    home = mkdtempSync(join(tmpdir(), "omb-notifications-e2e-"));
+    home = sourcePurchaseHome(join(tmpdir(), "omb-notifications-e2e-"));
     mkdirSync(join(home, ".spdbot"), { recursive: true });
     writeFileSync(
       join(home, ".spdbot", "config.json"),
@@ -75,7 +76,7 @@ posixOnly("routine failure notification wiring", () => {
     if (process.env.PATH) env.PATH = process.env.PATH;
     if (process.env.SystemRoot) env.SystemRoot = process.env.SystemRoot;
 
-    child = spawn(process.execPath, [join(SERVER_DIR, "index.ts")], {
+    child = spawnSourcePurchaseServer(process.execPath, [join(SERVER_DIR, "index.ts")], {
       cwd: join(SERVER_DIR, ".."),
       env,
       stdio: ["ignore", "pipe", "pipe"],

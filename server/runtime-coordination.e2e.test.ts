@@ -102,7 +102,9 @@ async function scenario(test: (f: any) => Promise<void>) {
     const settle = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
     const restart = async (signal: NodeJS.Signals) => {
       await waitForExit(server, { signal });
-      const env = verificationServerEnvironment(parentEnv, dataDir, Number(new URL(url).port));
+      const env: NodeJS.ProcessEnv = verificationServerEnvironment(parentEnv, dataDir, Number(new URL(url).port));
+
+      env.OMB_TEST_PURCHASE = "fixture";
       const log = openSync(session.info.logPath, "a", 0o600);
       server = spawn(process.execPath, verificationServerArgs(env), { cwd: ROOT, env, stdio: ["ignore", log, log] });
       restarted = true;
