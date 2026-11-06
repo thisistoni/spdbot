@@ -109,7 +109,7 @@ Roots Suche-/Backup-Fix ist bestätigt: Die fokussierten Tests bestehen; außerd
 
 ## Tatsächlich ausgeführte Checks
 
-Diagnosen und Logs: [TEMP-Verzeichnis](C:/Users/Anwender/AppData/Local/Temp/spdbot-access-independent-review-20261106). Alle dort genannten `.mjs`-Diagnosen sind erneut mit Node ausführbar; `adversarial.mjs` und `body-diagnostic.mjs` benötigen die vorhandene TypeScript-Strip-Unterstützung. Arbeitsverzeichnis ist das Desktop-Repository. Die Diagnosen führen keine Source-Fixes aus.
+Diagnosen und Logs liegen ausschließlich auf dem ursprünglichen Windows-Prüfrechner unter `C:/Users/Anwender/AppData/Local/Temp/spdbot-access-independent-review-20261106`; sie gehören nicht zum Checkout. Alle dort genannten `.mjs`-Diagnosen sind erneut mit Node ausführbar; `adversarial.mjs` und `body-diagnostic.mjs` benötigen die vorhandene TypeScript-Strip-Unterstützung. Arbeitsverzeichnis ist das Desktop-Repository. Die Diagnosen führen keine Source-Fixes aus.
 
 | Check | Ergebnis |
 | --- | --- |

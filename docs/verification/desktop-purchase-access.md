@@ -79,6 +79,101 @@ A local administrator can replace code, restore an entire protected profile/mach
 
 The size ratchet shrinks `electron/main.mjs` from 3444 to 3402 lines and `server/index.ts` from 17285 to 17279 by moving existing window-persistence logic and private-message types into small modules. Config/Claude caps are unchanged. No new non-vendored source file exceeds 1000 lines. Generated `dist*` output is untracked/ignored and is not part of the handoff.
 
+## Pre-activation package qualification
+
+Implemented locally on Windows against `abe07379cde6326d0bb36a513780f7cdef380752`.
+This resolves review integration concern A by adding the separate restricted
+package path described in [CI documentation](../ci.md#linux-qualification-before-purchase-activation).
+Production pins, purchase protocol/verifiers, consumer/server gating and the
+ordinary distribution guard are unchanged. No distribution is activated.
+
+The explicit Linux CI fixture builds the real main/UI/server/companion/native
+resource trees. It has a separate package/app/install/AppArmor identity,
+artifact prefix and ignored output directory; no publisher or update feed.
+Its guard refuses shipping identities/output, resource omissions, prepackaged
+inputs and every publishing policy except `never`. Actual packaged main and
+purchase source bytes must match. The existing resource validators still run
+with a real packager context, including browser/CUA/connector/DuckDB checks.
+Source-only authority stays excluded from both kinds of package.
+
+`package-linux` was absent from the central gate's `needs` list at this HEAD.
+It is now required for runtime changes, with existing docs-only skip rules.
+The Intel macOS PR runner expression is preserved. Valid production pins
+select the ordinary distribution build and its existing active-package smoke;
+invalid/partial pins fail instead of falling back to restricted qualification.
+
+While pins are empty, required restricted qualification covers real package
+contents/compliance, legacy DEB directory-mode repair, desktop registration,
+Chromium/AppArmor installation, installed browser, locked application/backend
+behavior, close/SIGTERM cleanup and same-profile SIGKILL restart. The old
+active CUA package start/crash/retry, Wayland seat-safety and AppImage private
+CUA staging assertions are **not run** in that lane. Linux CUA source tests and
+`scripts/testing/restricted-package-execution.e2e.test.ts` separately qualify
+the signed source fixture and fake engine before/after restart. This does not
+qualify customer execution or purchase activation. CI records the distinction
+in its job summary; normal release commands retain their rejecting guard.
+
+An additional existing source test failure was reproduced at handoff:
+`server/team-lifecycle.e2e.test.ts` restarts with plain `server/index.ts` rather
+than `verificationServerArgs(env)` and without `OMB_TEST_PURCHASE=fixture`.
+Its first post-restart mutation at the original line 108 returns HTTP 402.
+Root's correction and remaining source-fixture audit are recorded below.
+The new focused source smoke uses the existing launcher helpers on restart
+and verifies actual fake-engine replies, captured requests and retained history.
+
+Scoped file manifest:
+
+- `.github/workflows/ci.yml`, `package.json`: explicit task/qualification selection and required job integration.
+- `scripts/ci-restricted-builder.mjs`, `scripts/package-ci-restricted.mjs`: isolated builder configuration, guard, installer inputs and real resource checks.
+- `scripts/linux-package-identity.mjs`, `scripts/select-linux-qualification.mjs`: fixed verification identities and fail-closed selection.
+- `scripts/verify-linux-package.mjs`, `scripts/smoke-deb-upgrade.mjs`: retain distribution defaults and verify the separate fixture identity.
+- `scripts/run-linux-restricted-smoke.mjs`: actual restricted package IPC/backend and lifecycle qualification on Linux.
+- `scripts/purchase-packaging.test.mjs`, `scripts/ci-workflow.test.ts`, `scripts/testing/restricted-package-execution.e2e.test.ts`: real guard/config negatives, required gate checks and separate source execution.
+- `docs/ci.md`, `docs/verification/desktop-purchase-access.md`: qualification boundary, manifest and evidence.
+
+Local validation (Node 24.19.0, Corepack pnpm 10.33.0, Windows):
+
+- `pnpm exec vitest run scripts/purchase-packaging.test.mjs scripts/ci-workflow.test.ts scripts/ci-scope.test.ts scripts/testing/verification-docs.test.ts scripts/testing/restricted-package-execution.e2e.test.ts scripts/after-pack.test.mjs scripts/linux-after-install.test.mjs electron/cua-linux-runtime.test.mjs server/purchase-access.test.ts server/purchase-bypass.e2e.test.ts`: **162 passed, 54 platform skips, 10 files passed**. Includes **24** focused packaging tests. Output: `.omb-scratch/ci-packaging-tests.log` (ignored).
+- `pnpm lint`, `pnpm typecheck`, `pnpm check:electron` (215 modules), `pnpm i18n:check`: passed.
+- `pnpm build`, `pnpm build:server`, `pnpm build:companion`: passed. Vite reported the existing highlight pseudo-element and large-chunk warnings.
+- `node scripts/check-purchase-artifacts.mjs`: passed for the Electron import graph and **949** UI/core-server artifacts.
+- Node syntax checks for the seven packaging/verification entry modules and `git diff --check`: passed. The target index is unchanged/empty and branch/HEAD match the supplied base. Ignored build output and generated fixture installer inputs are not source changes.
+
+The separate exploratory `server/team-lifecycle.e2e.test.ts` run failed as
+described above at handoff; no full-suite or native Linux success is claimed.
+
+Native Linux package assembly/execution, DEB installation/upgrade, AppArmor,
+setuid sandbox, packaged browser and unpacked/AppImage/DEB lifecycle require
+GitHub's Ubuntu 24.04 x64 job. They cannot be reported as passed from Windows.
+No Windows symlink/permission workaround is part of this change. No native
+macOS buyer-access evidence or real buyer/provider/release evidence is added.
+
+### Root package integration checks
+
+Root reproduced the team-lifecycle HTTP 402, then changed both restart calls
+to use `verificationServerEnvironment`, explicit `OMB_TEST_PURCHASE=fixture`
+and `verificationServerArgs`. The existing signed source loader now retains
+the same test contract as the initial launch; runtime gating is unchanged.
+The complete lifecycle test, including malformed-registry recovery, passes.
+The packaging guard test now replaces the temporary authority declaration as
+a whole so its negative cases still work after production pins are filled.
+
+The same ten-file command above plus `server/team-lifecycle.e2e.test.ts`
+passed **163 tests with 54 platform skips** across 11 files on Windows.
+Log: `C:/Users/Anwender/AppData/Local/Temp/spdbot-root-restricted-package-tests.log`.
+The original failure is retained in `spdbot-team-restart-before.log` in the
+same temporary directory. The earlier remote static failure on `abe07379c`
+was a Markdown link to a Windows-only diagnostic directory; that reference
+is now explicitly a local evidence path, not a repository link.
+
+An exploratory `server/acp-recovery.e2e.test.ts` run reproduced the same
+missing signed fixture on two restarted-server cases. Evidence is retained
+in `spdbot-root-fixture-compatibility.log` in that temporary directory.
+Other direct source-server launch/restart fixtures still need compatibility
+review before PR #17 is ready. No successful full-suite result is claimed.
+Additional Root files: `server/team-lifecycle.e2e.test.ts` and
+`docs/verification/desktop-purchase-access-review.md`.
+
 ## Root integration follow-up
 
 Root verified the 53-file handoff against the working tree at `251739ced770a71b61e6cb0b078d854e8a28cb0f`, reran all 104 consumer tests successfully, and checked the built artifact exclusions. The first packaged-server smoke reproduced a missing restricted-mode allowance: `GET /api/search` returned 402. Workspace backup export/status/download were also absent from the allowlist despite the intended data-export access.

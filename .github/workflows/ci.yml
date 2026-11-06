@@ -76,7 +76,7 @@ jobs:
         run: node scripts/ci-scope.mjs
       - run: pnpm install --frozen-lockfile
       - name: Verify CI selection and documentation references
-        run: pnpm exec vitest run scripts/ci-scope.test.ts scripts/ci-workflow.test.ts scripts/testing/verification-docs.test.ts
+        run: pnpm exec vitest run scripts/ci-scope.test.ts scripts/ci-workflow.test.ts scripts/purchase-packaging.test.mjs scripts/testing/verification-docs.test.ts
       - name: Validate locale catalogs
         run: pnpm i18n:check
       - run: pnpm typecheck
@@ -315,7 +315,7 @@ jobs:
   gate:
     # One aggregation, not three queued runners doing the same check.
     name: CI
-    needs: [static, vitest, behavior-evals, packaged-server, windows-cua, electron-smokes, spd-settings, spd-german]
+    needs: [static, vitest, behavior-evals, packaged-server, windows-cua, electron-smokes, spd-settings, spd-german, package-linux]
     # Still report failed/skipped dependencies, but don't keep a superseded
     # workflow alive just to schedule its summary jobs.
     if: ${{ !cancelled() }}
@@ -595,9 +595,25 @@ jobs:
         run: pnpm build:cua:linux
       - name: Prove overlay-free X11 input routing
         run: dbus-run-session -- xvfb-run -a pnpm smoke:cua-x11-input
+      - name: Select explicit restricted or distribution qualification
+        id: qualification
+        run: node scripts/select-linux-qualification.mjs
       - name: Package from the verified offline CUA stage
+        if: steps.qualification.outputs.mode == 'distribution'
         run: pnpm package:linux:offline
-      - run: node scripts/verify-linux-package.mjs
+      - name: Build the nonpublishable restricted package with real resources
+        if: steps.qualification.outputs.mode == 'restricted'
+        run: pnpm package:linux:ci-restricted
+      - name: Exclude source-only purchase fixtures from runtime artifacts
+        run: node scripts/check-purchase-artifacts.mjs
+      - name: Verify package resources, identity, compliance and updater boundary
+        env:
+          QUALIFICATION: ${{ steps.qualification.outputs.mode }}
+          PACKAGE_OUTPUT: ${{ steps.qualification.outputs.output }}
+        run: |
+          args=()
+          if [ "$QUALIFICATION" = restricted ]; then args+=(--ci-restricted); fi
+          node scripts/verify-linux-package.mjs "$PACKAGE_OUTPUT" "${args[@]}"
       - name: Match a normal Ubuntu package parent on the ephemeral runner
         run: |
           test ! -L /opt
@@ -609,25 +625,54 @@ jobs:
           esac
           test "$(stat -c '%U:%G %a' /opt)" = "root:root 755"
       - name: Reproduce and verify an in-place DEB upgrade
+        env:
+          QUALIFICATION: ${{ steps.qualification.outputs.mode }}
+          PACKAGE_OUTPUT: ${{ steps.qualification.outputs.output }}
         run: |
-          deb=(release/*.deb)
+          deb=("$PACKAGE_OUTPUT"/*.deb)
           test "${#deb[@]}" -eq 1
-          sudo --preserve-env=CI,RUNNER_TEMP node scripts/smoke-deb-upgrade.mjs "${deb[0]}"
+          args=()
+          if [ "$QUALIFICATION" = restricted ]; then args+=(--ci-restricted); fi
+          sudo --preserve-env=CI,RUNNER_TEMP node scripts/smoke-deb-upgrade.mjs "${deb[0]}" "${args[@]}"
       - name: Configure Chromium sandbox for the unpacked app
+        env:
+          PACKAGE_OUTPUT: ${{ steps.qualification.outputs.output }}
         run: |
-          sudo chown root:root release/linux-unpacked/chrome-sandbox
-          sudo chmod 4755 release/linux-unpacked/chrome-sandbox
-          test "$(stat -c '%U:%G %a' release/linux-unpacked/chrome-sandbox)" = "root:root 4755"
+          sudo chown root:root "$PACKAGE_OUTPUT/linux-unpacked/chrome-sandbox"
+          sudo chmod 4755 "$PACKAGE_OUTPUT/linux-unpacked/chrome-sandbox"
+          test "$(stat -c '%U:%G %a' "$PACKAGE_OUTPUT/linux-unpacked/chrome-sandbox")" = "root:root 4755"
       - name: Verify the installed browser with Ubuntu sandbox restrictions
-        run: node scripts/smoke-browser-bundle.mjs --resources /opt/SPDBot/resources
+        env:
+          PACKAGE_PRODUCT: ${{ steps.qualification.outputs.product }}
+        run: node scripts/smoke-browser-bundle.mjs --resources "/opt/$PACKAGE_PRODUCT/resources"
       - name: Launch packaged app and verify lifecycle
+        if: steps.qualification.outputs.mode == 'distribution'
         env:
           OMB_KEEP_SMOKE_DIR: "1"
           OMB_SMOKE_INSTALLED_DEB: "1"
         run: pnpm smoke:linux-package
+      - name: Qualify restricted unpacked, AppImage and installed DEB lifecycle
+        if: steps.qualification.outputs.mode == 'restricted'
+        env:
+          OMB_KEEP_SMOKE_DIR: "1"
+        run: pnpm smoke:linux:ci-restricted
+      - name: Qualify execution separately using existing isolated source fixtures
+        if: steps.qualification.outputs.mode == 'restricted'
+        run: pnpm exec vitest run electron/cua-linux-runtime.test.mjs scripts/testing/restricted-package-execution.e2e.test.ts server/purchase-bypass.e2e.test.ts
+      - name: Record the qualification boundary
+        env:
+          QUALIFICATION: ${{ steps.qualification.outputs.mode }}
+        run: |
+          if [ "$QUALIFICATION" = restricted ]; then
+            echo 'Restricted CI package qualified. Active distribution CUA startup/crash/retry and AppImage private CUA staging were NOT run; source fixture coverage is separate. Shipping remains blocked until reviewed production pins are configured.' >> "$GITHUB_STEP_SUMMARY"
+          else
+            echo 'Ordinary distribution package qualification, including the existing active-package lifecycle smoke, ran.' >> "$GITHUB_STEP_SUMMARY"
+          fi
       - name: Remove the installed upgrade fixture
-        if: always()
-        run: sudo dpkg --purge spdbot || true
+        if: ${{ always() && steps.qualification.outputs.name != '' }}
+        env:
+          PACKAGE_NAME: ${{ steps.qualification.outputs.name }}
+        run: sudo dpkg --purge "$PACKAGE_NAME" || true
       - name: Upload smoke diagnostics on failure
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         if: failure()

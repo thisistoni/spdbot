@@ -27,6 +27,61 @@ skips fail the gate. Existing advisory jobs remain advisory.
 The separate shared-terminal smoke workflow is manual-only: its tests already
 run in the Windows Vitest/Electron jobs.
 
+## Linux qualification before purchase activation
+
+`package-linux` now participates in the required `CI` gate (the previous
+workflow ran it outside that gate). Runtime changes require it to succeed;
+only the established docs-only selection may skip it. PR macOS smokes still
+use Intel capacity; this package change does not alter their runner selection.
+
+`scripts/select-linux-qualification.mjs` selects the restricted qualification
+only when both checked-in production key lists are empty. Malformed, partial,
+synthetic or mismatched authority fails selection. Valid reviewed public pins
+select the existing `package:linux:offline` and `smoke:linux-package` contracts
+automatically. Ordinary packaging/release commands still use the unchanged
+`electron-builder.yml` purchase guard and reject the current empty pins.
+
+The explicit `package:linux:ci-restricted` task runs the normal preparation and
+offline CUA verification, then builds real x64 AppImage and DEB artifacts using
+`scripts/ci-restricted-builder.mjs`. This is a nonpublishable qualification
+fixture with execution locked by the unchanged runtime authority. It has its
+own package/executable name `spdbot-ci-restricted`, app ID
+`de.spdlabs.spdbot.ci.restricted`, product/install directory
+`SPDBot-CI-Restricted`, desktop registration, AppArmor policy and output
+`.omb-scratch/ci-restricted-package`. Artifact names contain
+`CI-RESTRICTED-NOT-FOR-DISTRIBUTION`. No package fixture is uploaded by CI.
+Release uploads still read only the ordinary `release/` output on separate
+release jobs/checkouts; they never invoke the fixture task.
+
+The fixture builder accepts no CLI overrides and its guard requires
+`publish=never`, no publisher/update feed, empty production pins, exact fixture
+identity/output and the real resource configuration. Shipping resource
+validation still runs with the full electron-builder context. Packaged main
+and purchase modules must match the source bytes; test loaders and enterprise
+code remain excluded. All common resources must exist. The verifier checks
+the marker and absence of update metadata in the actual unpacked, DEB and
+AppImage trees. Installer hooks are derived from the existing repair scripts
+with only package-owned identities/paths changed.
+
+Restricted qualification retains CUA binary/hash/SBOM/license/mode checks,
+real staged X11 input routing, desktop registration validation, in-place DEB
+upgrade from legacy 0775 directories, Chromium sandbox/AppArmor installation,
+and the installed browser smoke. Its native lifecycle checks launch the real
+unpacked application, AppImage and installed DEB with disposable homes, assert
+denied purchase IPC/CUA enable/retry and backend writes, then check window
+close, AppImage SIGTERM and same-profile recovery after unpacked SIGKILL.
+
+This replaces the **active-package** CUA start/crash/retry, Wayland seat-safety
+and AppImage private CUA staging qualification while pins are empty. Those
+active package assertions cannot pass honestly when execution is locked.
+Existing Linux CUA source tests and the signed, isolated control-omb source
+fixture separately exercise execution and restart. They are not proof of an
+activated customer package. The job summary reports this boundary explicitly;
+the original active-package smoke returns when production pins are configured.
+
+See [the purchase integration record](verification/desktop-purchase-access.md#pre-activation-package-qualification)
+for local evidence and checks still requiring GitHub Linux CI.
+
 Merges run checks without publishing images or deploying the Cloudflare broker.
 Broker deployment requires a manual CI run on `main` with the explicit
 `deploy_composio_broker` option (false by default), after the CI gate and
