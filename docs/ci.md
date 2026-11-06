@@ -88,6 +88,14 @@ passes sign-in, encrypted storage, reset, offline restart and exact expiry.
 Ubuntu's complete packaged lifecycle and macOS still require remote CI on the
 new commit; a local Windows utility-process smoke is not their substitute.
 
+The Ubuntu shard-3 run on `0c930ab` also exposed a separate queue regression:
+awaiting purchase verification before a turn reserved its slot allowed the
+synchronous queue drain to consume additional entries at the old free capacity.
+Turn admission now uses the verified gate's synchronous expiry/rollback check;
+the provider boundary retains its asynchronous signature check and final
+synchronous expiry check. The existing approval/FIFO/lowered-capacity scenario
+reproduces the lost queue entry before this correction and passes after it.
+
 Restricted qualification retains CUA binary/hash/SBOM/license/mode checks,
 real staged X11 input routing, desktop registration validation, in-place DEB
 upgrade from legacy 0775 directories, Chromium sandbox/AppArmor installation,

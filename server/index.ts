@@ -8214,7 +8214,7 @@ async function startTurn(
     coordination?: { id: string; resumed: boolean; settle: (outcome: HostTurnResult) => void };
   },
 ) {
-  await purchaseAccess.assert();
+  purchaseAccess.assertNow(); // Keep admission through the dispatch reservation synchronous.
   workspaceMaintenance.assertAvailable();
   const profile = store.bot(botId);
   if (!profile) throw Object.assign(new Error("no such bot"), { status: 404 });
