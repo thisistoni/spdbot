@@ -58,9 +58,8 @@ if (!prior) Object.defineProperty(process, "parentPort", { value: port });
 // Startup work must see a completed, independently verified handshake, just as
 // later requests do. Health becoming reachable is not proof of purchase access.
 const { purchaseAccess } = await import("../purchase-access.ts");
-// Support source hosts with automatic or explicit attachment without
-// delivering the same nonce twice.
-if (listeners.size === 0) purchaseAccess.attach(port);
+// Attachment is idempotent on the same private port; index.ts attaches later.
+purchaseAccess.attach(port);
 let stopWaiting, timeout;
 try {
   await Promise.race([possessionFailure, new Promise((resolve, reject) => {

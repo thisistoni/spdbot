@@ -5,20 +5,28 @@ import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { WebSocket } from "ws";
 import { launchVerificationServer, runControlOmb, verificationServerEnvironment, type VerificationServer } from "../scripts/control-omb.ts";
 import { handleToolCall } from "../scripts/mcp-server.ts";
-import { initialGreeting } from "./initial-greeting.ts";
 
 let fixture: VerificationServer;
 let bot: { id: string; threadId: string; name: string };
+let seededText: string;
 beforeAll(async () => {
   fixture = await launchVerificationServer({ ...process.env, OMB_TEST_PORTS: "19870-19890" }, undefined, undefined, undefined, undefined, undefined, [], undefined, undefined, "restricted");
   const response = await fetch(`${fixture.info.url}/api/bots`);
   bot = ((await response.json()) as { bots: typeof bot[] }).bots[0];
+  const history = await fetch(`${fixture.info.url}/api/threads/${bot.threadId}/messages`);
+  expect(history.status).toBe(200);
+  const { messages } = await history.json() as { messages: { role: string; kind: string; text: string }[] };
+  const greeting = messages.find(message => message.role === "bot" && message.kind === "text");
+  expect(greeting?.text).toEqual(expect.any(String));
+  seededText = greeting!.text;
+  expect(seededText.trim().length).toBeGreaterThan(0);
 }, 60000);
 afterAll(async () => { await fixture?.close(); });
 
 describe("real restricted harness with isolated fake engine", () => {
   it("exports the seeded conversation as Markdown and JSON, and usage as CSV", async () => {
-    const expected = initialGreeting(bot.name, "de");
+    // The seeded conversation follows the host language; export must preserve it.
+    const expected = seededText;
     const markdown = await fetch(`${fixture.info.url}/api/threads/${bot.threadId}/export`);
     expect(markdown.status).toBe(200); expect(await markdown.text()).toContain(expected);
     const json = await fetch(`${fixture.info.url}/api/threads/${bot.threadId}/export?format=json`);
@@ -90,7 +98,7 @@ describe("real restricted harness with isolated fake engine", () => {
     await runControlOmb(["export", "--thread", bot.threadId, "--out", out, "--url", fixture.info.url], { env });
     const manifest = JSON.parse(readFileSync(join(out, "manifest.json"), "utf8")) as { transcripts: { file: string }[]; skipped: unknown[]; bytes: number };
     expect(manifest.skipped).toEqual([]); expect(manifest.transcripts).toHaveLength(1);
-    expect(readFileSync(join(out, manifest.transcripts[0].file), "utf8")).toContain(initialGreeting(bot.name, "de"));
+    expect(readFileSync(join(out, manifest.transcripts[0].file), "utf8")).toContain(seededText);
     expect(existsSync(fixture.fixtureDumpPath)).toBe(false);
   });
 });

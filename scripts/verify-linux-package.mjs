@@ -451,8 +451,9 @@ try {
   const debAppRoot = path.join(extracted, "opt", identity.product);
   requireDirectoryMode(debAppRoot, 0o755);
   const debResources = path.join(debAppRoot, "resources");
-  // Routes the in-app updater to the package-manager hand-off.
-  requirePackageType(debResources, "DEB", "deb");
+  // FpmTarget emits this updater marker only with a publish configuration.
+  // Restricted packages deliberately have neither a feed nor an updater marker.
+  requirePackageType(debResources, "DEB", restricted ? null : "deb");
   requireUpdaterTarget(debResources, "DEB");
   const debHashes = verifyCuaResources(debResources, "DEB");
   const debCloudflaredHash = verifyCloudflaredResources(debResources, "DEB");

@@ -33,6 +33,25 @@ const fixture = async () => {
 };
 
 describe("independent backend purchase authority", () => {
+  it("attaches once to its private parent without reissuing an accepted challenge", async () => {
+    const f = await fixture();
+    const listeners: Array<(event: { data?: object }) => void> = [];
+    const messages: unknown[] = [];
+    const port = {
+      on(_event: "message", listener: (event: { data?: object }) => void) { listeners.push(listener); },
+      postMessage(value: unknown) { messages.push(value); },
+    };
+    f.gate.attach(undefined);
+    f.gate.attach(port);
+    expect(messages).toEqual([f.gate.challenge()]);
+    await f.gate.receive(f.init());
+    f.gate.attach(port);
+    expect(listeners).toHaveLength(1);
+    expect(messages).toHaveLength(1);
+    expect(await f.gate.check()).toBe(true);
+    expect(() => f.gate.attach({ ...port })).toThrow("already has a private parent");
+    expect(await f.gate.check()).toBe(true);
+  });
   it("rejects standalone and copied leases without nonce/key possession; startup is one-use", async () => {
     expect(await new PurchaseGate().check()).toBe(false);
     const f = await fixture();
