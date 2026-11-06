@@ -48,6 +48,7 @@ let startupAbort = null;
 let lifecycleGeneration = 0;
 let macRetry = null;
 let linuxRuntime = null;
+let linuxExecutionAllowed = async () => false;
 let linuxBundleStage = null;
 let stateListener = () => {};
 const connectionStore = createCuaConnectionStore({
@@ -85,6 +86,7 @@ function ensureLinuxRuntime() {
         getUserData: () => app.getPath("userData"),
         connectionStore,
         bundledDriverPath,
+        executionAllowed: () => linuxExecutionAllowed(),
         onChange: (connection) => stateListener(connection),
       });
     } catch (error) {
@@ -173,12 +175,13 @@ async function loadEmbeddedSdk() {
   return import(pathToFileURL(path.join(process.resourcesPath, "cua-sdk", "cua-sdk.mjs")).href);
 }
 
-async function attachStandalone(signal) {
+async function attachStandalone(signal, checkAccess) {
   // Windows must stay on the owned embedded host, never an unrelated daemon.
   if (process.platform !== "darwin") return null;
   const driver = fs.existsSync(INSTALLED_DRIVER) ? INSTALLED_DRIVER : null;
   if (!driver) return null;
   if (!(await socketAlive(STANDALONE_SOCKET))) {
+    await checkAccess();
     signal.throwIfAborted();
     // Through LaunchServices so Accessibility/Screen Recording stay on com.trycua.driver, the identity already granted.
     const launch = execFileAsync("/usr/bin/open", ["-a", "CuaDriver"], {
@@ -206,9 +209,10 @@ async function attachStandalone(signal) {
   };
 }
 
-async function startEmbedded(binary, signal) {
+async function startEmbedded(binary, signal, checkAccess) {
   // The packaged app ships no general node_modules, so a bare package import only works in dev.
   const sdk = await loadEmbeddedSdk();
+  await checkAccess();
   signal.throwIfAborted();
   // CUA's embedding contract needs grants before the daemon starts, asked from Electron main so macOS attributes them here.
   if (process.platform === "darwin") {
@@ -225,6 +229,7 @@ async function startEmbedded(binary, signal) {
   const host = new sdk.EmbeddedCuaDriverHost(resolveEmbeddedDriverBinary(binary), HOST_BUNDLE_ID);
   try {
     const conn = await host.start({ signal });
+    await checkAccess();
     signal.throwIfAborted();
     embeddedHost = host;
     return {
@@ -244,12 +249,22 @@ async function startEmbedded(binary, signal) {
   }
 }
 
-export async function startCua() {
-  if (process.platform === "linux") return ensureLinuxRuntime().initialize();
+export async function startCua({ executionAllowed = async () => false } = {}) {
   lifecycleGeneration++;
   startupAbort?.abort();
   startupAbort = new AbortController();
   const { signal } = startupAbort;
+  const checkAccess = async () => {
+    signal.throwIfAborted();
+    const allowed = await executionAllowed();
+    signal.throwIfAborted();
+    if (!allowed) throw Object.assign(new Error("purchase-access-required"), { code: "purchase-access-required" });
+  };
+  await checkAccess();
+  if (process.platform === "linux") {
+    linuxExecutionAllowed = executionAllowed;
+    return ensureLinuxRuntime().initialize();
+  }
   const binary = resolveDriverBinary();
   if (!binary) {
     return persistAndNotify({
@@ -264,13 +279,15 @@ export async function startCua() {
 
   if (wantEmbedded) {
     try {
-      nextConnection = await startEmbedded(binary, signal);
+      nextConnection = await startEmbedded(binary, signal, checkAccess);
     } catch (err) {
       signal.throwIfAborted();
+      if (err?.code === "purchase-access-required") throw err;
       try {
-        nextConnection = await attachStandalone(signal);
+        nextConnection = await attachStandalone(signal, checkAccess);
       } catch (standaloneError) {
         signal.throwIfAborted();
+        if (standaloneError?.code === "purchase-access-required") throw standaloneError;
         nextConnection = {
           mode: "unavailable",
           reason: `embedded host failed: ${err?.message ?? err}; standalone launch failed: ${standaloneError?.message ?? standaloneError}`,
@@ -300,6 +317,12 @@ export async function startCua() {
     };
   }
 
+  try { await checkAccess(); }
+  catch (error) {
+    // Never let an old completion stop a replacement host.
+    if (startupAbort?.signal === signal) await stopCua();
+    throw error;
+  }
   signal.throwIfAborted();
   return persistAndNotify(nextConnection);
 }
@@ -327,6 +350,7 @@ export async function stopCua() {
   startupAbort = null;
   if (linuxRuntime) {
     await linuxRuntime.shutdown();
+    linuxRuntime = null;
     if (linuxBundleStage) {
       cleanupAppImageCuaBundle(linuxBundleStage);
       linuxBundleStage = null;
@@ -347,8 +371,10 @@ export async function stopCua() {
   }
 }
 
-export function registerCuaIpc() {
-  ipcMain.handle("cua:connection", localOnly("cua:connection", () => connectionStore.get()));
+export function registerCuaIpc({ executionAllowed = async () => false } = {}) {
+  linuxExecutionAllowed = executionAllowed;
+  const restricted = { enabled: false, status: "unavailable", reasonCode: "purchase-access-required" };
+  ipcMain.handle("cua:connection", localOnly("cua:connection", async () => await executionAllowed() ? connectionStore.get() : { mode: "unavailable", reason: "purchase-access-required" }));
   ipcMain.handle("cua:permissions", localOnly("cua:permissions", () => cuaPermissionsStatus()));
   ipcMain.handle("cua:linux-status", localOnly("cua:linux-status", () =>
     process.platform === "linux"
@@ -356,6 +382,7 @@ export function registerCuaIpc() {
       : { enabled: false, status: "unavailable", reasonCode: "unsupported-platform" },
   ));
   ipcMain.handle("cua:linux-enable", localOnly("cua:linux-enable", async () => {
+    if (!(await executionAllowed())) return restricted;
     if (process.platform !== "linux") {
       return { enabled: false, status: "unavailable", reasonCode: "unsupported-platform" };
     }
@@ -378,6 +405,7 @@ export function registerCuaIpc() {
     return ensureLinuxRuntime().getStatus();
   }));
   ipcMain.handle("cua:linux-retry", localOnly("cua:linux-retry", async () => {
+    if (!(await executionAllowed())) return restricted;
     if (process.platform === "darwin" || process.platform === "win32") {
       // Concurrent requests share one stop/start sequence; a later explicit Stop (or quit) cancels its delayed restart.
       const platformLabel = process.platform === "darwin" ? "macOS" : "Windows";
@@ -387,7 +415,8 @@ export function registerCuaIpc() {
           const generation = lifecycleGeneration;
           await stopping;
           if (generation !== lifecycleGeneration) throw new Error("Computer use restart cancelled");
-          const connection = await startCua();
+          const connection = await startCua({ executionAllowed });
+          if (!(await executionAllowed())) { await stopCua(); return restricted; }
           const ready = connection?.mode === "embedded" || connection?.mode === "standalone";
           return {
             enabled: ready,
@@ -396,6 +425,7 @@ export function registerCuaIpc() {
             message: connection?.reason,
           };
         } catch (error) {
+          if (error?.code === "purchase-access-required") return restricted;
           console.error(`[cua] ${platformLabel} retry failed:`, error);
           return {
             enabled: false,

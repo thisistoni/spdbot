@@ -6321,5 +6321,15 @@
   "templates.catalog.competitorWatch.outcome": "Erkenne, welche Schritte der Konkurrenz eine Reaktion verdienen und welche du ignorieren kannst.",
   "templates.catalog.inboxFollowup.name": "Postfach-Nachverfolgung",
   "templates.catalog.inboxFollowup.summary": "Finde Gespräche, bei denen dein Team den nächsten Schritt schuldet, ohne automatisch Nachrichten zu senden.",
-  "templates.catalog.inboxFollowup.outcome": "Finde Gespräche, bei denen dein Team den nächsten Schritt schuldet, ohne automatisch Nachrichten zu senden."
+  "templates.catalog.inboxFollowup.outcome": "Finde Gespräche, bei denen dein Team den nächsten Schritt schuldet, ohne automatisch Nachrichten zu senden.",
+  "purchase.active": "SPDBot verbunden",
+  "purchase.required": "SPDBot-Kauf verbinden",
+  "purchase.connecting": "Warte auf Browser-Bestätigung",
+  "purchase.connect": "SPDBot verbinden",
+  "purchase.refresh": "Zugang prüfen",
+  "purchase.signOut": "Trennen",
+  "purchase.reset": "Verbindung zurücksetzen",
+  "purchase.clock": "Systemzeit prüfen und neu verbinden",
+  "purchase.storage": "Sicherer Zugangsspeicher nicht verfügbar",
+  "purchase.unavailable": "Zugangsdienst derzeit nicht verfügbar"
 }

@@ -112,6 +112,17 @@ const bridge = {
     keepAwake: (enabled) => ipcRenderer.invoke("routines:keep-awake", enabled),
   },
   /** Secrets stay in the main process; the renderer sees only status and narrow actions. */
+  purchase: {
+    state: () => ipcRenderer.invoke("purchase:state"),
+    connect: () => ipcRenderer.invoke("purchase:connect"),
+    refresh: () => ipcRenderer.invoke("purchase:refresh"),
+    signOut: () => ipcRenderer.invoke("purchase:signOut"),
+    onChanged: (listener) => {
+      const receive = (_event, value) => listener(value);
+      ipcRenderer.on("purchase:changed", receive);
+      return () => ipcRenderer.removeListener("purchase:changed", receive);
+    },
+  },
   companionAccount: {
     state: () => ipcRenderer.invoke("companion-account:state"),
     requestCode: (email) => ipcRenderer.invoke("companion-account:request-code", email),

@@ -113,6 +113,7 @@ const __APP_VERSION__: string;
 
   interface Window {
     ogb?: {
+      purchase?: import("../../shared/purchase-access").PurchaseAccessBridge;
       platform: NodeJS.Platform;
       organization?: import("../../electron/managed-desktop.mjs").ManagedDesktopBridge;
       cloudAccount?: import("../../electron/cloud-account.mjs").CloudAccountBridge;

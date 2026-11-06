@@ -1,3 +1,5 @@
+import { createWindowStatePersistence } from "./window-state-persistence.mjs";
+import { createPurchaseDesktop, takePurchaseLaunchLinks } from "./purchase-desktop.mjs";
 import { configureProductIdentity } from "./product-identity.mjs";
 import { app, autoUpdater as nativeAutoUpdater, BrowserWindow, Tray, WebContentsView, clipboard, desktopCapturer, dialog, ipcMain, Menu, nativeImage, Notification, powerMonitor, powerSaveBlocker, safeStorage, screen, session, shell, systemPreferences, utilityProcess } from "electron";
 import { createRequire } from "node:module";
@@ -125,6 +127,7 @@ let desktopViewerOwner = null;
 let desktopViewerContextId = null;
 let desktopWorkspaceManager = null;
 let desktopWorkspaceOwner = null;
+const purchaseLaunchLinks = takePurchaseLaunchLinks(process.argv);
 let pendingOrganizationEntry = takeOrganizationDeepLink(process.argv);
 const cloudEntry = createCloudEntry({
   reveal: () => { if (!desktopTray?.show()) activateExistingWindow(BrowserWindow.getAllWindows()); },
@@ -143,63 +146,7 @@ const serverUnavailableWindows = new WeakSet();
 let unreadCount = 0;
 let unreadOverlayIcon = null;
 
-function windowStateFile() {
-  return path.join(app.getPath("userData"), "window-state.json");
-}
-
-function readWindowState() {
-  try {
-    return parseWindowState(fs.readFileSync(windowStateFile(), "utf8"));
-  } catch {
-    return null;
-  }
-}
-
-function writeWindowState(win) {
-  if (!win || win.isDestroyed()) return;
-  const file = windowStateFile();
-  const temporary = `${file}.${process.pid}.tmp`;
-  try {
-    fs.mkdirSync(path.dirname(file), { recursive: true });
-    fs.writeFileSync(
-      temporary,
-      JSON.stringify({ bounds: win.getNormalBounds(), maximized: win.isMaximized() }),
-      { mode: 0o600 },
-    );
-    fs.renameSync(temporary, file);
-  } catch (error) {
-    try {
-      fs.rmSync(temporary, { force: true });
-    } catch {}
-    slog(`window state save failed: ${error?.message ?? error}`);
-  }
-}
-
-function installWindowStatePersistence(win) {
-  let timer = null;
-  const flush = () => {
-    if (timer) clearTimeout(timer);
-    timer = null;
-    writeWindowState(win);
-  };
-  const schedule = () => {
-    if (timer) clearTimeout(timer);
-    timer = setTimeout(flush, 250);
-    timer.unref?.();
-  };
-  win.on("resize", schedule);
-  win.on("move", schedule);
-  const pushMaximized = () => {
-    try {
-      if (!win.isDestroyed()) win.webContents.send("window:maximized-changed", win.isMaximized());
-    } catch {}
-  };
-  win.on("maximize", pushMaximized);
-  win.on("unmaximize", pushMaximized);
-  win.on("maximize", schedule);
-  win.on("unmaximize", schedule);
-  win.on("close", flush);
-}
+const { readWindowState, installWindowStatePersistence } = createWindowStatePersistence({ app, parseWindowState, log: slog });
 
 function applyUnreadBadge(win = mainWindow) {
   const count = normalizeUnreadCount(unreadCount);
@@ -217,6 +164,13 @@ function applyUnreadBadge(win = mainWindow) {
 
 // Keep Chromium profiles, encrypted credentials and the instance lock separate from MausBot.
 configureProductIdentity(app);
+const purchaseDesktop = createPurchaseDesktop({ app, safeStorage, ipcMain, powerMonitor, shell, guard: localOriginModule.localOnly, fetch: globalThis.fetch, launchLinks: purchaseLaunchLinks, window: () => mainWindow,
+  executionChanged: allowed => {
+    if (!allowed) void stopCua();
+    else cuaReady = startCua({ executionAllowed: purchaseCuaAllowed }).catch(() => ({ mode: "unavailable", reason: "access-start-failed" }));
+  },
+});
+const purchaseCuaAllowed = () => purchaseDesktop.cuaAllowed(() => desktopRemoteAccess);
 
 // GNOME groups the window with its desktop entry only when both identities match; set before ready.
 // Chromium's GPU process crashed on NVIDIA/libGLES and left an invisible window intercepting input.
@@ -285,11 +239,12 @@ function queueChatLink(rawLink) {
 }
 
 app.on("open-url", (event, url) => {
-  if (!queueOrganizationEntry(url) && !cloudEntry.fromUrl(url) && !queuePackageInstall(url) && !queueChatLink(url)) return;
+  if (!purchaseDesktop.fromUrl(url) && !queueOrganizationEntry(url) && !cloudEntry.fromUrl(url) && !queuePackageInstall(url) && !queueChatLink(url)) return;
   event.preventDefault();
 });
 
 app.on("second-instance", (_event, commandLine) => {
+  if (purchaseDesktop.fromArgs(commandLine)) { revealForLink(); return; }
   if (takeOrganizationDeepLink(commandLine)) {
     queueOrganizationEntry("spdbot://organization");
     return;
@@ -1192,6 +1147,7 @@ async function startServerOn(port, dataDir = runningDataDir ?? startupEnvironmen
     env: childEnv,
     stdio: ["ignore", "pipe", "pipe"],
   });
+  purchaseDesktop.attach(proc);
   let resolveServerExit;
   utilityServerExits.set(proc, new Promise((resolve) => {
     resolveServerExit = resolve;
@@ -2346,6 +2302,7 @@ ipcMain.handle("screen:frame", localOnly("screen:frame", async () => {
 
 // Renderer-controlled text must never become a process argument: the user reviews and pastes it.
 ipcMain.handle("engine:open-terminal", localOnly("engine:open-terminal", async (_event, command) => {
+  await purchaseDesktop.assert();
   if (typeof command !== "string" || !command.trim()) return false;
   clipboard.writeText(command);
   return openBlankTerminal();
@@ -2525,7 +2482,8 @@ ipcMain.handle("desktop:relaunch", localOnly("desktop:relaunch", (event) => {
   return true;
 }));
 
-ipcMain.handle("speech:start", localOnly("speech:start", (event, options) => {
+ipcMain.handle("speech:start", localOnly("speech:start", async (event, options) => {
+  await purchaseDesktop.assert();
   const win = BrowserWindow.fromWebContents(event.sender);
   if (!win) return;
   if (!nativeActions.appleSpeech) {
@@ -3234,7 +3192,8 @@ app.whenReady().then(async () => {
       { useSystemPicker: false },
     );
   }
-  registerCuaIpc();
+  await purchaseDesktop.start();
+  registerCuaIpc({ executionAllowed: purchaseCuaAllowed });
   androidDevice.registerIpc(ipcMain);
   registerUpdaterIpc({ pageAllowed: updaterPageAllowed });
   registerDesktopPrefs({ ipcMain, ...jsonFile(path.join(app.getPath("userData"), "desktop-prefs.json")), localConfig: jsonFile(path.join(desktopDataDir(), "config.json")).read, cloudOffered: () => cloudAccountRestored().then(cloudOffersReady),
@@ -3242,8 +3201,7 @@ app.whenReady().then(async () => {
     thisComputer: async landing => { let ok = false; if (serverReady) await workspaceMenuAction(async () => { ok = (await switchEnvironment(LOCAL_ID))?.ok !== false; }); return ok && await navigateMainWindow(`${rendererOrigin()}/${landing}`); } });
   // Before the window, so the harness has the CUA descriptor on first render.
   cuaReady =
-    !desktopRemoteAccess && (process.platform === "darwin" || process.platform === "linux" || process.platform === "win32")
-      ? startCua().catch((e) => {
+    await purchaseCuaAllowed() ? startCua({ executionAllowed: purchaseCuaAllowed }).catch((e) => {
           console.error("[cua] start failed:", e);
           return { mode: "unavailable", reason: String(e) };
         })

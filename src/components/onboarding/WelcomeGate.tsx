@@ -4,6 +4,7 @@ import { hostedMember, LOCAL_VIEWER, welcomeDue, welcomeViewer, type BeatId, typ
 import { api, useStore } from "@/state/store";
 import { SharedWorkspaceHint } from "./SharedWorkspaceHint";
 import { WelcomeFlow } from "./WelcomeFlow";
+import { usePurchaseAccess } from "@/lib/purchase-access";
 
 /**
  * Security: a remote page the desktop app loads gets a reduced but truthy window.ogb without remoteClient, and is no
@@ -34,11 +35,12 @@ export function useWelcomeViewer(): WelcomeViewer | null {
 }
 
 export function WelcomeGate({ viewer }: { viewer: WelcomeViewer | null }) {
+  const { bridge: purchase, access } = usePurchaseAccess();
   const { state, dispatch } = useStore();
   const [dismissed, setDismissed] = useState(false);
   const [resumeAt, setResumeAt] = useState<BeatId | undefined>(undefined);
   const remoteClient = window.ogb?.remoteClient?.active === true;
-  if (!viewer) return null;
+  if (!viewer || (purchase && !access?.allowed)) return null;
   if (hostedMember(viewer)) {
     return remoteClient ? null : (
       <SharedWorkspaceHint

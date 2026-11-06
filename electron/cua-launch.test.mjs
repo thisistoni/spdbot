@@ -104,7 +104,7 @@ describe.skipIf(process.platform !== "darwin")("async standalone CUA launch (iso
     let ticks = 0;
     const timer = setInterval(() => ticks++, 10);
     try {
-      await expect(cua.startCua()).resolves.toMatchObject({ mode: "standalone", mcpArgs: ["mcp"] });
+      await expect(cua.startCua({ executionAllowed: async () => true })).resolves.toMatchObject({ mode: "standalone", mcpArgs: ["mcp"] });
       expect(ticks).toBeGreaterThan(2);
       expect(fixture.calls[0]).toMatchObject({ command: "/usr/bin/open", args: ["-a", "CuaDriver"], options: { timeout: 8_000, killSignal: "SIGKILL" } });
     } finally { clearInterval(timer); }
@@ -112,7 +112,7 @@ describe.skipIf(process.platform !== "darwin")("async standalone CUA launch (iso
 
   it("keeps the embedded and fallback launch failures visible", async () => {
     fixture.script = "process.stderr.write('fixture launch failure'); process.exit(4)";
-    const result = await cua.startCua();
+    const result = await cua.startCua({ executionAllowed: async () => true });
     expect(result.mode).toBe("unavailable");
     expect(result.reason).toContain("embedded host failed");
     expect(result.reason).toContain("standalone launch failed");
@@ -121,7 +121,7 @@ describe.skipIf(process.platform !== "darwin")("async standalone CUA launch (iso
 
   it("cancels a pending launch without publishing a stale ready connection", async () => {
     fixture.script = "process.on('SIGTERM', () => {}); setInterval(() => {}, 1000)";
-    const started = cua.startCua();
+    const started = cua.startCua({ executionAllowed: async () => true });
     const aborted = expect(started).rejects.toMatchObject({ name: "AbortError" });
     await expect.poll(() => fixture.children.length).toBe(1);
     await cua.stopCua();
@@ -132,17 +132,17 @@ describe.skipIf(process.platform !== "darwin")("async standalone CUA launch (iso
 
   it("bounds a TERM-ignoring launch with forceful timeout", async () => {
     fixture.script = "process.on('SIGTERM', () => {}); setInterval(() => {}, 1000)";
-    await expect(cua.startCua()).resolves.toMatchObject({ mode: "unavailable", reason: expect.stringContaining("standalone launch failed") });
+    await expect(cua.startCua({ executionAllowed: async () => true })).resolves.toMatchObject({ mode: "unavailable", reason: expect.stringContaining("standalone launch failed") });
     expect(fixture.children[0].signalCode).toBe("SIGKILL");
   }, 12_000);
 
   it("does not let an aborted embedded start publish over or stop its replacement", async () => {
     fixture.embeddedDelays = [150, 10];
-    const first = cua.startCua();
+    const first = cua.startCua({ executionAllowed: async () => true });
     const aborted = expect(first).rejects.toMatchObject({ name: "AbortError" });
     await expect.poll(() => fixture.hosts.length).toBe(1);
     await cua.stopCua();
-    await expect(cua.startCua()).resolves.toMatchObject({ mode: "embedded", socketPath: "/fixture/10.sock" });
+    await expect(cua.startCua({ executionAllowed: async () => true })).resolves.toMatchObject({ mode: "embedded", socketPath: "/fixture/10.sock" });
     await aborted;
     expect(fixture.hosts[0].stop).toHaveBeenCalledOnce();
     expect(fixture.hosts[1].stop).not.toHaveBeenCalled();
@@ -151,7 +151,7 @@ describe.skipIf(process.platform !== "darwin")("async standalone CUA launch (iso
 
   it("passes cancellation to an embedded startup stalled until abort", async () => {
     fixture.embeddedDelays = ["until-abort"];
-    const started = cua.startCua();
+    const started = cua.startCua({ executionAllowed: async () => true });
     const aborted = expect(started).rejects.toMatchObject({ name: "AbortError" });
     await expect.poll(() => fixture.hosts.length).toBe(1);
     await cua.stopCua();
@@ -163,10 +163,10 @@ describe.skipIf(process.platform !== "darwin")("async standalone CUA launch (iso
 
   it("keeps a replacement host when the previous host's Stop finishes late", async () => {
     fixture.embeddedDelays = [1, 10];
-    await cua.startCua();
+    await cua.startCua({ executionAllowed: async () => true });
     fixture.hosts[0].stop.mockImplementation(() => new Promise((resolve) => setTimeout(resolve, 150)));
     const stopping = cua.stopCua();
-    await expect(cua.startCua()).resolves.toMatchObject({ socketPath: "/fixture/10.sock" });
+    await expect(cua.startCua({ executionAllowed: async () => true })).resolves.toMatchObject({ socketPath: "/fixture/10.sock" });
     await stopping;
     expect(fixture.hosts[0].uniffiDestroy).toHaveBeenCalledOnce();
     expect(fixture.hosts[1].stop).not.toHaveBeenCalled();
@@ -178,10 +178,10 @@ describe.skipIf(process.platform !== "darwin")("async standalone CUA launch (iso
 
   it.each([false, true])("coalesces concurrent IPC retries and respects explicit Stop during cleanup: %s", async (cancel) => {
     fixture.embeddedDelays = [1, 10, 20];
-    await cua.startCua();
+    await cua.startCua({ executionAllowed: async () => true });
     let releaseStop;
     fixture.hosts[0].stop.mockImplementation(() => new Promise((resolve) => { releaseStop = resolve; }));
-    cua.registerCuaIpc();
+    cua.registerCuaIpc({ executionAllowed: async () => true });
     const retry = fixture.handlers.get("cua:linux-retry");
     const event = { senderFrame: { url: "http://127.0.0.1:19777/" } };
     let attempts;
@@ -211,8 +211,8 @@ describe.skipIf(process.platform !== "darwin")("async standalone CUA launch (iso
 
   it("cancels concurrent IPC retries during replacement startup", async () => {
     fixture.embeddedDelays = [1, "until-abort"];
-    await cua.startCua();
-    cua.registerCuaIpc();
+    await cua.startCua({ executionAllowed: async () => true });
+    cua.registerCuaIpc({ executionAllowed: async () => true });
     const retry = fixture.handlers.get("cua:linux-retry");
     const event = { senderFrame: { url: "http://127.0.0.1:19777/" } };
     const attempts = [retry(event), retry(event)];

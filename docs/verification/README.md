@@ -41,6 +41,10 @@ recipe from sending messages to the user's running app by accident.
 
 ## Drive
 
+- [Desktop purchase access](desktop-purchase-access.md)
+- [Independent purchase-access review](desktop-purchase-access-review.md)
+- [Native macOS launch validation](macos-launch-validation.md)
+
 Use only mapped, tested commands:
 
 - [The headless command line](headless-cli.md)

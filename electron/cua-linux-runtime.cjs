@@ -510,6 +510,7 @@ function createLinuxCuaRuntime({
   identifier = randomUUID,
   processId = process.pid,
   onChange = () => {},
+  executionAllowed = async () => false,
 } = {}) {
   let active = null;
   let startPromise = null;
@@ -634,6 +635,7 @@ function createLinuxCuaRuntime({
 
   const start = async () => {
     if (platform !== "linux") return connection;
+    if (!(await executionAllowed())) return unavailable("unavailable", "purchase-access-required", "SPDBot purchase access required.");
     if (!enabled) {
       return unavailable(
         "disabled",
@@ -664,7 +666,9 @@ function createLinuxCuaRuntime({
           doctorProbes: inspected.probes ?? [],
         });
       }
+      const admitted = await executionAllowed();
       if (!enabled || quitting) return connection;
+      if (!admitted) return unavailable("unavailable", "purchase-access-required", "SPDBot purchase access required.");
       const runtimeSession = inspected.session === "wayland" ? "wayland" : "x11";
 
       const generation = identifier();
@@ -745,7 +749,12 @@ function createLinuxCuaRuntime({
           childPid: child.pid,
           session: runtimeSession,
         });
-        if (active !== owned || owned.stopping || !enabled) {
+        const admitted = await executionAllowed();
+        if (active !== owned || owned.stopping || !enabled || !admitted) {
+          if (active === owned) {
+            active = null;
+            unavailable("unavailable", "purchase-access-required", "SPDBot purchase access required.");
+          }
           await stopOwnedChild(child);
           cleanupRuntimeFiles(owned);
           return connection;
