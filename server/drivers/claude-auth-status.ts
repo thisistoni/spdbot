@@ -45,3 +45,20 @@ export async function claudeSignedIn(
 ): Promise<boolean> {
   return (await claudeAuthStatus(cli, env, run)).authenticated === true;
 }
+
+export function claudeAuthSnapshot(
+  env: NodeJS.ProcessEnv,
+  auth: Awaited<ReturnType<typeof claudeAuthStatus>>,
+  version: string,
+  update: ProviderSnapshot["update"],
+  warning: ProviderSnapshot["warning"],
+): ProviderSnapshot {
+  // `claude -p` runs on an ANTHROPIC_API_KEY in its environment ahead of any login, billed per token (2.1.303).
+  const onApiKey = Boolean(env.ANTHROPIC_API_KEY) || auth.account?.method === "api-key";
+  return {
+    state: "available", version, ...auth,
+    ...(onApiKey ? { account: { ...auth.account, method: "api-key" as const } } : {}),
+    ...(update ? { update } : {}), ...(warning ? { warning } : {}),
+    billing: onApiKey ? "metered" : "subscription",
+  };
+}

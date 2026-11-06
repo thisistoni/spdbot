@@ -73,6 +73,29 @@ node --test electron/desktop-server-auth.node-test.mjs electron/desktop-viewer-p
 
 The Vitest runs overlap; their test totals must not be added.
 
+### CI follow-up: source-size ratchet
+
+PR #16 at `c5b7c0120` failed Ubuntu shard 3 only because the backports grew
+`server/config.ts` to 1,438 lines and `server/drivers/claude.ts` to 2,172 lines.
+The shard otherwise passed 5,442 tests and skipped 70.
+
+The existing key-injection block and its comments now live in
+`server/anthropic-key-routing.ts`; the public instance constant remains exported
+from `server/config.ts`. The existing account/billing snapshot return now lives
+in `server/drivers/claude-auth-status.ts`. Both moves preserve the decisions,
+environment mapping, cached auth state and snapshot fields. No limits were
+raised: the ratchet was lowered to 1,434 and 2,165 lines respectively.
+
+The CI correction does not change product behavior, provider credentials,
+dependencies, policy, UI or native capture runtime. Follow-up validation on
+Windows passed:
+
+- `corepack pnpm exec vitest run scripts/testing/file-size-ratchet.test.ts server/config.test.ts server/drivers/claude.test.ts server/drivers/claude-auth.test.ts server/drivers/claude-accounts.test.ts server/drivers/claude-keepwarm.test.ts server/cache-keepwarm.test.ts server/claude-billing.e2e.test.ts`: **459 passed, 5 skipped**, eight files, 84.68 seconds. The isolated fake-CLI billing journeys still pass.
+- `corepack pnpm exec vitest run scripts/testing/verification-docs.test.ts scripts/testing/file-size-ratchet.test.ts`: **8 passed**; the size test overlaps the run above.
+- Full lint, typecheck, i18n validation, Electron syntax (205 modules) and diff whitespace checks passed. Native/package/provider verification was not repeated for this extraction; remote CI must verify the new commit.
+
+The table below records the original backport run.
+
 | Check | Result |
 | --- | --- |
 | `corepack pnpm lint` | Passed, including the added fixtures. |

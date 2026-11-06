@@ -22,6 +22,7 @@ import { parseJson, schemaIssue, type JsonObject, type JsonValue } from "./schem
 import { deciderConfigSchema, type DeciderConfig } from "./decider/config.ts";
 import { browserEngineConfigSchema, isValidCdpTarget, type BrowserEngineConfig } from "./browser/config.ts";
 import { roomContextSettings } from "./room-context-settings.ts";
+import { CLAUDE_API_INSTANCE, injectAnthropicEnvironment } from "./anthropic-key-routing.ts";
 
 const optionalText = z.string().optional();
 const SSH_ALIAS = /^[A-Za-z0-9][A-Za-z0-9_.-]{0,127}$/;
@@ -1258,12 +1259,7 @@ function injectedEnvironment(cfg: AppConfig, instanceId: string, driver: string)
   if (driver === "groq" && cfg.groq?.key) environment.set("GROQ_API_KEY", cfg.groq.key);
   if (driver === "meta" && cfg.meta?.key) environment.set("META_API_KEY", cfg.meta.key);
   if (driver === "grok" && cfg.xai?.key) environment.set("XAI_API_KEY", cfg.xai.key);
-  // "Claude (API key)" always runs on the key; "every Claude bot" adds every other Claude instance, never takes it away
-  // from bots already set to Claude (API key), such as a starter bot made before any Claude sign-in.
-  const anthropicHere = driver === "claudeAgent" && Boolean(cfg.anthropic?.key)
-    && (instanceId === CLAUDE_API_INSTANCE || cfg.anthropic?.everyClaudeBot !== false);
-  if (anthropicHere) environment.set("ANTHROPIC_API_KEY", cfg.anthropic!.key!);
-  if (anthropicHere && cfg.anthropic!.url) environment.set("ANTHROPIC_BASE_URL", cfg.anthropic!.url);
+  injectAnthropicEnvironment(environment, cfg, instanceId, driver);
   if (driver === "openai-compat" && instanceId === OPENAI_API_INSTANCE) {
     if (cfg.openai?.key) environment.set("OMB_OPENAI_API_KEY", cfg.openai.key);
   } else if (driver === "openai-compat" && instanceId === OPENROUTER_API_INSTANCE) {
@@ -1284,7 +1280,7 @@ function injectedEnvironment(cfg: AppConfig, instanceId: string, driver: string)
 export const OPENAI_API_INSTANCE = "openai";
 export const OPENROUTER_API_INSTANCE = "openrouter";
 export const XAI_API_INSTANCE = "xaiApi";
-export const CLAUDE_API_INSTANCE = "claudeApi";
+export { CLAUDE_API_INSTANCE } from "./anthropic-key-routing.ts";
 const API_KEY_FLEET: InstanceConfigMap = {
   [OPENAI_API_INSTANCE]: {
     driver: "openai-compat", displayName: "OpenAI", access: "api", icon: { kind: "preset", preset: "openai" },

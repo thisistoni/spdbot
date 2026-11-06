@@ -11,7 +11,7 @@ import { openStartupModelCatalog, writeStartupModelCache } from "../startup-mode
 import { writeFileAtomic, writeFileAtomicIfChanged } from "../atomic.ts";
 import { augmentedPath } from "../env-path.ts";
 import { brokerSocketPath, describeSpawnFailure, execCli, killCliTree, spawnCli } from "../procs.ts";
-import { claudeAuthStatus } from "./claude-auth-status.ts";
+import { claudeAuthSnapshot, claudeAuthStatus } from "./claude-auth-status.ts";
 import { claudeAuthFailure, claudeAuthRecovery } from "./claude-auth-recovery.ts";
 import { claudeModelExtras } from "./claude-model-extras.ts";
 import { classifyResumeFailure, mayReplay, rebuiltSessionNotice, recoveryPromptFor } from "../resume-recovery.ts";
@@ -1979,14 +1979,7 @@ export const ClaudeDriver: ProviderDriver<ClaudeConfig> = {
         const probed = await claudeAuthStatus(config.cli, env);
         auth = probed.authenticated === undefined ? lastAuth : (lastAuth = probed);
       }
-      // `claude -p` runs on an ANTHROPIC_API_KEY in its environment ahead of any login, billed per token (2.1.303).
-      const onApiKey = Boolean(env.ANTHROPIC_API_KEY) || auth.account?.method === "api-key";
-      return {
-        state: "available", version, ...auth,
-        ...(onApiKey ? { account: { ...auth.account, method: "api-key" as const } } : {}),
-        ...(update ? { update } : {}), ...(warning ? { warning } : {}),
-        billing: onApiKey ? "metered" : "subscription",
-      };
+      return claudeAuthSnapshot(env, auth, version, update, warning);
     };
 
     /** One-shot call, prompt on stdin (approval summaries can hold secrets), no tools or MCP servers. */
