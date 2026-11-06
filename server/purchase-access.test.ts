@@ -35,10 +35,10 @@ const fixture = async () => {
 describe("independent backend purchase authority", () => {
   it("attaches once to its private parent without reissuing an accepted challenge", async () => {
     const f = await fixture();
-    const listeners: Array<(event: { data?: unknown }) => void> = [];
+    const listeners: Array<(event: { data?: object }) => void> = [];
     const messages: unknown[] = [];
     const port = {
-      on(_event: "message", listener: (event: { data?: unknown }) => void) { listeners.push(listener); },
+      on(_event: "message", listener: (event: { data?: object }) => void) { listeners.push(listener); },
       postMessage(value: unknown) { messages.push(value); },
     };
     f.gate.attach(undefined);

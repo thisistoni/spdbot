@@ -6,7 +6,7 @@ import { PurchaseClock, type PurchaseClockState } from "../electron/purchase-clo
 import { deviceThumbprint, usableLease, validateSecurity, verifyToken, type PurchaseAuthority, type PurchaseSecurity } from "../electron/purchase-verifier.mjs";
 import { exact, opaque, possessionBytes, publicJwk } from "../electron/purchase-wire.mjs";
 
-export type ParentPort = { on(event: "message", listener: (event: { data?: unknown }) => void): void; postMessage(value: unknown): void };
+export type ParentPort = { on(event: "message", listener: (event: { data?: object }) => void): void; postMessage(value: object): void };
 const error = () => Object.assign(new Error("SPDBot verbinden, um Aufgaben auszuführen."), { status: 402, code: "purchase_access_required" });
 
 // Restricted mode is an explicit read allowlist: new GET side effects and new routes fail closed.
