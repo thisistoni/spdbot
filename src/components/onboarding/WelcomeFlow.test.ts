@@ -2,6 +2,7 @@ import { createElement, type EffectCallback, type ReactNode } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { setLocale } from "@/lib/i18n";
+import { applyBrand, DEFAULT_BRAND } from "@/lib/brand";
 import type { SetupDetection } from "../../../shared/setup-import";
 
 const fixture = vi.hoisted(() => ({ values: [] as unknown[], index: 0, effects: [] as EffectCallback[] }));
@@ -65,7 +66,19 @@ beforeEach(() => {
   setLocale("en");
 });
 afterEach(() => {
+  applyBrand({ brand: DEFAULT_BRAND, source: "default", file: "" });
   vi.unstubAllGlobals();
+});
+
+it("uses the core mark throughout welcome and retains a custom deployment logo", () => {
+  for (const initialBeat of ["hello", "engines"] as const) {
+    applyBrand({ brand: DEFAULT_BRAND, source: "default", file: "" });
+    expect(render({ initialBeat })).toContain('src="/app-icon.svg"');
+    fixture.values = [];
+    applyBrand({ brand: { name: "Fixture", logo: "https://example.test/custom.svg" }, source: "file", file: "fixture-brand.json" });
+    expect(render({ initialBeat })).toContain('src="https://example.test/custom.svg"');
+    fixture.values = [];
+  }
 });
 
 describe("the import step in the welcome flow", () => {

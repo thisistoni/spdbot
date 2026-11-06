@@ -6,6 +6,9 @@ import { z } from "zod";
 
 import { DATA_DIR } from "./config.ts";
 import { entitled } from "./enterprise.ts";
+import { DEFAULT_BRAND } from "../shared/default-brand.ts";
+
+export { DEFAULT_BRAND };
 
 const HEX_COLOUR = /^#[0-9a-fA-F]{6}$/;
 const MAX_LOGO_CHARS = 300_000;
@@ -37,8 +40,6 @@ export const brandSchema = z
   .strict();
 
 export type Brand = z.infer<typeof brandSchema>;
-
-export const DEFAULT_BRAND: Brand = { name: "SPDBot" };
 
 export interface BrandStatus {
   brand: Brand;

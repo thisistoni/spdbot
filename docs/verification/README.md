@@ -304,3 +304,4 @@ removes only its temporary data directory. The server log remains at the
 printed path. Never kill processes by name and never delete a broad temp root.
 
 - [SPDBot German interface and startup](spdbot-german-ui.md): reachable copy coverage, isolated screenshots and native/runtime limits.
+- [Desktop branding and tour polish](desktop-polish.md): native Windows component/keyboard smoke, SPD assets and remaining package checks.

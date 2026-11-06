@@ -1,3 +1,7 @@
+import { DEFAULT_BRAND } from "../../shared/default-brand";
+
+export { DEFAULT_BRAND };
+
 export interface Brand {
   name: string;
   tagline?: string;
@@ -13,8 +17,6 @@ export interface BrandStatus {
   file: string;
   notice?: string;
 }
-
-export const DEFAULT_BRAND: Brand = { name: "SPDBot" };
 
 let current: BrandStatus = { brand: DEFAULT_BRAND, source: "default", file: "" };
 
