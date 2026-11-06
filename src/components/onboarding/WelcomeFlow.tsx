@@ -209,7 +209,7 @@ export function WelcomeFlow({
 
   const hello = beat === "hello";
   const title = beatTitle(beat);
-  const logo = hello ? brand().logo : undefined;
+  const logo = brand().logo;
   const beatProps = { onNext: advance, onSkip: advance, setMascot, bump };
   const current = beats.indexOf(beat) + 1;
 
@@ -237,7 +237,7 @@ export function WelcomeFlow({
         <div className={cn("flex shrink-0", hello ? "flex-col items-center" : "items-center gap-3")}>
           <div className="welcome-maus flex shrink-0">
             {logo ? (
-              <img src={logo} alt="" width={72} height={72} className="h-[72px] w-[72px] object-contain" />
+              <img src={logo} alt="" width={hello ? 72 : 40} height={hello ? 72 : 40} className={cn("object-contain", hello ? "size-[72px]" : "size-10")} />
             ) : (
               <MausAvatar
                 color="green"

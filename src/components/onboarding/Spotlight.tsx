@@ -1,6 +1,7 @@
 import { useEffect, useLayoutEffect, useState, type ReactNode } from "react";
 import { createPortal } from "react-dom";
 import { MausAvatar } from "@/components/Avatar";
+import { brand } from "@/lib/brand";
 import { cn } from "@/lib/cn";
 import type { MausState } from "@/lib/mascot";
 import { reducedMotion } from "@/lib/onboarding";
@@ -197,12 +198,12 @@ export function Spotlight({
           )}
         >
           <div className="shrink-0 drop-shadow-[0_6px_14px_rgba(0,0,0,0.35)]">
-            <MausAvatar
+            {brand().logo ? <img src={brand().logo} alt="" width={38} height={38} className="size-[38px] object-contain" /> : <MausAvatar
               color="green"
               state={mascot}
               size={38}
               trackPointer={false}
-            />
+            />}
           </div>
           <div
             key={anchor ?? "centre"}
@@ -211,19 +212,19 @@ export function Spotlight({
             <div className="text-[13.5px] leading-relaxed text-ink">
               {children}
             </div>
-            <div className="mt-2.5 flex items-center gap-3">
+            <div className="mt-2.5 flex flex-wrap items-center gap-x-3 gap-y-2">
               {primary && (
                 <button
                   type="button"
                   autoFocus
                   onClick={primary.onClick}
-                  className="rounded-lg bg-accent px-3 py-1.5 text-[12.5px] font-medium text-white transition-transform duration-150 active:scale-[0.98]"
+                  className="shrink-0 whitespace-nowrap rounded-lg bg-accent px-3 py-1.5 text-[12.5px] font-medium text-white transition-transform duration-150 active:scale-[0.98]"
                 >
                   {primary.label}
                 </button>
               )}
               {progress && (
-                <span className="text-[11.5px] tabular-nums text-ink-secondary">
+                <span className="shrink-0 whitespace-nowrap text-[11.5px] tabular-nums text-ink-secondary">
                   {progress}
                 </span>
               )}
@@ -231,7 +232,7 @@ export function Spotlight({
                 <button
                   type="button"
                   onClick={secondary.onClick}
-                  className="ml-auto text-[12px] text-ink-secondary transition-colors hover:text-ink"
+                  className="ml-auto max-w-full shrink-0 text-right text-[12px] text-ink-secondary transition-colors hover:text-ink"
                 >
                   {secondary.label}
                 </button>
