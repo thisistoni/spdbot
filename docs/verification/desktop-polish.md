@@ -60,7 +60,7 @@ Build warnings remain for CSS `::highlight` optimization and large chunks.
 ## CI follow-up
 
 The full CI shard found an obsolete `MausAvatar` mock in
-`beats/MeetYourBotBeat.test.ts` after the component switched to `BotAvatar`.
+`src/components/onboarding/beats/MeetYourBotBeat.test.ts` after the component switched to `BotAvatar`.
 The missing-export failure was reproduced locally. Removing that mock lets the
 existing German form test render the real avatar; no application code changed.
 `corepack pnpm exec vitest run src/components/onboarding --reporter=dot` then
