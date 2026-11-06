@@ -65,7 +65,7 @@ async function leftBehind(of: { threadIds?: string[]; routineIds?: string[] }) {
 
 /** `botId`: wait for that bot's own turn; a turn resumed after a restart can write its dump first. */
 async function agentsFor(start: () => Promise<void>, botId?: string) {
-  const dump = join(home, "spawn.json");
+  const dump = botId ? join(home, "bot-dumps", `${encodeURIComponent(botId)}.json`) : join(home, "spawn.json");
   rmSync(dump, { force: true });
   await start();
   // Once the engine has written all of it: it is not written atomically.
@@ -96,11 +96,17 @@ beforeAll(async () => {
   const dataDir = join(home, ".spdbot");
   mkdirSync(dataDir, { recursive: true });
   const cli = join(home, "fixture-claude.mjs");
+  mkdirSync(join(home, "bot-dumps"));
   writeFileSync(cli, `#!/usr/bin/env node
 if (process.argv[2] === "auth") { console.log(JSON.stringify({ loggedIn: true, email: "person@example.test" })); process.exit(0); }
 process.env.FAKE_CLAUDE_VERSION = "2.1.284";
 // One-shot runs (a new chat's title) dump elsewhere, so they never take the place of the turn a test is waiting for.
-if (process.argv[2] !== "--version") { process.env.FAKE_CLAUDE_DUMP = ${JSON.stringify(join(home, "spawn.json"))}; process.env.FAKE_CLAUDE_TEXT_DUMP = ${JSON.stringify(join(home, "one-shot.json"))}; process.env.FAKE_CLAUDE_MODE = "hang"; }
+if (process.argv[2] !== "--version") {
+  process.env.FAKE_CLAUDE_DUMP = ${JSON.stringify(join(home, "spawn.json"))};
+  process.env.FAKE_CLAUDE_BOT_DUMP_DIR = ${JSON.stringify(join(home, "bot-dumps"))};
+  process.env.FAKE_CLAUDE_TEXT_DUMP = ${JSON.stringify(join(home, "one-shot.json"))};
+  process.env.FAKE_CLAUDE_MODE = "hang";
+}
 await import(${JSON.stringify(pathToFileURL(join(SERVER_DIR, "testing", "fake-claude-cli.ts")).href)});
 `, { mode: 0o755 });
   // No `features` block: the maintainer flag is off, as on every Cloud home.
@@ -383,7 +389,7 @@ it("on a Cloud home the owner's answer to an options card is recorded as the own
   await boot();
   const agents = await agentsFor(async () => {
     expect((await api("POST", `/api/bots/${WATCHER_OPTIONS_CARD_BOT_ID}/messages`, { token: owner, body: { text: "Check the build." } })).status).toBe(202);
-  });
+  }, WATCHER_OPTIONS_CARD_BOT_ID);
   const posted = await fetch(`${agents.env.OMB_HARNESS_URL}/api/internal/options-card`, {
     method: "POST", headers: { authorization: `Bearer ${agents.env.OMB_COMMS_TOKEN}`, "content-type": "application/json" },
     body: JSON.stringify({ title: "Deploy now?", subtitle: "The build is green.", options: ["Yes", "No"] }),

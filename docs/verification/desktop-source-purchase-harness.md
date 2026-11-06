@@ -152,6 +152,29 @@ Combined validation on Windows:
 The original delegated totals above remain evidence of the supplied baseline;
 they are not added to these overlapping integration results.
 
+## Concurrent Cloud capture follow-up
+
+CI run `42303149504` on `535a8089` passed macOS smokes, Ubuntu package
+qualification and offline evals. Ubuntu shard 4 reported 5,050 passing tests
+and one failure: the Cloud options-card test used another restarted bot's
+capability from the shared `spawn.json`, receiving HTTP 403 instead of 201.
+The independent review identified the missing Watcher bot filter.
+
+Adding that filter alone reproduced a timeout locally: another turn can
+overwrite the correct snapshot before polling sees it. A Watcher-only capture
+then exposed the same race in the following computer-lending restart case.
+The fake CLI now optionally retains each bot's latest capture in an explicit
+test-owned directory, while preserving its existing shared capture behavior.
+Bot-filtered waits read their own retained capture; the options-card call
+explicitly names the Watcher. No production gate, assertion, timeout or skip
+was relaxed.
+
+`pnpm exec vitest run server/cloud-lending.e2e.test.ts
+server/testing/fake-claude-dump.test.ts` passed **8 tests** on Windows,
+including concurrent subprocesses retaining both distinct capabilities.
+Full lint and typecheck passed. Remote Linux/Windows CI for this final delta
+remains pending; earlier green jobs do not validate a later commit.
+
 ## macOS socket-path follow-up
 
 The native approval failure on `fbc95be4` was reproduced on Antonio's Mac

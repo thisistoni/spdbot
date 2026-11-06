@@ -1,5 +1,5 @@
 import { spawn, type ChildProcess } from "node:child_process";
-import { existsSync, mkdtempSync, readdirSync, readFileSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, mkdtempSync, readdirSync, readFileSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
@@ -69,6 +69,47 @@ it.each(["stream", "text", "text-fallback"])("%s capture stays complete while an
   } finally {
     writeFileSync(release, "go");
     await waitForExit(child, { signal: "SIGTERM" });
+    await removeTempDir(home);
+  }
+});
+
+it("retains each bot's capability when concurrent turns overwrite the shared capture", async () => {
+  const home = mkdtempSync(join(tmpdir(), "omb-claude-bot-dumps-"));
+  const directory = join(home, "bots");
+  mkdirSync(directory);
+  const children: ChildProcess[] = [];
+  const bots = ["watcher", "resumed-bot"];
+  try {
+    await Promise.all(bots.map(async botId => {
+      const config = join(home, `${botId}-mcp.json`);
+      writeFileSync(config, JSON.stringify({ mcpServers: { agents: { env: { OMB_BOT_ID: botId, OMB_COMMS_TOKEN: `capability-${botId}` } } } }));
+      const child = spawn(process.execPath, [
+        fileURLToPath(new URL("fake-claude-cli.ts", import.meta.url)),
+        "--output-format", "stream-json", "--mcp-config", config,
+      ], {
+        cwd: home,
+        env: { ...process.env, HOME: home, USERPROFILE: home,
+          FAKE_CLAUDE_MODE: "happy", FAKE_CLAUDE_EXIT_AFTER_TURN: "1",
+          FAKE_CLAUDE_DUMP: join(home, "shared.json"), FAKE_CLAUDE_BOT_DUMP_DIR: directory },
+        stdio: ["pipe", "pipe", "pipe"],
+      });
+      children.push(child);
+      child.stdout!.resume();
+      let stderr = "";
+      child.stderr!.on("data", chunk => { stderr += chunk; });
+      child.stdin!.end(JSON.stringify({ type: "user", message: { role: "user", content: botId } }) + "\n");
+      await expect.poll(() => child.exitCode, { timeout: 10_000 }).not.toBeNull();
+      expect(child.exitCode, stderr).toBe(0);
+    }));
+    for (const botId of bots) {
+      const captured = JSON.parse(readFileSync(join(directory, `${botId}.json`), "utf8"));
+      expect(captured.mcpConfig.mcpServers.agents.env).toEqual({ OMB_BOT_ID: botId, OMB_COMMS_TOKEN: `capability-${botId}` });
+      expect(captured.prompt.message.content).toBe(botId);
+    }
+    expect(bots).toContain(JSON.parse(readFileSync(join(home, "shared.json"), "utf8")).mcpConfig.mcpServers.agents.env.OMB_BOT_ID);
+    expect(readdirSync(directory).filter(name => name.endsWith(".tmp"))).toEqual([]);
+  } finally {
+    await Promise.all(children.map(child => waitForExit(child, { signal: "SIGTERM" })));
     await removeTempDir(home);
   }
 });
