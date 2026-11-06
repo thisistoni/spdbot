@@ -451,6 +451,8 @@ beforeAll(async () => {
   writeFileSync(
     join(home, ".spdbot", "config.json"),
     JSON.stringify({
+      // Search and seeded-message assertions below use an explicit fixture locale.
+      language: "en",
       // generated titles are opt-in; this suite owns the one-shot's reply file (FAKE_CLAUDE_TEXT_FILE below)
       features: { llmThreadTitles: true, browser: false },
       instances: {

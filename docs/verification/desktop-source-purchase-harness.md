@@ -106,6 +106,52 @@ Native commands are `pnpm exec electron scripts/smoke-approval-modes.cjs` and `p
 
 This is Windows source/native-fixture evidence, not full CI, Linux/macOS package qualification, real commerce activation, real providers, a release or deployment. Root owns the separate Linux package/verifier and production private-listener-ordering changes. Their combined commit and native macOS behavior remain to be qualified remotely. Existing unrelated full-Electron Windows symlink/POSIX-tool limitations recorded in [desktop purchase access](desktop-purchase-access.md) remain outside this work.
 
+## Root integration
+
+Root committed the 137-file handoff as `7eccc5b62` and merged the current PR
+corrections in `3f8172ae7`. The only merge conflict was the source parent
+loader: it now explicitly attaches to the idempotent private port and still
+waits for the independently verified handshake before starting index.ts.
+Production authority pins remain empty.
+
+The MCP delayed-import test reproduced a separate test race on the current
+head: its POST probe could occupy the import mutex while awaiting purchase
+validation and reject the intended delayed request. Commit `b2f5f4afb` probes
+with a missing DELETE instead, whose free-mutex path returns synchronously.
+The original session-revocation and no-import assertions remain intact.
+The two English greeting/search assertions now use an explicitly English
+fixture configuration rather than the host's default locale.
+
+Combined validation on Windows:
+
+- **127 passed, 4 existing skips** across 11 source/CLI/restart, guarded-message,
+  MCP, capacity, steer-queue, purchase-security and documentation suites:
+  `spdbot-pr17-integrated-fixtures.log` in TEMP.
+- **69 eval tests passed** in 13 files: `spdbot-pr17-integrated-evals.log`.
+- **111 consumer tests passed**, 215 Electron modules syntax-checked, server
+  build passed, and the artifact guard excluded fixture material from 949
+  UI/core-server artifacts: `spdbot-pr17-integrated-consumer.log` and
+  `spdbot-pr17-integrated-build.log`.
+- Native desktop authorization cold start/restart and approval-mode smoke
+  passed with the combined source/build. Logs use the TEMP prefix
+  `spdbot-pr17-integrated-smoke-`.
+- Full `server/index.test.ts`, thread-aware and cloud-memory integration run:
+  **337 passed, 1 existing skip, 1 local failure**. The only failure is Windows
+  `EPERM` creating a file symlink in the unchanged memory-protection case.
+  Both greeting/search cases and the quiet self-thread queue now pass;
+  `spdbot-pr17-integrated-functional.log`. A preceding filtered diagnostic
+  also exposed an existing order dependency in the local-VM disk assertion;
+  its full-file run passed without changing that test or product behavior.
+- The native phone smoke passed all assertions but initially hung after a
+  transient Windows `ENOTEMPTY` while removing Chromium's profile. Cleanup
+  now retries bounded filesystem contention and always exits with failure
+  if cleanup fails. The final full native run exits **0** with empty stderr:
+  `spdbot-pr17-integrated-phone-cleanup.log`. No app permission or purchase
+  behavior changed.
+
+The original delegated totals above remain evidence of the supplied baseline;
+they are not added to these overlapping integration results.
+
 ## File manifest
 
 <details>
