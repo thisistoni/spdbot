@@ -134,3 +134,31 @@ Changes are uncommitted for the parent; no branch/index/commit/push/PR/release
 or deployment operation was performed. The desktop-polish PR remains a separate
 review unit. Upload hardening, dependency remediation and all other audit batches
 still need their own scoped implementation and verification.
+
+## Root CI follow-up: coordination test synchronization
+
+[SPD-27](https://linear.app/devtones/issue/SPD-27) tracks the Windows shard 2/4
+failure in [run 42280610619](https://github.com/thisistoni/spdbot/actions/runs/42280610619)
+at `464243c23089f17c4c4cc91bcd7728e5209bfc76`. One test in
+`server/direct-coordination.e2e.test.ts` exceeded 45 seconds; the aggregate CI
+failure follows that shard. The other required jobs, including the macOS smoke
+on the PR's Intel runner, passed. The failed shard itself passed 4,819 tests and
+skipped 147 before reporting the single timeout.
+
+The original targeted test passed locally, so the remote timeout was not
+reproduced. Inspection did expose an insufficient synchronization boundary:
+handoff status `running` precedes provider setup, and the Chief can still be
+inside its sending turn. Reconfiguring their shared engine at that point can
+interrupt both conversations, rather than the intended teammate-only case.
+
+The test now waits for the fake provider's existing `readyFile` receipt and a
+non-busy Chief waiting for teammates before changing the engine key. All result
+and interruption-reason assertions and the 45-second test timeout remain intact.
+No runtime behavior, retry policy or provider settings were changed by this fix.
+
+After the change, the full coordination E2E file passed **41/41 tests** on
+Windows in 188.76 seconds, with no retries. The seven documentation checks,
+targeted lint and whitespace checks also passed. Evidence:
+`%TEMP%/spd-pr16-direct-coordination-fixed.log` and
+`%TEMP%/spd-pr16-synchronization-docs.log`. GitHub CI must still confirm the
+updated PR head.
