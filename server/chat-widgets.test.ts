@@ -116,6 +116,23 @@ describe("show_widget", () => {
     expect(fake.appendMessage).not.toHaveBeenCalled();
   });
 
+  it("keeps Basic credentials out of the widget, its fallback and a pressed action", () => {
+    const fake = fakeStore();
+    const credentials = "dXNlcjpodW50ZXIy";
+    const header = `Proxy-Authorization: Basic ${credentials}`;
+    expect(show(fake, { type: "Card", children: [
+      { type: "Text", value: header },
+      { type: "Button", label: "Inspect", onClickAction: { type: "inspect", payload: { header } } },
+    ] }, { fallback_text: header })).toMatchObject({ ok: true, masked: true });
+    const message = fake.rows(THREAD)[0];
+    expect(JSON.stringify(message)).not.toContain(credentials);
+    expect(message.text).toBe("Proxy-Authorization: Basic «redacted 16 chars»");
+    const button = message.widget!.root.children![1];
+    expect(prepareWidgetPress(fake.store, THREAD, { messageId: message.id, ref: button.id }, undefined)).toMatchObject({
+      ok: true, action: { type: "inspect", payload: { header: "Proxy-Authorization: Basic «redacted 16 chars»" } },
+    });
+  });
+
   it("redacts a secret from every string: text, labels, options, chart rows and action payloads", () => {
     // The values really are ones the redactor rewrites.
     expect(redactSecretsInText(API_KEY)).not.toContain(API_KEY);

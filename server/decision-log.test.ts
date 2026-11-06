@@ -66,6 +66,15 @@ describe("appendDecision / readDecisions", () => {
     expect(readDecisions(dir, 10)[0].summary).toContain("redacted");
   });
 
+  it("keeps Basic and Proxy-Authorization credentials out of persisted and exported summaries", async () => {
+    const credentials = "dXNlcjpodW50ZXIy";
+    appendDecision(dir, row({ summary: `curl -H 'Authorization: Basic ${credentials}' -H 'Proxy-Authorization: Basic ${credentials}'` }));
+    await flushDecisionLog(dir);
+    expect(readFileSync(file(), "utf8")).not.toContain(credentials);
+    expect(readDecisions(dir, 10)[0].summary).toBe("curl -H 'Authorization: Basic «redacted 16 chars»' -H 'Proxy-Authorization: Basic «redacted 16 chars»'");
+    expect(decisionsCsv(readDecisions(dir, 10))).not.toContain(credentials);
+  });
+
   it.skipIf(process.platform === "win32")("creates the file private (0600)", async () => {
     appendDecision(dir, row());
     await flushDecisionLog(dir);

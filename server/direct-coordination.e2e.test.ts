@@ -1014,9 +1014,16 @@ it("keeps a teammate working through a provider settings save that does not touc
 
 it("tells the Chief a teammate's turn stopped because its engine's settings changed", () => fixture(async f => {
   const gate = join(f.session.info.dataDir, "lead-ready");
-  f.plan[f.lead.id] = { gateFile: gate, reply: "Never reached" };
+  const ready = join(f.session.info.dataDir, "lead-in-turn");
+  f.plan[f.lead.id] = { readyFile: ready, gateFile: gate, reply: "Never reached" };
   await f.start();
-  await expect.poll(() => f.nodes().find((node: any) => node.botId === f.lead.id)?.status, { timeout: 15_000 }).toBe("running");
+  // A running handoff is recorded before engine setup. Reconfigure only once the
+  // teammate is inside its turn and the Chief has parked, or both turns can stop.
+  await expect.poll(() => existsSync(ready), { timeout: 15_000 }).toBe(true);
+  await expect.poll(async () => {
+    const chief = (await f.api("/api/bots?messages=0")).bots.find((bot: any) => bot.id === f.chief.id);
+    return !chief.busy && chief.waitingForTeammates;
+  }, { timeout: 15_000 }).toBe(true);
   await f.api("/api/config", { anthropic: { key: "fixture-anthropic-key" } }, "PATCH");
   expect((await f.wait()).status).toBe("settled");
   const child = f.nodes().find((node: any) => node.botId === f.lead.id);

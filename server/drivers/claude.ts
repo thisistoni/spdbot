@@ -11,7 +11,7 @@ import { openStartupModelCatalog, writeStartupModelCache } from "../startup-mode
 import { writeFileAtomic, writeFileAtomicIfChanged } from "../atomic.ts";
 import { augmentedPath } from "../env-path.ts";
 import { brokerSocketPath, describeSpawnFailure, execCli, killCliTree, spawnCli } from "../procs.ts";
-import { claudeAuthStatus } from "./claude-auth-status.ts";
+import { claudeAuthSnapshot, claudeAuthStatus } from "./claude-auth-status.ts";
 import { claudeAuthFailure, claudeAuthRecovery } from "./claude-auth-recovery.ts";
 import { claudeModelExtras } from "./claude-model-extras.ts";
 import { classifyResumeFailure, mayReplay, rebuiltSessionNotice, recoveryPromptFor } from "../resume-recovery.ts";
@@ -1973,14 +1973,13 @@ export const ClaudeDriver: ProviderDriver<ClaudeConfig> = {
       if (version !== cliHelpVersion) await readCliHelp(version, env);
       const update = claudeCliUpdate(version, config.cli);
       const warning = claudeInheritWarning(env);
-      if (config.requireApiKey) {
-        if (!input.environment.ANTHROPIC_API_KEY) return { state: "unavailable", version, reason: NO_ANTHROPIC_KEY };
-        return { state: "available", version, authenticated: true, account: { method: "api-key" }, ...(update ? { update } : {}), ...(warning ? { warning } : {}), billing: "metered" };
+      if (config.requireApiKey && !input.environment.ANTHROPIC_API_KEY) return { state: "unavailable", version, reason: NO_ANTHROPIC_KEY };
+      let auth: typeof lastAuth = { authenticated: true };
+      if (!config.requireApiKey) {
+        const probed = await claudeAuthStatus(config.cli, env);
+        auth = probed.authenticated === undefined ? lastAuth : (lastAuth = probed);
       }
-      const probed = await claudeAuthStatus(config.cli, env);
-      const auth = probed.authenticated === undefined ? lastAuth : (lastAuth = probed);
-      // Turns run on the CLI's own login, so its reported cost is what the call would bill.
-      return { state: "available", version, ...auth, ...(update ? { update } : {}), ...(warning ? { warning } : {}), billing: "subscription" };
+      return claudeAuthSnapshot(env, auth, version, update, warning);
     };
 
     /** One-shot call, prompt on stdin (approval summaries can hold secrets), no tools or MCP servers. */
