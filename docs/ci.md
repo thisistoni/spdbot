@@ -68,7 +68,11 @@ half hours. Now:
   and manual runs add the macOS shards. Only a couple of test blocks are
   macOS-only.
 - Every PR's macOS checks are one job: the packaged-server smoke and the
-  Electron smokes.
+  Electron smokes. PRs use `macos-15-intel`, avoiding the ARM pool when hosted
+  capacity prevents a runner from acquiring a job. Main pushes, merge groups
+  and manual runs keep `macos-latest` (ARM). Both run the identical complete
+  smoke suite; cancellations still fail the required gate. These are
+  [supported standard runners](https://docs.github.com/en/actions/reference/runners/github-hosted-runners).
 - `ci-stop-closed.yml` cancels a PR's CI run when the PR is merged or closed. PR runs share a group named by the PR number (`ci-pr-<n>`), never by `github.ref`: a merged PR's closed event reports the base branch as `github.ref`, which made every merge cancel main's CI (fixed Oct 3 2026).
 
 ## Browser driver (S4)
