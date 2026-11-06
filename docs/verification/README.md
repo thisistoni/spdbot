@@ -305,3 +305,4 @@ printed path. Never kill processes by name and never delete a broad temp root.
 
 - [SPDBot German interface and startup](spdbot-german-ui.md): reachable copy coverage, isolated screenshots and native/runtime limits.
 - [Desktop branding and tour polish](desktop-polish.md): native Windows component/keyboard smoke, SPD assets and remaining package checks.
+- [Targeted upstream launch backports](upstream-launch-backports.md): Claude key/billing, sensitive GET authentication and credential redaction provenance and checks.

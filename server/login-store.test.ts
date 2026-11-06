@@ -178,6 +178,31 @@ describe("the held-secret scrubber", () => {
     expect(held.scrub("alice signed in")).toBe("alice signed in");
   });
 
+  it.each(["Hunter2!(x)~", "Hunter2!'(x)~ space+", "!'()~"])("masks a submitted form password in URLs and bodies: %s", (password) => {
+    const store = new LoginStore({ dataDir: dir });
+    store.create({ ...at("example.com"), username: "alice", password, source: "settings", bots: "all" });
+    const held = new HeldSecrets(store);
+    const body = new URLSearchParams({ user: "alice", password }).toString();
+    for (const prefix of ["", "https://example.com/login?"]) {
+      const expected = `${prefix}user=alice&password=••••••`;
+      expect(held.scrub(prefix + body)).toBe(expected);
+      expect(held.scrub(expected)).toBe(expected);
+    }
+    expect(held.scrub("alice signed in")).toBe("alice signed in");
+  });
+
+  it("masks overlapping form-encoded secrets whole, including passwords filled this run", () => {
+    const store = new LoginStore({ dataDir: dir });
+    store.create({ ...at("example.com"), username: "alice", password: "Hunter2!", source: "settings", bots: "all" });
+    const held = new HeldSecrets(store);
+    held.remember("Hunter2!'(x)~", "password");
+    const body = new URLSearchParams({ short: "Hunter2!", long: "Hunter2!'(x)~" }).toString();
+    const remove = addHeldSecretScrubber((text) => held.scrub(text));
+    try {
+      expect(redactSecretsInText(body)).toBe("short=••••••&long=••••••");
+    } finally { remove(); }
+  });
+
   it("masks a one-time code only as a whole number, and only for a few minutes", () => {
     let now = 0;
     const held = new HeldSecrets(new LoginStore({ dataDir: dir }), () => now);

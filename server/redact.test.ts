@@ -188,6 +188,23 @@ describe("redactSecretsInText", () => {
     expect(redactSecretsInText('curl -H "Authorization: Bearer abc.def-ghi_jkl123456789"')).toBe('curl -H "Authorization: Bearer «redacted 24 chars»"');
   });
 
+  it("masks Basic and Proxy-Authorization credentials, including JSON headers, idempotently", () => {
+    // Synthetic base64 values, including short and padded user:password pairs.
+    for (const [input, expected] of [
+      ['curl -H "Authorization: Basic dXNlcjpodW50ZXIy" https://api.example.com', 'curl -H "Authorization: Basic «redacted 16 chars»" https://api.example.com'],
+      ["Proxy-Authorization: basic YWxhZGRpbjpvcGVuc2VzYW1l", "Proxy-Authorization: basic «redacted 24 chars»"],
+      ['{"Authorization":"Basic YTpi"}', '{"Authorization":"Basic «redacted 4 chars»"}'],
+      ['{"proxy-authorization":"BASIC YTpiYw=="}', '{"proxy-authorization":"BASIC «redacted 8 chars»"}'],
+      ["Authorization='Basic YTpiY2Q='", "Authorization='Basic «redacted 8 chars»'"],
+    ]) {
+      expect(redactSecretsInText(input)).toBe(expected);
+      expect(redactSecretsInText(expected)).toBe(expected);
+    }
+    for (const text of ["Basic configuration is covered below", "Authorization: Basic YOUR_CREDENTIALS", "Authorization: Basic <base64>"]) {
+      expect(redactSecretsInText(text), text).toBe(text);
+    }
+  });
+
   it("is byte-for-byte idempotent for PEM blocks", () => {
     const privateKeyBody = "c3VwZXItc2VjcmV0LXByaXZhdGUta2V5LWJ5dGVz";
     const pem = [
