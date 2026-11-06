@@ -152,6 +152,47 @@ Combined validation on Windows:
 The original delegated totals above remain evidence of the supplied baseline;
 they are not added to these overlapping integration results.
 
+## macOS socket-path follow-up
+
+The native approval failure on `fbc95be4` was reproduced on Antonio's Mac
+(macOS 26.2 arm64, Electron 43.7.9, Node 24.22.2, pnpm 10.33.0). The source
+profile inherited macOS's long per-user TEMP root. Its primary and fallback
+permission-broker paths were 105 and 130 bytes; both exceeded the 104-byte
+Unix socket path budget. `listen EINVAL` occurred before the fake Claude CLI
+started, explaining the missing `claude-argv.json`.
+
+After the existing canonical TEMP-prefix validation, `sourcePurchaseHome`
+now creates macOS profiles under canonical `/tmp`. The two paths become
+61 and 86 bytes. Windows/Linux selection, fresh ownership checks, containment,
+signatures, nonce possession and all native assertions are unchanged.
+A macOS-only regression launches an isolated child with a deliberately long
+TEMP root and binds both actual broker paths; it failed before and passed
+after the fix.
+
+The exact two-file patch was transferred from the completed native task and
+matched SHA-256 `d53f7a83a9eefe272d43b43e9a06ad62bf9e50ead1446b980b606f23d743812c`.
+Mac evidence remains under
+`/Users/antoniobeslic/CodexWorkspace/SPDBot_Desktop/outputs/native-approval-fbc95be4-macos/`:
+`report.md`, `manifest.json`, `native-approval-fixture.patch` and
+`native-approval-handoff.zip`.
+
+- Native approval and phone smokes passed completely on macOS arm64.
+- **162 helper/security tests passed** there (7 helper, 44 backend/packaging,
+  111 consumer). Builds, source lint, Electron syntax and the 949-artifact
+  fixture exclusion guard passed. The UI build needed a process-local
+  `NODE_OPTIONS=--max-old-space-size=4096` after the default heap ran out.
+- Windows integration: **50 tests passed, 1 macOS-only test skipped** using
+  `pnpm exec vitest run server/testing/source-purchase-fixture.test.ts
+  server/purchase-access.test.ts server/purchase-bypass.e2e.test.ts
+  scripts/purchase-packaging.test.mjs`; log
+  `C:/Users/Anwender/AppData/Local/Temp/spdbot-pr17-macos-fixture-windows.log`.
+- The full Windows native approval smoke passed again with exit 0 and empty
+  stderr (`spdbot-pr17-macos-fixture-windows-native.log` in the same TEMP
+  directory). All seven documentation checks passed.
+
+Intel macOS CI remains pending. This fix does not claim a resolution of the
+separate synthetic microphone smoke or release/package qualification.
+
 ## File manifest
 
 <details>

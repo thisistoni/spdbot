@@ -14,8 +14,9 @@ const marker = "source-purchase-fresh-profile-v1";
 export function sourcePurchaseHome(prefix: string): string {
   const temporaryRoots = [realpathSync(tmpdir()), ...(process.platform === "win32" ? [] : [realpathSync("/tmp")])];
   if (!temporaryRoots.includes(realpathSync(dirname(prefix)))) throw new Error("purchase fixture requires a TEMP prefix");
-  // Keep the profile short enough for macOS fixture UNIX socket paths.
-  const home = mkdtempSync(join(dirname(prefix), "spdbot-source-purchase-"));
+  // macOS's per-user TEMP prefix can exhaust sun_path before the broker suffix.
+  const directory = process.platform === "darwin" ? realpathSync("/tmp") : dirname(prefix);
+  const home = mkdtempSync(join(directory, "spdbot-source-purchase-"));
   writeFileSync(join(home, "purchase-fixture.marker"), marker, { flag: "wx", mode: 0o600 });
   // Custom fixtures sometimes create their own `tmp` directory after this call.
   mkdirSync(join(home, "purchase-tmp"));

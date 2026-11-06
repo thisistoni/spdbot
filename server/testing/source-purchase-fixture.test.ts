@@ -1,7 +1,7 @@
 import { spawnSync } from "node:child_process";
-import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { mkdirSync, mkdtempSync, readFileSync, realpathSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
-import { join } from "node:path";
+import { dirname, join } from "node:path";
 import { afterEach, expect, it } from "vitest";
 import { sourcePurchaseEnvironment, sourcePurchaseHome, spawnSourcePurchaseServer } from "./source-purchase-fixture.ts";
 
@@ -33,6 +33,40 @@ it("keeps inherited configuration directories inside the owned disposable profil
   expect(env.HERMES_HOME).toBe(join(home, ".hermes"));
   expect(env.XDG_CONFIG_HOME).toBe(parent.XDG_CONFIG_HOME);
   expect(parent.APPDATA).toBe(tmpdir());
+});
+
+it.skipIf(process.platform !== "darwin")("binds both real broker paths with a long macOS TEMP root", () => {
+  const temporary = mkdtempSync(join(tmpdir(), "source-purchase-long-temp-")); homes.push(temporary);
+  const longTemp = join(temporary, "nested-".repeat(12)); mkdirSync(longTemp);
+  const script = `
+    const { sourcePurchaseHome, sourcePurchaseEnvironment } = await import(${JSON.stringify(new URL("./source-purchase-fixture.ts", import.meta.url).href)});
+    const { tmpdir } = await import("node:os");
+    const { join } = await import("node:path");
+    const { rmSync } = await import("node:fs");
+    const home = sourcePurchaseHome(join(tmpdir(), "guard-"));
+    try {
+      Object.assign(process.env, sourcePurchaseEnvironment({ ...process.env, HOME: home, OMB_DATA_DIR: home }));
+      const { brokerSocketCandidates, createPermissionBroker } = await import(${JSON.stringify(new URL("../drivers/claude.ts", import.meta.url).href)});
+      const paths = brokerSocketCandidates("thread-fixture", "bot-fixture");
+      const bound = [];
+      for (const path of paths) {
+        const broker = await createPermissionBroker({ socketPaths: [path], onAsk() {}, onResolve() {} });
+        bound.push(broker.socketPath);
+        broker.close();
+      }
+      console.log(JSON.stringify({ home, paths, bound }));
+    } finally { rmSync(home, { recursive: true, force: true }); }
+  `;
+  const child = spawnSync(process.execPath, ["--experimental-strip-types", "--input-type=module", "-e", script], {
+    env: { ...platform, HOME: temporary, USERPROFILE: temporary, TMPDIR: longTemp, TMP: longTemp, TEMP: longTemp },
+    encoding: "utf8", timeout: 15_000,
+  });
+  expect(child.status, child.stderr).toBe(0);
+  const result = JSON.parse(child.stdout);
+  expect(dirname(result.home)).toBe(realpathSync("/tmp"));
+  expect(result.paths).toHaveLength(2);
+  expect(result.bound).toEqual(result.paths);
+  for (const path of result.paths) expect(Buffer.byteLength(path)).toBeLessThan(104);
 });
 
 it("verifies signed nonce/possession before the source entry starts; plain source stays restricted", () => {
