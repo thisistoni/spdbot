@@ -63,6 +63,15 @@ the marker and absence of update metadata in the actual unpacked, DEB and
 AppImage trees. Installer hooks are derived from the existing repair scripts
 with only package-owned identities/paths changed.
 
+The restricted DEB must also omit `resources/package-type`: electron-builder
+26.15.3 writes that updater-routing marker only alongside a publish
+configuration. Distribution DEBs still require `deb`; the restricted verifier
+requires absence rather than adding updater metadata. The first Ubuntu run
+on `c0a7950` built both real artifacts and passed the fixture-exclusion guard,
+then exposed the previous incorrect marker expectation. Installation and
+lifecycle checks were not reached in that run (job `128138083882`); their
+confirmation still requires a successful subsequent Ubuntu run.
+
 Restricted qualification retains CUA binary/hash/SBOM/license/mode checks,
 real staged X11 input routing, desktop registration validation, in-place DEB
 upgrade from legacy 0775 directories, Chromium sandbox/AppArmor installation,
