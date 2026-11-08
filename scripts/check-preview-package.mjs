@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import {createHash} from "node:crypto";
 import {createRequire} from "node:module";
-import {readFileSync,readdirSync,statSync,writeFileSync} from "node:fs";
+import {readFileSync,statSync,writeFileSync} from "node:fs";
 import {resolve,join} from "node:path";
 import {fileURLToPath} from "node:url";
 const root=resolve(fileURLToPath(new URL("../",import.meta.url)));
@@ -19,7 +19,7 @@ assert.equal(pkg.name,"spdbot-preview");assert.match(pkg.version,/^0\.1\.116-pre
 for(const file of asar.listPackage(archive))assert.doesNotMatch(file,/\/testing\/|\.node-test\./);
 const server=readFileSync(join(resources,"server/index.js"),"utf8");
 for(const key of [...expected.onlineKeys,...expected.leaseKeys])assert.ok(server.includes(key.kid));
-const installer=readdirSync(output).find(name=>/^SPDBot-Preview-.*-setup\.exe$/.test(name));assert.ok(installer);
+const installer=`SPDBot-Preview-${pkg.version}-setup.exe`;
 const bytes=readFileSync(join(output,installer));assert.equal(bytes.subarray(0,2).toString(),"MZ");
 const manifest={filename:installer,bytes:statSync(join(output,installer)).size,sha256:createHash("sha256").update(bytes).digest("hex"),version:pkg.version};
 writeFileSync(join(output,"windows.json"),JSON.stringify(manifest,null,2));
