@@ -22,7 +22,7 @@ const staged=original.replace(/export const PURCHASE_AUTHORITY = Object\.freeze\
 if(original===staged)throw new Error("Could not pin the isolated preview authority");
 writeFileSync(authorityPath,staged);
 const pkg=JSON.parse(readFileSync(join(stage,"package.json"),"utf8"));
-pkg.name="spdbot-preview";pkg.version="0.1.116-preview.20261108.1";writeFileSync(join(stage,"package.json"),JSON.stringify(pkg,null,2));
+pkg.name="spdbot-preview";pkg.version="0.1.116-preview.20261108.2";writeFileSync(join(stage,"package.json"),JSON.stringify(pkg,null,2));
 function run(args){const r=spawnSync(process.execPath,args,{cwd:stage,stdio:"inherit",windowsHide:true});if(r.status!==0)throw new Error(`Preview build failed: ${args.join(" ")}`);}
 run(["node_modules/typescript/bin/tsc","-b"]);
 run(["node_modules/typescript/bin/tsc","-p","tsconfig.server.json"]);

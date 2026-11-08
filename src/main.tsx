@@ -1,6 +1,7 @@
 import { StrictMode } from "react";
 import { createRoot } from "react-dom/client";
 import App from "./App";
+import { PurchaseAccessGate } from "./components/PurchaseAccessGate";
 import {
   BROWSER_SIGN_IN_FAILED, previewBrowserSignIn, readSessionState, SERVICE_TRUST_REASON, takeBrowserSignInFromLocation, takePairingCodeFromLocation, takeInvitedEmailFromLocation,
 } from "./lib/session";
@@ -40,7 +41,7 @@ async function chooseRoot(): Promise<React.ReactNode> {
     const { DesktopViewer } = await import("./components/DesktopViewer");
     return <DesktopViewer />;
   }
-  return <App />;
+  return <PurchaseAccessGate><App /></PurchaseAccessGate>;
 }
 
 void Promise.all([bootstrapBrand(), chooseRoot()]).then(([, root]) => {

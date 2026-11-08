@@ -6927,5 +6927,10 @@
   "purchase.reset": "Reset connection",
   "purchase.clock": "Verify your system clock and reconnect",
   "purchase.storage": "Secure access storage unavailable",
-  "purchase.unavailable": "Access service unavailable"
+  "purchase.unavailable": "Access service unavailable",
+  "purchase.gate.title": "Connect your purchase",
+  "purchase.gate.explain": "Sign in through your browser with the account that bought SPDBot. Then set up your bot team.",
+  "purchase.gate.checking": "Checking access",
+  "purchase.gate.reopen": "Open browser again",
+  "purchase.gate.retry": "The connection has not been confirmed. Please try again."
 }
