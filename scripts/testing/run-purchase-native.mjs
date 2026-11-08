@@ -15,7 +15,7 @@ await build({ entryPoints: ["server/testing/purchase-native-child.ts"], bundle: 
 const electron = createRequire(import.meta.url)("electron");
 const env = Object.fromEntries(Object.entries(process.env).filter(([key]) => ["SYSTEMROOT", "WINDIR", "COMSPEC", "PATH", "PATHEXT", "LANG", "TZ"].includes(key.toUpperCase())));
 Object.assign(env, { HOME: directory, USERPROFILE: directory, APPDATA: path.join(directory, "roaming"), LOCALAPPDATA: path.join(directory, "local") });
-const callback = "spdbot://auth/callback?request_id=11111111-1111-4111-8111-111111111111&code=" + "A".repeat(43) + "&state=" + "A".repeat(43);
+const callback = "spdbot-preview://auth/callback?request_id=11111111-1111-4111-8111-111111111111&code=" + "A".repeat(43) + "&state=" + "A".repeat(43);
 for (const mode of ["online", "offline"]) {
   const child = spawn(electron, [path.resolve("scripts/testing/purchase-native-main.mjs"), `--profile=${profile}`, `--mode=${mode}`, `--assets=${directory}`, ...(mode === "online" ? [callback] : [])], { env, windowsHide: true, stdio: "ignore" });
   const timer = setTimeout(() => child.kill(), 45000);

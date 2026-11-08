@@ -28,8 +28,8 @@ if (!app.requestSingleInstanceLock()) { app.quit(); } else {
       catch (error) { startupError = `decrypt:${error.message}`; throw error; }
     },
   };
-  const controller = createPurchaseDesktop({ app, safeStorage: storage, ipcMain, powerMonitor, guard: localOrigin.localOnly, window: () => win,
-    shell: { openExternal: async url => { assert.equal(new URL(url).origin, authority.origin); } }, fetch: fake.fetch, launchLinks: takePurchaseLaunchLinks(process.argv),
+  const controller = createPurchaseDesktop({ app, authority, safeStorage: storage, ipcMain, powerMonitor, guard: localOrigin.localOnly, window: () => win,
+    shell: { openExternal: async url => { assert.equal(new URL(url).origin, authority.origin); } }, fetch: fake.fetch, launchLinks: takePurchaseLaunchLinks(process.argv, authority),
     createClient(options) {
       const read = options.store.read.bind(options.store);
       options.store.read = async () => {

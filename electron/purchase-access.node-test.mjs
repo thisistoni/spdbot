@@ -155,8 +155,8 @@ for (const cause of ["expiry", "rollback", "signout"]) test(`Main rejects ${caus
 test("browser PKCE, strict callback, duplicate race, encrypted restart/offline", async t => {
   const f = await clientFixture(t); await f.client.connect();
   const link = f.fake.callback(f.client);
-  for (const injected of [link + "&extra=x", link + "&state=x", link.replace("auth/", "evil/"), link.replace("callback?", "callback%3F?"), link + "#fragment", link.replace("spdbot://", "spdbot://user@"), link.replace("&code=", "&code=%")]) {
-    await assert.rejects(async () => callback(injected)); assert.equal(await f.client.receiveCallback(injected), false);
+  for (const injected of [link + "&extra=x", link + "&state=x", link.replace("auth/", "evil/"), link.replace("callback?", "callback%3F?"), link + "#fragment", link.replace("://", "://user@"), link.replace("&code=", "&code=%")]) {
+    await assert.rejects(async () => callback(injected, "spdbot-preview:")); assert.equal(await f.client.receiveCallback(injected), false);
   }
   assert.equal(await f.client.receiveCallback(link.replace(f.client.pending.state, randomBytes(32).toString("base64url"))), false);
   const results = await Promise.all([f.client.receiveCallback(link), f.client.receiveCallback(link)]);

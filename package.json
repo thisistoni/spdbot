@@ -67,6 +67,7 @@
     "package:prepare": "pnpm build && pnpm build:server && pnpm build:companion && pnpm build:updater && pnpm build:android-tools && pnpm build:cloudflared && pnpm build:browser && pnpm build:duckdb",
     "package:mac": "pnpm package:prepare && pnpm build:speech && pnpm build:cua && electron-builder --mac --publish never",
     "package:win": "pnpm package:prepare && pnpm build:cua:win && electron-builder --win --publish never",
+    "package:preview:win": "node scripts/package-preview.mjs",
     "package:linux": "pnpm package:prepare && pnpm build:cua:linux && electron-builder --linux --x64 --publish never",
     "package:linux:offline": "pnpm package:prepare && pnpm build:cua:linux:offline && electron-builder --linux --x64 --publish never",
     "package:linux:ci-restricted": "pnpm package:prepare && pnpm build:cua:linux:offline && node scripts/package-ci-restricted.mjs",

@@ -8,6 +8,7 @@ export const PURCHASE_AUTHORITY = Object.freeze({
 });
 
 const origins = { production: "https://spdlabs.dev", preview: "https://spdlabs-preview.solutiv.org" };
+export const purchaseProtocol = (authority = PURCHASE_AUTHORITY) => authority.environment === "preview" ? "spdbot-preview:" : "spdbot:";
 const reserved = ["11qYAYKxCrfVS_7TyWQHOg7hcvPapiMlrwIaaPcHURo", "PUAXw-hDiVqStwqnTRt-vJyYLM8uxJaMwM1V8Sr0Zgw"];
 export function validateAuthority(authority = PURCHASE_AUTHORITY) {
   if (origins[authority.environment] !== authority.origin) throw new Error("access_unavailable");

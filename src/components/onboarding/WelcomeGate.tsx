@@ -70,6 +70,7 @@ export function WelcomeGate({ viewer }: { viewer: WelcomeViewer | null }) {
       bot={bot}
       replay={replay}
       hosted={viewer.hosted}
+      buyerConnected={Boolean(purchase && access?.allowed)}
       initialBeat={resumeAt}
       onOpenOrganisation={() => {
         setResumeAt("engines");

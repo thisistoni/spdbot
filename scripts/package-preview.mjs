@@ -1,0 +1,40 @@
+// Build in an isolated source copy; production trust is never modified in the checkout.
+import { execFileSync, spawnSync } from "node:child_process";
+import { copyFileSync, cpSync, existsSync, mkdirSync, readFileSync, symlinkSync, writeFileSync } from "node:fs";
+import { dirname, join, resolve } from "node:path";
+import { fileURLToPath } from "node:url";
+import { validateAuthority } from "../electron/purchase-authority.mjs";
+const root=resolve(dirname(fileURLToPath(import.meta.url)),"..");
+const source=execFileSync("git",["rev-parse","HEAD"],{cwd:root,encoding:"utf8"}).trim();
+if(process.platform!=="win32")throw new Error("This preview package recipe currently qualifies Windows x64 only");
+const authority=JSON.parse(readFileSync(join(root,"build/preview-authority.json"),"utf8"));
+validateAuthority(authority);
+if(authority.environment!=="preview")throw new Error("Preview authority required");
+const stage=join(root,".omb-scratch",`partner-preview-${Date.now()}`);
+mkdirSync(stage,{recursive:true});
+const files=execFileSync("git",["ls-files","--cached","--others","--exclude-standard","-z"],{cwd:root,encoding:"utf8"}).split("\0").filter(Boolean);
+for(const file of files){const target=join(stage,file);mkdirSync(dirname(target),{recursive:true});copyFileSync(join(root,file),target);}
+symlinkSync(join(root,"node_modules"),join(stage,"node_modules"),"junction");
+if(!existsSync(join(root,"dist-native/cua-win32-x64/cua-driver.exe")))throw new Error("Prepare the native Windows resources before packaging");
+cpSync(join(root,"dist-native"),join(stage,"dist-native"),{recursive:true});
+const authorityPath=join(stage,"electron/purchase-authority.mjs");
+const original=readFileSync(authorityPath,"utf8");
+const staged=original.replace(/export const PURCHASE_AUTHORITY = Object\.freeze\([\s\S]*?\n\}\);/,`export const PURCHASE_AUTHORITY = Object.freeze(${JSON.stringify(authority,null,2)});`);
+if(original===staged)throw new Error("Could not pin the isolated preview authority");
+writeFileSync(authorityPath,staged);
+const pkg=JSON.parse(readFileSync(join(stage,"package.json"),"utf8"));
+pkg.name="spdbot-preview";pkg.version="0.1.116-preview.20261108.3";writeFileSync(join(stage,"package.json"),JSON.stringify(pkg,null,2));
+function run(args){const r=spawnSync(process.execPath,args,{cwd:stage,stdio:"inherit",windowsHide:true});if(r.status!==0)throw new Error(`Preview build failed: ${args.join(" ")}`);}
+run(["node_modules/typescript/bin/tsc","-b"]);
+run(["node_modules/typescript/bin/tsc","-p","tsconfig.server.json"]);
+run(["node_modules/vite/bin/vite.js","build"]);
+run(["node_modules/typescript/bin/tsc","-p","tsconfig.server.build.json"]);
+run(["scripts/bundle-server.mjs"]);
+run(["node_modules/typescript/bin/tsc","-p","tsconfig.companion.build.json"]);
+run(["scripts/mark-module-scope.mjs","dist-companion"]);
+run(["scripts/bundle-updater.mjs"]);
+run(["node_modules/electron-builder/cli.js","--config","scripts/preview-builder.mjs","--win","--publish","never"]);
+const output=join(root,"release-preview");mkdirSync(output,{recursive:true});
+cpSync(join(stage,"release-preview"),output,{recursive:true});
+writeFileSync(join(output,"build-provenance.json"),JSON.stringify({source,environment:"preview",origin:authority.origin,stage,version:pkg.version},null,2));
+console.log(`Preview package ready at ${output}`);

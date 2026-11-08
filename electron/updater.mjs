@@ -1,6 +1,7 @@
 // macOS auto-update requires a signed app, so this runs only when packaged. electron-updater is vendored
 // because the packaged app ships no node_modules.
 import { app, clipboard, ipcMain } from "electron";
+import { PURCHASE_AUTHORITY } from "./purchase-authority.mjs";
 import { appendFileSync, existsSync, mkdirSync, readFileSync } from "node:fs";
 import { createRequire } from "node:module";
 import { join } from "node:path";
@@ -80,7 +81,7 @@ export function attachUpdaterWindow(mainWindow) {
 }
 
 export function startUpdater() {
-  if (!app.isPackaged) {
+  if (!app.isPackaged || PURCHASE_AUTHORITY.environment === "preview") {
     updaterCoordinator = null;
     setState({ status: "idle" });
     return;

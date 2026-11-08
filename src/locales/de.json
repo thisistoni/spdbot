@@ -6331,5 +6331,10 @@
   "purchase.reset": "Verbindung zurücksetzen",
   "purchase.clock": "Systemzeit prüfen und neu verbinden",
   "purchase.storage": "Sicherer Zugangsspeicher nicht verfügbar",
-  "purchase.unavailable": "Zugangsdienst derzeit nicht verfügbar"
+  "purchase.unavailable": "Zugangsdienst derzeit nicht verfügbar",
+  "purchase.gate.title": "Verbinde deinen Kauf",
+  "purchase.gate.explain": "Melde dich im Browser mit dem Konto an, mit dem du SPDBot gekauft hast. Danach richtest du dein Bot-Team ein.",
+  "purchase.gate.checking": "Zugang wird geprüft",
+  "purchase.gate.reopen": "Browser erneut öffnen",
+  "purchase.gate.retry": "Die Verbindung ist noch nicht bestätigt. Bitte versuche es erneut."
 }

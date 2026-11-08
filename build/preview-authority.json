@@ -1,0 +1,6 @@
+{
+  "environment":"preview",
+  "origin":"https://spdlabs-preview.solutiv.org",
+  "onlineKeys":[{"kty":"OKP","crv":"Ed25519","x":"obYQmZkE_RnlPJDL8392tLo-7YtMLrT6ay4bJEhls1s","kid":"spd-preview-online-20261107"}],
+  "leaseKeys":[{"kty":"OKP","crv":"Ed25519","x":"ljYeUEAmNNEXkQtZZ05XhcQ-VMLDMfQs0bBYiIQ9UBo","kid":"spd-preview-lease-20261107"}]
+}

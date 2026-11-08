@@ -6334,7 +6334,12 @@
       "purchase.reset": "9f1f432b5a04e39d1a30ab1fc41f88c860bde0b8b21044df4e1b19a3284a9129",
       "purchase.clock": "351d8c00e72b903db307bb3aa4c0a2db975cde4ea07bafc6bbb5b4143b3196db",
       "purchase.storage": "6aa9e08575a57234860acb5cb1a85e2553e70fbe8038682c7d70089d5b671919",
-      "purchase.unavailable": "82568254a7b290af3f45b0077eaa08ff629e2afe9b540a1096bc7c03eaea48a7"
+      "purchase.unavailable": "82568254a7b290af3f45b0077eaa08ff629e2afe9b540a1096bc7c03eaea48a7",
+      "purchase.gate.title": "6299b04c9e2d499a4b92222297534674427fd77e0069e65f2dfbdb029094cf81",
+      "purchase.gate.explain": "f2cad98748154ca4649f411c26c4881a900624959ca0116f5ba6f6b68bd2d993",
+      "purchase.gate.checking": "0faade3653af663941c3ee503e7197cff2784990cf01c3fad2848e9287f1f98f",
+      "purchase.gate.reopen": "63833e99712e4d2456cdc545f47093e70b954c19cfd4d892cc2222a05ec04fd3",
+      "purchase.gate.retry": "0ccb33e3677b3941a0fee6704cbab67b4aac83cc8b882f5dd8b7a5c9ede37cf8"
     },
     "es": {
       "whop.description": "1a07cf04ef17029448d3781415cbac16d54e66b821907a40d94e0e6349710e70",

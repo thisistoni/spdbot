@@ -1,11 +1,12 @@
 import path from "node:path";
 import { PurchaseClient } from "./purchase-client.mjs";
 import { createPurchaseStore } from "./purchase-store.mjs";
+import { PURCHASE_AUTHORITY, purchaseProtocol } from "./purchase-authority.mjs";
 
-export const isPurchaseLink = raw => typeof raw === "string" && /^spdbot:\/\/auth(?:[/:?#]|$)/i.test(raw);
-export const takePurchaseLaunchLinks = argv => argv.filter(isPurchaseLink).slice(0, 4);
+export const isPurchaseLink = (raw, authority = PURCHASE_AUTHORITY) => { const prefix = `${purchaseProtocol(authority)}//auth`; return typeof raw === "string" && raw.toLowerCase().startsWith(prefix) && /^(?:[/:?#]|$)/.test(raw.slice(prefix.length)); };
+export const takePurchaseLaunchLinks = (argv, authority = PURCHASE_AUTHORITY) => argv.filter(raw => isPurchaseLink(raw, authority)).slice(0, 4);
 
-export function createPurchaseDesktop({ app, safeStorage, ipcMain, powerMonitor, shell, guard, fetch, launchLinks = [], window: mainWindow, createClient = options => new PurchaseClient(options), executionChanged = () => {} }) {
+export function createPurchaseDesktop({ app, safeStorage, ipcMain, powerMonitor, shell, guard, fetch, authority = PURCHASE_AUTHORITY, launchLinks = [], window: mainWindow, createClient = options => new PurchaseClient(options), executionChanged = () => {} }) {
   const peers = new Map();
   let client = null;
   let early = launchLinks;
@@ -62,7 +63,7 @@ export function createPurchaseDesktop({ app, safeStorage, ipcMain, powerMonitor,
       client = createClient({ store: createPurchaseStore(path.join(app.getPath("userData"), "purchase-access.bin"), {
         available: async () => (await safeStorage.isAsyncEncryptionAvailable()) && (process.platform !== "linux" || safeStorage.getSelectedStorageBackend() !== "basic_text"),
         encrypt: text => safeStorage.encryptStringAsync(text), decrypt: bytes => safeStorage.decryptStringAsync(bytes),
-      }), fetch, openExternal: url => shell.openExternal(url), version: app.getVersion(), platform: process.platform, changed });
+      }), fetch, authority, openExternal: url => shell.openExternal(url), version: app.getVersion(), platform: process.platform, changed });
       await client.start();
       // A cold callback has no persisted verifier and cannot silently bind an existing profile.
       for (const link of early) await client.receiveCallback(link);
@@ -73,12 +74,12 @@ export function createPurchaseDesktop({ app, safeStorage, ipcMain, powerMonitor,
       app.on("before-quit", () => { clearInterval(timer); clearTimeout(expiryTimer); });
     },
     fromUrl(raw) {
-      if (!isPurchaseLink(raw)) return false;
+      if (!isPurchaseLink(raw, authority)) return false;
       if (client) void client.receiveCallback(raw).catch(() => {});
       else if (early.length < 4) early.push(raw);
       return true;
     },
-    fromArgs(args) { const links = takePurchaseLaunchLinks(args); links.forEach(link => this.fromUrl(link)); return links.length > 0; },
+    fromArgs(args) { const links = takePurchaseLaunchLinks(args, authority); links.forEach(link => this.fromUrl(link)); return links.length > 0; },
     async allowed() { return (await client?.state())?.allowed === true; },
     async cuaAllowed(isRemote) { return (await this.allowed()) && !isRemote() && ["darwin", "linux", "win32"].includes(process.platform); },
     async assert() { if (!(await this.allowed())) throw new Error("purchase_access_required"); },

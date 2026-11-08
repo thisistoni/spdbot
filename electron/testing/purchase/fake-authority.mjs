@@ -37,7 +37,7 @@ export class FakeAuthority {
   callback(client) {
     const p = client.pending, code = randomBytes(32).toString("base64url");
     this.codes.set(code, { id: p.requestId, challenge: hash(p.verifier), jkt: null });
-    return `spdbot://auth/callback?request_id=${p.requestId}&code=${code}&state=${p.state}`;
+    return `spdbot-preview://auth/callback?request_id=${p.requestId}&code=${code}&state=${p.state}`;
   }
   fetch = async (url, options) => {
     this.requests.push({ url, options });
