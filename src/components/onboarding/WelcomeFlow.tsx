@@ -81,6 +81,7 @@ export function WelcomeFlow({
   onOpenOrganisation,
   cloudOffer,
   setupImport,
+  buyerConnected = false,
 }: {
   bot: Bot | null;
   onDone: () => void;
@@ -96,6 +97,7 @@ export function WelcomeFlow({
   cloudOffer?: CloudOffer | null;
   /** Where the import step looks; the desktop app's own window looks on its own server. `detection` skips the look. */
   setupImport?: { client: SetupImportClient; detection?: SetupDetection } | null;
+  buyerConnected?: boolean;
 }) {
   const { dispatch } = useStore();
   const { capabilities } = useDesktopCapabilities();
@@ -104,8 +106,8 @@ export function WelcomeFlow({
   const [detection, setDetection] = useState<SetupDetection | null>(setupImport?.detection ?? null);
   const [importResult, setImportResult] = useState<SetupImportResult | null>(null);
   const [importBusy, setImportBusy] = useState(false);
-  const beats = beatsFor({ dictation: dictation ?? capabilities.dictation.available, reel, hosted, setupImport: detection !== null, cloud: offer !== null }).filter((id): boolean => id !== "phone");
-  const [beat, setBeat] = useState<BeatId>(() => (initialBeat && beats.includes(initialBeat) ? initialBeat : "hello"));
+  const beats = beatsFor({ dictation: dictation ?? capabilities.dictation.available, reel, hosted, setupImport: detection !== null, cloud: offer !== null, buyerConnected }).filter((id): boolean => id !== "phone");
+  const [beat, setBeat] = useState<BeatId>(() => (initialBeat && beats.includes(initialBeat) ? initialBeat : beats[0] ?? "engines"));
   const [mascot, setMascot] = useState<MausState>(MASCOT_FOR_BEAT[beat]);
   const [motion, setMotion] = useState<{ kind: Motion; key: number }>({ kind: "blink", key: 0 });
   const cardRef = useRef<HTMLDivElement>(null);
@@ -155,7 +157,7 @@ export function WelcomeFlow({
       if (finishing.current) return;
       finishing.current = true;
       track("onboarding_completed", { reason, at: beat, replay });
-      setEmailGateDone("submitted");
+      setEmailGateDone(buyerConnected ? "skipped" : "submitted");
       onDone();
       try {
         const config = await api("/api/config", { method: "PUT", body: JSON.stringify(completionPatch()), signal: AbortSignal.timeout(10_000) });
@@ -163,7 +165,7 @@ export function WelcomeFlow({
       } catch {
       }
     },
-    [beat, dispatch, onDone, replay],
+    [beat, dispatch, onDone, replay, buyerConnected],
   );
 
   const next = nextBeat(beats, beat);

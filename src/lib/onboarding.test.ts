@@ -30,6 +30,17 @@ import {
 const done = { completedAt: "2026-09-09T10:00:00.000Z", version: WELCOME_VERSION, reelSeen: false, hintsSeen: [] };
 
 describe("welcomeDue", () => {
+  it("keeps the already connected buyer out of contact capture on every setup path", () => {
+    for (const dictation of [true,false]) for (const reel of [true,false]) for (const hosted of [true,false]) {
+      const options={dictation,reel,hosted,setupImport:true,cloud:true};
+      const original=beatsFor(options);
+      const connected=beatsFor({...options,buyerConnected:true});
+      expect(connected).toEqual(original.filter(id=>id!=="hello"));
+      expect(connected.length).toBeGreaterThan(0);
+      expect(previousBeat(connected,connected[0]!)).toBeNull();
+      expect(connected.at(-1)).toBe("bot");
+    }
+  });
   it("waits for the server before deciding", () => {
     expect(welcomeDue(null, { remoteClient: false, legacyDone: false })).toBe(false);
     expect(welcomeDue(undefined, { remoteClient: false, legacyDone: false })).toBe(false);

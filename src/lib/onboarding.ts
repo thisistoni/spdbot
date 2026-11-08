@@ -83,11 +83,13 @@ export interface BeatOptions {
   setupImport?: boolean;
   /** MausBot Cloud can be bought from this desktop now (cloudBeatWanted); the first bot stays the last beat. */
   cloud?: boolean;
+  /** The local desktop has already verified the buyer's account. */
+  buyerConnected?: boolean;
 }
 
 export function beatsFor(options: BeatOptions): BeatId[] {
-  if (options.hosted) return ["hello", "bot"];
-  const beats: BeatId[] = ["hello"];
+  const beats: BeatId[] = options.buyerConnected ? [] : ["hello"];
+  if (options.hosted) return [...beats, "bot"];
   if (options.reel) beats.push("reel");
   beats.push("engines");
   if (options.setupImport) beats.push("import");
