@@ -44,3 +44,4 @@ deploy/podman/.env.*
 electron/resources/SPDBot Speech.app
 electron/resources/SPDBot Recorder.app
 /work/
+/release-preview/

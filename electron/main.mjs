@@ -1,6 +1,7 @@
 import { createWindowStatePersistence } from "./window-state-persistence.mjs";
 import { createPurchaseDesktop, takePurchaseLaunchLinks } from "./purchase-desktop.mjs";
 import { configureProductIdentity } from "./product-identity.mjs";
+import { PURCHASE_AUTHORITY, purchaseProtocol } from "./purchase-authority.mjs";
 import { app, autoUpdater as nativeAutoUpdater, BrowserWindow, Tray, WebContentsView, clipboard, desktopCapturer, dialog, ipcMain, Menu, nativeImage, Notification, powerMonitor, powerSaveBlocker, safeStorage, screen, session, shell, systemPreferences, utilityProcess } from "electron";
 import { createRequire } from "node:module";
 import { randomBytes, randomUUID } from "node:crypto";
@@ -333,7 +334,7 @@ const serverSupervisor = createServerSupervisor({
 
 function desktopDataDir() {
   // An empty OMB_DATA_DIR falls back here too; server/config.ts would not, so the child gets this path.
-  return process.env.OMB_DATA_DIR || path.join(app.getPath("home"), ".spdbot");
+  return process.env.OMB_DATA_DIR || path.join(app.getPath("home"), PURCHASE_AUTHORITY.environment === "preview" ? ".spdbot-preview" : ".spdbot");
 }
 
 async function stopUtilityServer(proc, timeoutMs = UTILITY_SERVER_STOP_TIMEOUT_MS) {
@@ -3119,7 +3120,7 @@ app.whenReady().then(async () => {
   }
   installServerSessions({ app, defaultSession: session.defaultSession, serverPort: () => SERVER_PORT,
     ownerToken: () => (app.isPackaged && serverReady ? desktopMutationToken : null) });
-  if (app.isPackaged) app.setAsDefaultProtocolClient("spdbot");
+  if (app.isPackaged) app.setAsDefaultProtocolClient(purchaseProtocol().slice(0,-1));
   if (process.platform === "darwin") app.dock.setIcon(APP_ICON);
   secureCredentials = await loadSecureCredentials();
   // An orphaned third-party key with no clear handler left: drop it rather than keep it at rest.

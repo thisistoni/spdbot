@@ -1,8 +1,9 @@
 import path from "node:path";
 import { PurchaseClient } from "./purchase-client.mjs";
 import { createPurchaseStore } from "./purchase-store.mjs";
+import { purchaseProtocol } from "./purchase-authority.mjs";
 
-export const isPurchaseLink = raw => typeof raw === "string" && /^spdbot:\/\/auth(?:[/:?#]|$)/i.test(raw);
+export const isPurchaseLink = raw => { const prefix = `${purchaseProtocol()}//auth`; return typeof raw === "string" && raw.toLowerCase().startsWith(prefix) && /^(?:[/:?#]|$)/.test(raw.slice(prefix.length)); };
 export const takePurchaseLaunchLinks = argv => argv.filter(isPurchaseLink).slice(0, 4);
 
 export function createPurchaseDesktop({ app, safeStorage, ipcMain, powerMonitor, shell, guard, fetch, launchLinks = [], window: mainWindow, createClient = options => new PurchaseClient(options), executionChanged = () => {} }) {

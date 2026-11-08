@@ -66,11 +66,11 @@ export function strictJSON(text, limit = 65536) {
   return JSON.parse(text);
 }
 
-export function callback(raw) {
+export function callback(raw, protocol = "spdbot:") {
   // eslint-disable-next-line no-control-regex -- Protocol callbacks may contain no control characters.
   if (typeof raw !== "string" || Buffer.byteLength(raw) > 2048 || /[\x00-\x20\x7f]/.test(raw) || /%(?![a-f\d]{2})/i.test(raw)) throw new Error("invalid_callback");
   const url = new URL(raw);
-  if (url.protocol !== "spdbot:" || url.hostname !== "auth" || url.pathname !== "/callback" || url.username || url.password || url.port || url.hash ||
+  if (!["spdbot:", "spdbot-preview:"].includes(protocol) || url.protocol !== protocol || url.hostname !== "auth" || url.pathname !== "/callback" || url.username || url.password || url.port || url.hash ||
       url.searchParams.size !== 3 || ["request_id", "code", "state"].some(k => url.searchParams.getAll(k).length !== 1)) throw new Error("invalid_callback");
   const result = Object.fromEntries(url.searchParams);
   if (!uuid(result.request_id) || !opaque(result.state) || !opaque(result.code)) throw new Error("invalid_callback");

@@ -1,6 +1,6 @@
 import { randomBytes, sign, createPrivateKey, createPublicKey } from "node:crypto";
 import { SignJWT, importJWK } from "./purchase-jose.mjs";
-import { PURCHASE_AUTHORITY, validateAuthority } from "./purchase-authority.mjs";
+import { PURCHASE_AUTHORITY, validateAuthority, purchaseProtocol } from "./purchase-authority.mjs";
 import { PurchaseClock } from "./purchase-clock.mjs";
 import { applyDecision, bindingOf, deviceThumbprint, emptySecurity, usableLease, validateSecurity, verifyToken } from "./purchase-verifier.mjs";
 import { authorizationURL, callback, equal, exact, hash, integer, opaque, possessionBytes, publicJwk, strictJSON, uuid } from "./purchase-wire.mjs";
@@ -140,11 +140,11 @@ export class PurchaseClient {
       return this.state();
     });
   }
-  accepts(raw) { return typeof raw === "string" && /^spdbot:\/\/auth(?:[/:?#]|$)/i.test(raw); }
+  accepts(raw) { const prefix = `${purchaseProtocol(this.authority)}//auth`; return typeof raw === "string" && raw.toLowerCase().startsWith(prefix) && /^(?:[/:?#]|$)/.test(raw.slice(prefix.length)); }
   receiveCallback(raw) {
     // Claim synchronously, before async redemption: concurrent warm callbacks cannot redeem twice.
     let data;
-    try { data = callback(raw); } catch { return Promise.resolve(false); }
+    try { data = callback(raw, purchaseProtocol(this.authority)); } catch { return Promise.resolve(false); }
     const pending = this.pending;
     if (!pending || data.request_id !== pending.requestId || !equal(data.state, pending.state) || this.clock.now() >= pending.expires) return Promise.resolve(false);
     this.pending = null;
